@@ -1,0 +1,26 @@
+<div class="content">
+  @if(loggedIn()) {
+  <h3>feature: logout</h3>
+  <button type="button" (click)="logout()">Logout</button>
+  } @else {
+  <h3>feature: register</h3>
+  <form [formGroup]="registerForm" (ngSubmit)="register()">
+    <label for="email">Email: </label>
+    <input id="email" type="text" formControlName="email" />
+    <label for="password">Password: </label>
+    <input id="password" type="password" formControlName="password" />
+    <p>Complete the form to enable button.</p>
+    <button type="submit" [disabled]="!registerForm.valid">Send</button>
+  </form>
+
+  <h3>feature: login</h3>
+  <form [formGroup]="loginForm" (ngSubmit)="login()">
+    <label for="email">Email: </label>
+    <input id="email" type="text" formControlName="email" />
+    <label for="password">Password: </label>
+    <input id="password" type="password" formControlName="password" />
+    <p>Complete the form to enable button.</p>
+    <button type="submit" [disabled]="!loginForm.valid">Send</button>
+  </form>
+  }
+</div>
