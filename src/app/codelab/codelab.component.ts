@@ -7,6 +7,7 @@ import {
   User,
   signOut,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
 } from '@angular/fire/auth';
 import {
   FormGroup,
@@ -35,6 +36,9 @@ export class CodelabComponent {
   loginForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
     password: new FormControl('', [Validators.required]),
+  });
+  forgotPasswordForm = new FormGroup({
+    email: new FormControl('', [Validators.required, Validators.email]),
   });
 
   constructor() {
@@ -74,5 +78,20 @@ export class CodelabComponent {
 
   logout() {
     from(signOut(this.auth)).pipe(take(1)).subscribe();
+  }
+
+  forgotPassword() {
+    console.warn(this.forgotPasswordForm.value);
+    const value = this.forgotPasswordForm.value;
+    from(sendPasswordResetEmail(this.auth, value.email!))
+      .pipe(take(1))
+      .subscribe({
+        next: () => {
+          console.info('email sent.');
+        },
+        error: (error: FirebaseError) => {
+          console.warn('Error:', error);
+        },
+      });
   }
 }

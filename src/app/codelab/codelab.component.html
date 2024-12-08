@@ -22,5 +22,13 @@
     <p>Complete the form to enable button.</p>
     <button type="submit" [disabled]="!loginForm.valid">Send</button>
   </form>
+
+  <h3>feature: forgot password</h3>
+  <form [formGroup]="forgotPasswordForm" (ngSubmit)="forgotPassword()">
+    <label for="email">Email: </label>
+    <input id="email" type="text" formControlName="email" />
+    <p>Complete the form to enable button.</p>
+    <button type="submit" [disabled]="!forgotPasswordForm.valid">Send</button>
+  </form>
   }
 </div>
