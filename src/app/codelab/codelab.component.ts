@@ -16,7 +16,7 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Firestore, setDoc, doc } from '@angular/fire/firestore';
+import { Firestore, setDoc, doc, collection, addDoc, serverTimestamp } from '@angular/fire/firestore';
 import { Observable, from, take } from 'rxjs';
 
 @Component({
@@ -84,6 +84,17 @@ export class CodelabComponent {
       .subscribe({
         next: (userCredential) => {
           console.log('User logged in!', userCredential);
+          // Add a new document with id automatically generated
+          from(addDoc(collection(this.firestore, 'loginLogs'), { uid: userCredential.user.uid, timestamp: serverTimestamp() }))
+            .pipe(take(1))
+            .subscribe({
+              next: (documentRef) => {
+                console.log('Document written: ', documentRef.id);
+              },
+              error: (error) => {
+                console.error('Error adding document:', error);
+              },
+            });
         },
         error: (error: FirebaseError) => {
           console.warn('Error:', error);
