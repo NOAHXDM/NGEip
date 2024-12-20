@@ -16,7 +16,18 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Firestore, setDoc, doc, collection, addDoc, serverTimestamp } from '@angular/fire/firestore';
+import {
+  Firestore,
+  setDoc,
+  doc,
+  collection,
+  addDoc,
+  serverTimestamp,
+  Timestamp,
+  getDocs,
+  query,
+  where,
+} from '@angular/fire/firestore';
 import { Observable, from, take } from 'rxjs';
 
 @Component({
@@ -49,6 +60,22 @@ export class CodelabComponent {
       console.log('User:', user);
       this.loggedIn.set(!!user);
     });
+
+    // query data from Firestore where timestamp is less than 2024-12-21
+    const dec212024 = Timestamp.fromDate(new Date(2024, 11, 21));
+    const logsRef = collection(this.firestore, 'loginLogs');
+    const q = query(logsRef, where('timestamp', '<', dec212024));
+    from(getDocs(q))
+      .pipe(take(1))
+      .subscribe({
+        next: (docsRef) => {
+          docsRef.forEach((doc) => {
+            console.log(doc.data());
+            const docTimestamp: Timestamp = doc.data()['timestamp'];
+            console.log(docTimestamp.toDate())
+          });
+        },
+      });
   }
 
   register() {
@@ -85,7 +112,12 @@ export class CodelabComponent {
         next: (userCredential) => {
           console.log('User logged in!', userCredential);
           // Add a new document with id automatically generated
-          from(addDoc(collection(this.firestore, 'loginLogs'), { uid: userCredential.user.uid, timestamp: serverTimestamp() }))
+          from(
+            addDoc(collection(this.firestore, 'loginLogs'), {
+              uid: userCredential.user.uid,
+              timestamp: serverTimestamp(),
+            })
+          )
             .pipe(take(1))
             .subscribe({
               next: (documentRef) => {
