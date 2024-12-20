@@ -16,6 +16,7 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Firestore, setDoc, doc } from '@angular/fire/firestore';
 import { Observable, from, take } from 'rxjs';
 
 @Component({
@@ -40,6 +41,8 @@ export class CodelabComponent {
   forgotPasswordForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
   });
+  // Firestore
+  firestore: Firestore = inject(Firestore);
 
   constructor() {
     this.authState$.pipe(takeUntilDestroyed()).subscribe((user) => {
@@ -57,7 +60,19 @@ export class CodelabComponent {
       .pipe(take(1))
       .subscribe((userCredential) => {
         console.log('User created!', userCredential);
-        const uid = userCredential.user.uid;
+        const { uid, email } = userCredential.user;
+
+        // Add a new document with a uid
+        from(setDoc(doc(this.firestore, 'users', uid), { email, role: 'user' }))
+          .pipe(take(1))
+          .subscribe({
+            next: () => {
+              console.log('Document written with ID:', uid);
+            },
+            error: (error) => {
+              console.error('Error adding document:', error);
+            },
+          });
       });
   }
 
