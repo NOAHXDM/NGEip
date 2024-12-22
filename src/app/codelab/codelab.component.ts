@@ -27,6 +27,7 @@ import {
   getDocs,
   query,
   where,
+  getDoc,
 } from '@angular/fire/firestore';
 import { Observable, from, take } from 'rxjs';
 
@@ -75,6 +76,12 @@ export class CodelabComponent {
             console.log(docTimestamp.toDate())
           });
         },
+      });
+
+    from(getDoc(doc(this.firestore, 'users', '8s7LEeW98IoyM8NwidVJFbf4Jctj')))
+      .pipe(take(1))
+      .subscribe({
+        next: (value) => console.log('getDoc', value.data()),
       });
   }
 
