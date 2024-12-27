@@ -9,6 +9,7 @@ import {
   provideFirestore,
   connectFirestoreEmulator,
 } from '@angular/fire/firestore';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -38,5 +39,6 @@ export const appConfig: ApplicationConfig = {
       connectFirestoreEmulator(firestore, 'localhost', 8080);
       return firestore;
     }),
+    provideAnimationsAsync(),
   ],
 };
