@@ -32,7 +32,7 @@ enum AttendanceType {
 enum ReasonPriority {
   First = 1, // 線上災難
   Second = 2, // 插件
-  Third = 3, // Deadline
+  Third = 3, // Urgent routine
   Fourth = 4, // 補時數
   Fifth = 5, // 創意性質
 }
