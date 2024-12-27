@@ -1,1 +1,25 @@
-<p>register works!</p>
+<div class="container d-flex justify-content-center align-items-center vh-100">
+  <form
+    class="d-flex flex-column gap-3"
+    [formGroup]="registerForm"
+    novalidate
+    (ngSubmit)="submit()"
+  >
+    <h3>Register</h3>
+    <mat-form-field appearance="outline">
+      <mat-label>Email</mat-label>
+      <input type="email" matInput formControlName="email" />
+      <mat-icon matSuffix>mail</mat-icon>
+      <mat-hint>Enter you email</mat-hint>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Password</mat-label>
+      <input type="password" matInput formControlName="password" />
+      <mat-icon matSuffix>password</mat-icon>
+      <mat-hint>Enter you password</mat-hint>
+    </mat-form-field>
+    <div class="d-flex flex-column align-items-center">
+      <button type="submit" mat-stroked-button [disabled]="registerForm.invalid">Submit</button>
+    </div>
+  </form>
+</div>
