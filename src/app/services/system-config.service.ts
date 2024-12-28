@@ -29,7 +29,7 @@ export class SystemConfigService {
         }
 
         const initialLicense: License = {
-          maxUsers: 10,
+          maxUsers: 1,
           currentUsers: 0,
           lastUpdated: serverTimestamp(),
         };
@@ -38,7 +38,7 @@ export class SystemConfigService {
     ).pipe(
       catchError((error) => {
         console.log('Creating license failed:', error);
-        return of(null);
+        return of();
       })
     );
   }
