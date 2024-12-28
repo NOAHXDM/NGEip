@@ -18,8 +18,17 @@
       <mat-icon matSuffix>password</mat-icon>
       <mat-hint>Enter you password</mat-hint>
     </mat-form-field>
-    <div class="d-flex flex-column align-items-center">
-      <button type="submit" mat-stroked-button [disabled]="registerForm.invalid">Submit</button>
-    </div>
+    <button type="submit" mat-flat-button [disabled]="registerForm.invalid">
+      CREATE
+    </button>
+    <mat-divider></mat-divider>
+    <p>
+      Already a member?
+      <a
+        class="link-offset-2 link-underline link-underline-opacity-0"
+        [routerLink]="['/Login']"
+        >SIGN IN</a
+      >
+    </p>
   </form>
 </div>
