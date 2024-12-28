@@ -1,4 +1,4 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { APP_INITIALIZER, ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
@@ -10,6 +10,7 @@ import {
   connectFirestoreEmulator,
 } from '@angular/fire/firestore';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { SystemConfigService } from './service/system-config.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -40,5 +41,13 @@ export const appConfig: ApplicationConfig = {
       return firestore;
     }),
     provideAnimationsAsync(),
+    {
+      provide: APP_INITIALIZER,
+      deps: [SystemConfigService],
+      useFactory: (systemConfigService: SystemConfigService) => {
+        return () => systemConfigService.createLicenseIfNotExists();
+      },
+      multi: true,
+    }
   ],
 };
