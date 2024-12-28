@@ -10,7 +10,7 @@ import {
   connectFirestoreEmulator,
 } from '@angular/fire/firestore';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { SystemConfigService } from './service/system-config.service';
+import { SystemConfigService } from './services/system-config.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
