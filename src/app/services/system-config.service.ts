@@ -37,10 +37,7 @@ export class SystemConfigService {
         transaction.set(systemConfigRef, initialLicense);
       })
     ).pipe(
-      catchError((error) => {
-        console.log('Creating license failed:', error);
-        return of();
-      })
+      catchError((error) => of())
     );
   }
 }
