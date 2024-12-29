@@ -66,10 +66,10 @@ export class RegisterComponent {
   }
 
   openSnackBar(message: string) {
-    this._snackBar.open(message, '', {
+    this._snackBar.open(message, 'Close', {
       horizontalPosition: 'center',
       verticalPosition: 'top',
-      duration: 2000,
+      duration: 5000,
     });
   }
 }
