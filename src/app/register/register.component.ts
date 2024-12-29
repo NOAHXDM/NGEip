@@ -34,8 +34,8 @@ import { UserService } from '../services/user.service';
   styleUrl: './register.component.scss',
 })
 export class RegisterComponent {
-  private systemConfigService = inject(SystemConfigService);
-  private userService = inject(UserService);
+  protected systemConfigService = inject(SystemConfigService);
+  protected userService = inject(UserService);
   private _snackBar = inject(MatSnackBar);
   private _router = inject(Router);
   inProgress = false;

@@ -25,7 +25,7 @@ import { UserService } from '../services/user.service';
   styleUrl: './home.component.scss',
 })
 export class HomeComponent {
-  private userService = inject(UserService);
+  protected userService = inject(UserService);
   private _router = inject(Router);
 
   logout() {

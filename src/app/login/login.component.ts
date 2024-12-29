@@ -32,7 +32,7 @@ import { take } from 'rxjs';
   styleUrl: './login.component.scss',
 })
 export class LoginComponent {
-  private userService = inject(UserService);
+  protected userService = inject(UserService);
   private _snackBar = inject(MatSnackBar);
   private _router = inject(Router);
   loginForm = new FormGroup({
