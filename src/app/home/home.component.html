@@ -1,5 +1,6 @@
+<!-- Nav -->
 <mat-toolbar>
-  <span [routerLink]="['/']">NOAHXDM</span>
+  <span [routerLink]="['/']">BRAND LOGO</span>
   <span class="menu-spacer"></span>
   <div class="d-none d-md-block">
     <a href="#" mat-button>Link 1</a>
@@ -8,10 +9,13 @@
   </div>
   <span class="avator" [matMenuTriggerFor]="menu"></span>
 </mat-toolbar>
-<div class="container">
-  <p class="text-primary">孤兒院沒有首頁Home但我有</p>
-</div>
-
+<!-- Main content -->
+<mat-grid-list cols="4" rowHeight="150px" gutterSize="5px">
+  <mat-grid-tile colspan="3" rowspan="2" [style.background]="'lightgray'">1</mat-grid-tile>
+  <mat-grid-tile colspan="1" rowspan="4" [style.background]="'lightgray'">2</mat-grid-tile>
+  <mat-grid-tile colspan="3" rowspan="2" [style.background]="'lightgray'">3</mat-grid-tile>
+</mat-grid-list>
+<!-- Profile menu -->
 <mat-menu #menu="matMenu">
   <button mat-menu-item>
     <mat-icon>account_circle</mat-icon>

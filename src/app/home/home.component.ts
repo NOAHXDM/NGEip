@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatGridListModule } from '@angular/material/grid-list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -15,6 +16,7 @@ import { UserService } from '../services/user.service';
   imports: [
     RouterLink,
     MatButtonModule,
+    MatGridListModule,
     MatIconModule,
     MatMenuModule,
     MatToolbarModule,
