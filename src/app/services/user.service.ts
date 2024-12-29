@@ -1,7 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import {
   Auth,
+  User as FirebaseUser,
+  authState,
   createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   signOut,
 } from '@angular/fire/auth';
 import {
@@ -14,7 +17,7 @@ import {
   serverTimestamp,
   where,
 } from '@angular/fire/firestore';
-import { from } from 'rxjs';
+import { from, Observable } from 'rxjs';
 
 import { License } from './system-config.service';
 
@@ -23,6 +26,7 @@ import { License } from './system-config.service';
 })
 export class UserService {
   auth = inject(Auth);
+  authState$: Observable<FirebaseUser> = authState(this.auth);
   firestore: Firestore = inject(Firestore);
 
   constructor() {}
@@ -73,6 +77,10 @@ export class UserService {
         });
       })
     );
+  }
+
+  login(email: string, password: string) {
+    return from(signInWithEmailAndPassword(this.auth, email, password));
   }
 
   logout() {
