@@ -63,26 +63,26 @@ export class CodelabComponent {
     });
 
     // query data from Firestore where timestamp is less than 2024-12-21
-    const dec212024 = Timestamp.fromDate(new Date(2024, 11, 21));
-    const logsRef = collection(this.firestore, 'loginLogs');
-    const q = query(logsRef, where('timestamp', '<', dec212024));
-    from(getDocs(q))
-      .pipe(take(1))
-      .subscribe({
-        next: (docsRef) => {
-          docsRef.forEach((doc) => {
-            console.log(doc.data());
-            const docTimestamp: Timestamp = doc.data()['timestamp'];
-            console.log(docTimestamp.toDate())
-          });
-        },
-      });
+    // const dec212024 = Timestamp.fromDate(new Date(2024, 11, 21));
+    // const logsRef = collection(this.firestore, 'loginLogs');
+    // const q = query(logsRef, where('timestamp', '<', dec212024));
+    // from(getDocs(q))
+    //   .pipe(take(1))
+    //   .subscribe({
+    //     next: (docsRef) => {
+    //       docsRef.forEach((doc) => {
+    //         console.log(doc.data());
+    //         const docTimestamp: Timestamp = doc.data()['timestamp'];
+    //         console.log(docTimestamp.toDate())
+    //       });
+    //     },
+    //   });
 
-    from(getDoc(doc(this.firestore, 'users', '8s7LEeW98IoyM8NwidVJFbf4Jctj')))
-      .pipe(take(1))
-      .subscribe({
-        next: (value) => console.log('getDoc', value.data()),
-      });
+    // from(getDoc(doc(this.firestore, 'users', '8s7LEeW98IoyM8NwidVJFbf4Jctj')))
+    //   .pipe(take(1))
+    //   .subscribe({
+    //     next: (value) => console.log('getDoc', value.data()),
+    //   });
   }
 
   register() {

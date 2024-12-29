@@ -14,7 +14,7 @@ export const authGuard: CanActivateFn = (route, state) => {
         return new RedirectCommand(urlTree);
       }
 
-      return false;
+      return true;
     })
   );
 };

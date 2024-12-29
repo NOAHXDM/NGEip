@@ -1,12 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import {
-  doc,
+  FieldValue,
   Firestore,
+  Timestamp,
+  doc,
   runTransaction,
   serverTimestamp,
 } from '@angular/fire/firestore';
 import { catchError, from, of } from 'rxjs';
-import { License } from '../models/system.config';
 
 @Injectable({
   providedIn: 'root',
@@ -42,4 +43,10 @@ export class SystemConfigService {
       })
     );
   }
+}
+
+export interface License {
+  maxUsers: number;
+  currentUsers: number;
+  lastUpdated: Timestamp | FieldValue;
 }
