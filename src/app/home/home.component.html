@@ -1,4 +1,24 @@
+<mat-toolbar>
+  <span [routerLink]="['/']">NOAHXDM</span>
+  <span class="menu-spacer"></span>
+  <div class="d-none d-md-block">
+    <a href="#" mat-button>Link 1</a>
+    <a href="#" mat-button>Link 2</a>
+    <a href="#" mat-button>Link 3</a>
+  </div>
+  <span class="avator" [matMenuTriggerFor]="menu"></span>
+</mat-toolbar>
 <div class="container">
   <p class="text-primary">孤兒院沒有首頁Home但我有</p>
-  <button type="button" class="btn btn-primary btn-sm" (click)="logout()">Logout</button>
 </div>
+
+<mat-menu #menu="matMenu">
+  <button mat-menu-item>
+    <mat-icon>account_circle</mat-icon>
+    <span>Profile</span>
+  </button>
+  <button mat-menu-item (click)="logout()">
+    <mat-icon>logout</mat-icon>
+    <span>Logout</span>
+  </button>
+</mat-menu>

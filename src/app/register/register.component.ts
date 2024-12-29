@@ -5,7 +5,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -21,8 +21,8 @@ import { UserService } from '../services/user.service';
   selector: 'app-register',
   standalone: true,
   imports: [
+    RouterLink,
     ReactiveFormsModule,
-    RouterModule,
     MatButtonModule,
     MatDividerModule,
     MatFormFieldModule,
