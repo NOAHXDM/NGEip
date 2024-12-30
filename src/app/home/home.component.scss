@@ -10,3 +10,10 @@
   background-image: url("https://placehold.co/40x40");
   background-size: cover;
 }
+
+.fab-button-container {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 5;
+}

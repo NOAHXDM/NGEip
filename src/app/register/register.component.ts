@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import {
   FormControl,
   FormGroup,
@@ -34,15 +34,18 @@ import { UserService } from '../services/user.service';
   styleUrl: './register.component.scss',
 })
 export class RegisterComponent {
-  protected systemConfigService = inject(SystemConfigService);
-  protected userService = inject(UserService);
-  private _snackBar = inject(MatSnackBar);
-  private _router = inject(Router);
   inProgress = false;
   registerForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
     password: new FormControl('', [Validators.required]),
   });
+
+  constructor(
+    private systemConfigService: SystemConfigService,
+    private userService: UserService,
+    private _snackBar: MatSnackBar,
+    private _router: Router
+  ) {}
 
   register() {
     const { license } = this.systemConfigService;

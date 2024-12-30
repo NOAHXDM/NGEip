@@ -39,9 +39,9 @@ import { Observable, from, take } from 'rxjs';
   styleUrl: './codelab.component.scss',
 })
 export class CodelabComponent {
-  private auth = inject(Auth);
-  authState$: Observable<User> = authState(this.auth);
-  loggedIn = signal<boolean>(false);
+  readonly auth = inject(Auth);
+  readonly authState$: Observable<User> = authState(this.auth);
+  readonly loggedIn = signal<boolean>(false);
   registerForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
     password: new FormControl('', [Validators.required]),
@@ -54,7 +54,7 @@ export class CodelabComponent {
     email: new FormControl('', [Validators.required, Validators.email]),
   });
   // Firestore
-  firestore: Firestore = inject(Firestore);
+  readonly firestore: Firestore = inject(Firestore);
 
   constructor() {
     this.authState$.pipe(takeUntilDestroyed()).subscribe((user) => {

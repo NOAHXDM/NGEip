@@ -12,6 +12,12 @@
 <!-- Main content -->
 <mat-grid-list cols="4" rowHeight="150px" gutterSize="5px">
   <mat-grid-tile colspan="3" rowspan="2" [style.background]="'lightgray'">
+    <!-- Floating action button -->
+    <div class="fab-button-container">
+      <button mat-mini-fab (click)="openNewAttendanceDialog()">
+        <mat-icon>edit</mat-icon>
+      </button>
+    </div>
     <!-- Grid 1 -->
     <mat-card appearance="raised">
       <mat-card-header>

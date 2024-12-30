@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import {
   FormControl,
   FormGroup,
@@ -32,13 +32,16 @@ import { take } from 'rxjs';
   styleUrl: './login.component.scss',
 })
 export class LoginComponent {
-  protected userService = inject(UserService);
-  private _snackBar = inject(MatSnackBar);
-  private _router = inject(Router);
   loginForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
     password: new FormControl('', [Validators.required]),
   });
+
+  constructor(
+    private userService: UserService,
+    private _snackBar: MatSnackBar,
+    private _router: Router
+  ) {}
 
   login() {
     const { email, password } = this.loginForm.value;
