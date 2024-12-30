@@ -18,6 +18,11 @@
       <mat-icon matSuffix>password</mat-icon>
       <mat-hint>Enter you password</mat-hint>
     </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Name</mat-label>
+      <input type="text" matInput formControlName="name" />
+      <mat-hint>Enter you name</mat-hint>
+    </mat-form-field>
     <button type="submit" mat-flat-button [disabled]="registerForm.invalid">
       CREATE
     </button>

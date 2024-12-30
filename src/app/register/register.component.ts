@@ -38,6 +38,7 @@ export class RegisterComponent {
   registerForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
     password: new FormControl('', [Validators.required]),
+    name: new FormControl('', [Validators.required]),
   });
 
   constructor(
@@ -57,9 +58,9 @@ export class RegisterComponent {
     }
 
     this.inProgress = true;
-    const { email, password } = this.registerForm.value;
+    const { email, password, name } = this.registerForm.value;
     this.userService
-      .createUser(email!, password!)
+      .createUser(email!, password!, name!)
       .pipe(take(1))
       .subscribe({
         next: () => this._router.navigate(['/']),

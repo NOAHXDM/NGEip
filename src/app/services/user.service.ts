@@ -31,7 +31,7 @@ export class UserService {
 
   constructor() {}
 
-  createUser(email: string, password: string) {
+  createUser(email: string, password: string, name: string) {
     return from(
       runTransaction(this.firestore, async (transaction) => {
         // Check license
@@ -55,15 +55,21 @@ export class UserService {
           throw new Error('Email already exists');
         }
         // Create user
-        const userCredential = await createUserWithEmailAndPassword(
-          this.auth,
-          email,
-          password
-        );
-        const { uid } = userCredential.user;
+        let uid: string;
+        try {
+          const userCredential = await createUserWithEmailAndPassword(
+            this.auth,
+            email,
+            password
+          );
+          uid = userCredential.user.uid;
+        } catch (error: any) {
+          throw new Error(error.message);
+        }
         // Add a new document with a uid
         const user: User = {
           email,
+          name,
           remainingLeaveHours: 0,
           remoteWorkEligibility: 'N/A',
           remoteWorkRecommender: [],
@@ -90,12 +96,11 @@ export class UserService {
 
 interface User {
   birthday?: Date;
-  displayName?: string;
   email: string;
   jobRank?: string;
   jobTitle?: string;
   leaveTransactionHistory?: LeaveTransaction[]; // 休假交易紀錄
-  name?: string;
+  name: string;
   phone?: string;
   photo?: string;
   remainingLeaveHours: number; // 剩餘特休時數
