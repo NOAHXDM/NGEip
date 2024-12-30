@@ -51,6 +51,7 @@ export class HomeComponent {
   openNewAttendanceDialog() {
     const dialogRef = this._dialog.open(AttendanceComponent, {
       data: { title: 'Create a new request' },
+      width: '65vw',
     });
 
     dialogRef.afterClosed().subscribe({
