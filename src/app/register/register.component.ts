@@ -11,13 +11,14 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatSnackBar } from '@angular/material/snack-bar';
-
-import { UserService } from '../services/user.service';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { take } from 'rxjs';
 
+import { SystemConfigService } from '../services/system-config.service';
+import { UserService } from '../services/user.service';
+
 @Component({
-  selector: 'app-login',
+  selector: 'app-register',
   standalone: true,
   imports: [
     RouterLink,
@@ -27,32 +28,45 @@ import { take } from 'rxjs';
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatSnackBarModule,
   ],
-  templateUrl: './login.component.html',
-  styleUrl: './login.component.scss',
+  templateUrl: './register.component.html',
+  styleUrl: './register.component.scss',
 })
-export class LoginComponent {
-  passwordVisible = signal(false);
-  loginForm = new FormGroup({
+export class RegisterComponent {
+  inProgress = false;
+  registerForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
     password: new FormControl('', [Validators.required]),
+    name: new FormControl('', [Validators.required]),
   });
+  passwordVisible = signal(false);
 
   constructor(
+    private systemConfigService: SystemConfigService,
     private userService: UserService,
     private _snackBar: MatSnackBar,
     private _router: Router
   ) {}
 
-  login() {
-    const { email, password } = this.loginForm.value;
+  register() {
+    const { license } = this.systemConfigService;
+    if (!license) {
+      this.openSnackBar(
+        'Your license has not been activated yet. Please activate it to continue.'
+      );
+      return;
+    }
 
+    this.inProgress = true;
+    const { email, password, name } = this.registerForm.value;
     this.userService
-      .login(email!, password!)
+      .createUser(email!, password!, name!)
       .pipe(take(1))
       .subscribe({
         next: () => this._router.navigate(['/']),
         error: (error) => this.openSnackBar(error.message),
+        complete: () => (this.inProgress = false),
       });
   }
 
@@ -65,7 +79,7 @@ export class LoginComponent {
   }
 
   passwordVisibleToggle(event: MouseEvent) {
-    this.passwordVisible.update((value) => !value);
+    this.passwordVisible.update(value => !value);
     event.stopPropagation();
   }
 }

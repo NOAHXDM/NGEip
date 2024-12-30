@@ -1,1 +1,55 @@
-<p>home works!</p>
+<!-- Nav -->
+<mat-toolbar>
+  <span [routerLink]="['/']">BRAND LOGO</span>
+  <span class="menu-spacer"></span>
+  <div class="d-none d-md-block">
+    <a href="#" mat-button>Coming Soon</a>
+    <a href="#" mat-button>Coming Soon</a>
+    <a href="#" mat-button>Coming Soon</a>
+  </div>
+  <span class="avator" [matMenuTriggerFor]="menu"></span>
+</mat-toolbar>
+<!-- Main content -->
+<mat-grid-list cols="4" rowHeight="150px" gutterSize="5px">
+  <mat-grid-tile colspan="3" rowspan="2" [style.background]="'lightgray'">
+    <!-- Floating action button -->
+    <div class="fab-button-container">
+      <button mat-mini-fab (click)="openNewAttendanceDialog()">
+        <mat-icon>edit</mat-icon>
+      </button>
+    </div>
+    <!-- Grid 1 -->
+    <mat-card appearance="raised">
+      <mat-card-header>
+        <mat-chip-listbox>
+          <mat-chip-option selected>Today</mat-chip-option>
+          <mat-chip-option>This Week</mat-chip-option>
+          <mat-chip-option>This Month</mat-chip-option>
+          <mat-chip-option>Custom Range</mat-chip-option>
+        </mat-chip-listbox>
+      </mat-card-header>
+      <mat-card-content
+        >Simple card content</mat-card-content
+      >
+    </mat-card>
+  </mat-grid-tile>
+  <mat-grid-tile colspan="1" rowspan="4" [style.background]="'lightgray'">
+    <!-- Grid 2 -->
+    Coming Soon
+  </mat-grid-tile>
+  <mat-grid-tile colspan="3" rowspan="2" [style.background]="'lightgray'">
+    <!-- Grid 3 -->
+    Coming Soon
+  </mat-grid-tile>
+</mat-grid-list>
+<!-- Profile menu -->
+<mat-menu #menu="matMenu">
+  <button mat-menu-item>
+    <mat-icon>account_circle</mat-icon>
+    <span>Profile (Coming Soon)</span>
+  </button>
+  <button mat-menu-item (click)="logout()">
+    <mat-icon>logout</mat-icon>
+    <span>Logout</span>
+  </button>
+</mat-menu>

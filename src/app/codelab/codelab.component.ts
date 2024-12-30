@@ -27,6 +27,7 @@ import {
   getDocs,
   query,
   where,
+  getDoc,
 } from '@angular/fire/firestore';
 import { Observable, from, take } from 'rxjs';
 
@@ -38,9 +39,9 @@ import { Observable, from, take } from 'rxjs';
   styleUrl: './codelab.component.scss',
 })
 export class CodelabComponent {
-  private auth = inject(Auth);
-  authState$: Observable<User> = authState(this.auth);
-  loggedIn = signal<boolean>(false);
+  readonly auth = inject(Auth);
+  readonly authState$: Observable<User> = authState(this.auth);
+  readonly loggedIn = signal<boolean>(false);
   registerForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
     password: new FormControl('', [Validators.required]),
@@ -53,7 +54,7 @@ export class CodelabComponent {
     email: new FormControl('', [Validators.required, Validators.email]),
   });
   // Firestore
-  firestore: Firestore = inject(Firestore);
+  readonly firestore: Firestore = inject(Firestore);
 
   constructor() {
     this.authState$.pipe(takeUntilDestroyed()).subscribe((user) => {
@@ -62,20 +63,26 @@ export class CodelabComponent {
     });
 
     // query data from Firestore where timestamp is less than 2024-12-21
-    const dec212024 = Timestamp.fromDate(new Date(2024, 11, 21));
-    const logsRef = collection(this.firestore, 'loginLogs');
-    const q = query(logsRef, where('timestamp', '<', dec212024));
-    from(getDocs(q))
-      .pipe(take(1))
-      .subscribe({
-        next: (docsRef) => {
-          docsRef.forEach((doc) => {
-            console.log(doc.data());
-            const docTimestamp: Timestamp = doc.data()['timestamp'];
-            console.log(docTimestamp.toDate())
-          });
-        },
-      });
+    // const dec212024 = Timestamp.fromDate(new Date(2024, 11, 21));
+    // const logsRef = collection(this.firestore, 'loginLogs');
+    // const q = query(logsRef, where('timestamp', '<', dec212024));
+    // from(getDocs(q))
+    //   .pipe(take(1))
+    //   .subscribe({
+    //     next: (docsRef) => {
+    //       docsRef.forEach((doc) => {
+    //         console.log(doc.data());
+    //         const docTimestamp: Timestamp = doc.data()['timestamp'];
+    //         console.log(docTimestamp.toDate())
+    //       });
+    //     },
+    //   });
+
+    // from(getDoc(doc(this.firestore, 'users', '8s7LEeW98IoyM8NwidVJFbf4Jctj')))
+    //   .pipe(take(1))
+    //   .subscribe({
+    //     next: (value) => console.log('getDoc', value.data()),
+    //   });
   }
 
   register() {

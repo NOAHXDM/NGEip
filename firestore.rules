@@ -1,0 +1,44 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 通用函數
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // 管理員對所有 users 有完全權限
+    match /users/{userId} {
+      allow read, create: if true
+
+      // 確保 role 欄位沒被修改
+      allow update: if
+        isSignedIn() &&
+        (
+          // 管理員可以更新任何欄位
+          isAdmin() ||
+          // 一般用戶只能更新自己的非敏感資料
+          (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'email']))
+        );
+      
+      allow delete: if isAdmin();
+    }
+
+    match /systemConfig/license {
+      allow read, write: if true;
+      
+      allow update: if
+        'maxUsers' in request.resource.data ? isAdmin() : true
+    }
+
+    match /attendanceLogs/{document=**} {
+      allow read, write, update: if true;
+    }
+  }
+}

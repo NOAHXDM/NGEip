@@ -1,11 +1,11 @@
 <div class="container d-flex justify-content-center align-items-center h-75">
   <form
     class="d-flex flex-column gap-3"
-    [formGroup]="loginForm"
+    [formGroup]="registerForm"
     novalidate
-    (ngSubmit)="login()"
+    (ngSubmit)="register()"
   >
-    <h3>Login</h3>
+    <h3>Register</h3>
     <mat-form-field appearance="outline">
       <mat-label>Email</mat-label>
       <input type="email" matInput formControlName="email" />
@@ -27,22 +27,25 @@
         [attr.aria-label]="'Hide password'"
         [attr.aria-pressed]="!passwordVisible()"
       >
-        <mat-icon>{{
-          passwordVisible() ? "visibility" : "visibility_off"
-        }}</mat-icon>
+        <mat-icon>{{ passwordVisible() ? "visibility" : "visibility_off" }}</mat-icon>
       </button>
       <mat-hint>Enter you password</mat-hint>
     </mat-form-field>
-    <button type="submit" mat-flat-button [disabled]="loginForm.invalid">
-      SIGN IN
+    <mat-form-field appearance="outline">
+      <mat-label>Name</mat-label>
+      <input type="text" matInput formControlName="name" />
+      <mat-hint>Enter you name</mat-hint>
+    </mat-form-field>
+    <button type="submit" mat-flat-button [disabled]="registerForm.invalid">
+      CREATE
     </button>
     <mat-divider></mat-divider>
     <p>
-      Not a member?
+      Already a member?
       <a
         class="link-offset-2 link-underline link-underline-opacity-0"
-        [routerLink]="['/Register']"
-        >SIGN UP</a
+        [routerLink]="['/Login']"
+        >SIGN IN</a
       >
     </p>
   </form>
