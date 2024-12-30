@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import {
   FormControl,
   FormGroup,
@@ -32,6 +32,7 @@ import { take } from 'rxjs';
   styleUrl: './login.component.scss',
 })
 export class LoginComponent {
+  passwordVisible = signal(false);
   loginForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
     password: new FormControl('', [Validators.required]),
@@ -54,11 +55,17 @@ export class LoginComponent {
         error: (error) => this.openSnackBar(error.message),
       });
   }
+
   openSnackBar(message: string) {
     this._snackBar.open(message, 'Close', {
       horizontalPosition: 'center',
       verticalPosition: 'top',
       duration: 5000,
     });
+  }
+
+  passwordVisibleToggle(event: MouseEvent) {
+    this.passwordVisible.set(!this.passwordVisible());
+    event.stopPropagation();
   }
 }

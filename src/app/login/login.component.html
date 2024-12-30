@@ -14,8 +14,23 @@
     </mat-form-field>
     <mat-form-field appearance="outline">
       <mat-label>Password</mat-label>
-      <input type="password" matInput formControlName="password" />
-      <mat-icon matSuffix>password</mat-icon>
+      <input
+        [type]="passwordVisible() ? 'text' : 'password'"
+        matInput
+        formControlName="password"
+      />
+      <button
+        type="button"
+        mat-icon-button
+        matSuffix
+        (click)="passwordVisibleToggle($event)"
+        [attr.aria-label]="'Hide password'"
+        [attr.aria-pressed]="!passwordVisible()"
+      >
+        <mat-icon>{{
+          passwordVisible() ? "visibility" : "visibility_off"
+        }}</mat-icon>
+      </button>
       <mat-hint>Enter you password</mat-hint>
     </mat-form-field>
     <button type="submit" mat-flat-button [disabled]="loginForm.invalid">
