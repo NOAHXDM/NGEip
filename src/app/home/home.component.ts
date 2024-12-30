@@ -7,6 +7,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { take } from 'rxjs';
@@ -26,6 +27,7 @@ import { AttendanceComponent } from '../attendance/attendance.component';
     MatGridListModule,
     MatIconModule,
     MatMenuModule,
+    MatSnackBarModule,
     MatToolbarModule,
   ],
   templateUrl: './home.component.html',
@@ -35,7 +37,8 @@ export class HomeComponent {
   constructor(
     private userService: UserService,
     private _router: Router,
-    private _dialog: MatDialog
+    private _dialog: MatDialog,
+    private _snackBar: MatSnackBar
   ) {}
 
   logout() {
@@ -56,8 +59,18 @@ export class HomeComponent {
 
     dialogRef.afterClosed().subscribe({
       next: (result) => {
-        console.log(result);
+        if (result) {
+          this.openSnackBar('Request created successfully');
+        }
       },
+    });
+  }
+
+  openSnackBar(message: string) {
+    this._snackBar.open(message, 'Close', {
+      horizontalPosition: 'center',
+      verticalPosition: 'top',
+      duration: 5000,
     });
   }
 }

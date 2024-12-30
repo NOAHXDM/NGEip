@@ -1,9 +1,18 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
+import {
+  Firestore,
+  Timestamp,
+  addDoc,
+  collection,
+  serverTimestamp,
+} from '@angular/fire/firestore';
+import { from, switchMap } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AttendanceService {
+  readonly firestore: Firestore = inject(Firestore);
   constructor() {}
 
   typeList() {
@@ -26,6 +35,30 @@ export class AttendanceService {
           value: ReasonPriority[key as keyof typeof ReasonPriority],
         } as SelectOption;
       });
+  }
+
+  create(formValue: any) {
+    const data = {
+      ...formValue,
+      startDateTime: Timestamp.fromDate(
+        (formValue.startDateTime as any).toDate()
+      ),
+      endDateTime: Timestamp.fromDate((formValue.endDateTime as any).toDate()),
+    };
+
+    const auditTrail = {
+      action: 'create',
+      actionBy: formValue.userName,
+      actionDateTime: serverTimestamp(),
+    };
+
+    return from(
+      addDoc(collection(this.firestore, 'attendanceLogs'), data)
+    ).pipe(
+      switchMap((docRef) => {
+        return from(addDoc(collection(docRef, 'auditTrail'), auditTrail));
+      })
+    );
   }
 }
 
@@ -64,7 +97,7 @@ enum ReasonPriority {
   OnlineDisaster = 1, // 線上災難
   UnscheduledTask = 2, // 插件
   UrgentRoutine = 3, // 緊迫的例行
-  Compensatory  = 4, // 補時數
+  Compensatory = 4, // 補時數
   Creative = 5, // 創意性質
 }
 

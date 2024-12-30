@@ -23,6 +23,8 @@ import {
   MatSelectModule,
 } from '@angular/material/select';
 import { Observable, take } from 'rxjs';
+import { MtxDatetimepickerModule } from '@ng-matero/extensions/datetimepicker';
+import { provideMomentDatetimeAdapter } from '@ng-matero/extensions-moment-adapter';
 
 import {
   AttendanceService,
@@ -45,6 +47,29 @@ import { UserService } from '../services/user.service';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MtxDatetimepickerModule,
+  ],
+  providers: [
+    provideMomentDatetimeAdapter({
+      parse: {
+        dateInput: 'YYYY-MM-DD',
+        monthInput: 'MMMM',
+        yearInput: 'YYYY',
+        timeInput: 'HH:mm:ss',
+        datetimeInput: 'YYYY-MM-DD HH:mm:ss',
+      },
+      display: {
+        dateInput: 'YYYY-MM-DD',
+        monthInput: 'MMMM',
+        yearInput: 'YYYY',
+        timeInput: 'HH:mm:ss',
+        datetimeInput: 'YYYY-MM-DD HH:mm:ss',
+        monthYearLabel: 'YYYY MMMM',
+        dateA11yLabel: 'LL',
+        monthYearA11yLabel: 'MMMM YYYY',
+        popupHeaderDateLabel: 'MMM DD, ddd',
+      },
+    }),
   ],
   templateUrl: './attendance.component.html',
   styleUrl: './attendance.component.scss',
@@ -63,11 +88,15 @@ export class AttendanceComponent implements OnInit {
     userId: new FormControl(''),
     userName: new FormControl(''),
     callout: new FormControl(''),
-    hours: new FormControl(0, [Validators.min(0)]),
+    hours: new FormControl(0.5, [Validators.min(0.5)]),
     proxyUserId: new FormControl(''),
     proxyUserName: new FormControl(''),
+    startDateTime: new FormControl('', [Validators.required]),
+    endDateTime: new FormControl('', [Validators.required]),
   });
   reasonPriorityVisible = signal(false);
+  calloutVisible = signal(false);
+  proxyVisible = signal(true);
   userList$: Observable<any[]>;
 
   constructor(
@@ -85,14 +114,21 @@ export class AttendanceComponent implements OnInit {
     // Detect attendanceForm type changes
     this.attendanceForm.get('type')?.valueChanges.subscribe({
       next: (value) => {
-        if (value == AttendanceType.Overtime) {
+        if (
+          value == AttendanceType.Overtime ||
+          value == AttendanceType.RemoteWork
+        ) {
           this.attendanceForm
             .get('reasonPriority')
             ?.setValidators([Validators.required]);
           this.reasonPriorityVisible.set(true);
+          this.calloutVisible.set(true);
+          this.proxyVisible.set(false);
         } else {
           this.attendanceForm.get('reasonPriority')?.clearValidators();
           this.reasonPriorityVisible.set(false);
+          this.calloutVisible.set(false);
+          this.proxyVisible.set(true);
         }
 
         this.attendanceForm.get('reasonPriority')?.updateValueAndValidity();
@@ -112,7 +148,9 @@ export class AttendanceComponent implements OnInit {
   }
 
   save() {
-    console.log(this.attendanceForm.value);
+    this.attendanceService.create(this.attendanceForm.value).subscribe({
+      next: () => this.dialogRef.close(true),
+    });
   }
 
   proxyUserChange(event: MatSelectChange) {

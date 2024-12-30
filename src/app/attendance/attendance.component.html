@@ -11,15 +11,61 @@
         }
       </mat-select>
     </mat-form-field>
+    <!-- STARTDATETIME -->
+    <mat-form-field>
+      <mat-label>Start DateTime</mat-label>
+      <mtx-datetimepicker
+        #startDatetimePicker
+        type="datetime"
+        mode="auto"
+        multiYearSelector="month"
+      >
+      </mtx-datetimepicker>
+      <input
+        [mtxDatetimepicker]="startDatetimePicker"
+        formControlName="startDateTime"
+        matInput
+      />
+      <mtx-datetimepicker-toggle
+        [for]="startDatetimePicker"
+        matSuffix
+      ></mtx-datetimepicker-toggle>
+    </mat-form-field>
+    <!-- ENDDATETIME -->
+    <mat-form-field>
+      <mat-label>End DateTime</mat-label>
+      <mtx-datetimepicker
+        #endDatetimePicker
+        type="datetime"
+        mode="auto"
+        multiYearSelector="month"
+      >
+      </mtx-datetimepicker>
+      <input
+        [mtxDatetimepicker]="endDatetimePicker"
+        formControlName="endDateTime"
+        matInput
+      />
+      <mtx-datetimepicker-toggle
+        [for]="endDatetimePicker"
+        matSuffix
+      ></mtx-datetimepicker-toggle>
+    </mat-form-field>
     <!-- HOURS -->
     <mat-form-field>
-      <mat-label>HOURS</mat-label>
-      <input matInput type="number" min="0" step="0.5" formControlName="hours" />
+      <mat-label>Hours</mat-label>
+      <input
+        matInput
+        type="number"
+        min="0"
+        step="0.5"
+        formControlName="hours"
+      />
     </mat-form-field>
     <!-- REASON -->
     <mat-form-field>
       <mat-label>Reason</mat-label>
-      <textarea matInput formControlName="reason" ></textarea>
+      <textarea matInput formControlName="reason"></textarea>
     </mat-form-field>
     <!-- REASON PRIORITY-->
     @if (reasonPriorityVisible()) {
@@ -36,16 +82,22 @@
     </mat-form-field>
     }
     <!-- PROXY -->
+    @if (proxyVisible()) {
     <mat-form-field>
       <mat-label>Proxy</mat-label>
-      <mat-select formControlName="proxyUserId" (selectionChange)="proxyUserChange($event)">
+      <mat-select
+        formControlName="proxyUserId"
+        (selectionChange)="proxyUserChange($event)"
+      >
         <mat-option value="">Please select</mat-option>
         @for (user of userList$ | async; track user) {
         <mat-option [value]="user.uid">{{ user.name }}</mat-option>
         }
       </mat-select>
     </mat-form-field>
+    }
     <!-- CALLOUT -->
+    @if (calloutVisible()) {
     <mat-form-field>
       <mat-label>Callout</mat-label>
       <mat-select formControlName="callout">
@@ -55,6 +107,7 @@
         }
       </mat-select>
     </mat-form-field>
+    }
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
