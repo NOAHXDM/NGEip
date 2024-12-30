@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import {
   FormControl,
   FormGroup,
@@ -40,6 +40,7 @@ export class RegisterComponent {
     password: new FormControl('', [Validators.required]),
     name: new FormControl('', [Validators.required]),
   });
+  passwordVisible = signal(false);
 
   constructor(
     private systemConfigService: SystemConfigService,
@@ -75,5 +76,10 @@ export class RegisterComponent {
       verticalPosition: 'top',
       duration: 5000,
     });
+  }
+
+  passwordVisibleToggle(event: MouseEvent) {
+    this.passwordVisible.set(!this.passwordVisible());
+    event.stopPropagation();
   }
 }
