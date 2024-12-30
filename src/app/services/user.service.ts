@@ -11,13 +11,14 @@ import {
   Firestore,
   collection,
   doc,
+  getDoc,
   getDocs,
   query,
   runTransaction,
   serverTimestamp,
   where,
 } from '@angular/fire/firestore';
-import { from, Observable } from 'rxjs';
+import { from, map, Observable, shareReplay, switchMap } from 'rxjs';
 
 import { License } from './system-config.service';
 
@@ -25,11 +26,38 @@ import { License } from './system-config.service';
   providedIn: 'root',
 })
 export class UserService {
-  auth = inject(Auth);
-  authState$: Observable<FirebaseUser> = authState(this.auth);
-  firestore: Firestore = inject(Firestore);
+  private readonly auth = inject(Auth);
+  private readonly authState$: Observable<FirebaseUser> = authState(this.auth);
+  readonly currentUser$ = this.authState$.pipe(
+    switchMap((user) => {
+      return from(getDoc(doc(this.firestore, 'users', user.uid)));
+    }),
+    map(
+      (userDoc) =>
+        ({
+          ...userDoc.data(),
+          uid: userDoc.id,
+        } as User & { uid: string })
+    )
+  );
+  readonly firestore: Firestore = inject(Firestore);
 
   constructor() {}
+
+  list() {
+    return from(getDocs(collection(this.firestore, 'users'))).pipe(
+      map((snapshot) =>
+        snapshot.docs.map(
+          (doc) =>
+            ({
+              ...doc.data(),
+              uid: doc.id,
+            } as User & { uid: string })
+        )
+      ),
+      shareReplay(1)
+    );
+  }
 
   createUser(email: string, password: string, name: string) {
     return from(

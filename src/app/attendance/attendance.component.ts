@@ -1,3 +1,4 @@
+import { AsyncPipe } from '@angular/common';
 import { Component, OnInit, Inject, signal } from '@angular/core';
 import {
   FormControl,
@@ -16,18 +17,25 @@ import {
 } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import {
+  MatOption,
+  MatSelectChange,
+  MatSelectModule,
+} from '@angular/material/select';
+import { Observable, take } from 'rxjs';
 
 import {
   AttendanceService,
   SelectOption,
   AttendanceType,
 } from '../services/attendance.service';
+import { UserService } from '../services/user.service';
 
 @Component({
   selector: 'app-attendance',
   standalone: true,
   imports: [
+    AsyncPipe,
     ReactiveFormsModule,
     MatButton,
     MatDialogActions,
@@ -51,14 +59,25 @@ export class AttendanceComponent implements OnInit {
       Validators.maxLength(400),
     ]),
     reasonPriority: new FormControl<string | number>(''),
+    status: new FormControl('pending'),
+    userId: new FormControl(''),
+    userName: new FormControl(''),
+    callout: new FormControl(''),
+    hours: new FormControl(0, [Validators.min(0)]),
+    proxyUserId: new FormControl(''),
+    proxyUserName: new FormControl(''),
   });
   reasonPriorityVisible = signal(false);
+  userList$: Observable<any[]>;
 
   constructor(
     private dialogRef: MatDialogRef<AttendanceComponent>,
     private attendanceService: AttendanceService,
+    private userService: UserService,
     @Inject(MAT_DIALOG_DATA) protected data: any
-  ) {}
+  ) {
+    this.userList$ = this.userService.list();
+  }
 
   ngOnInit() {
     this.typeList = this.attendanceService.typeList();
@@ -79,6 +98,13 @@ export class AttendanceComponent implements OnInit {
         this.attendanceForm.get('reasonPriority')?.updateValueAndValidity();
       },
     });
+    // Set current user to the form
+    this.userService.currentUser$.pipe(take(1)).subscribe({
+      next: (user) => {
+        this.attendanceForm.get('userId')?.setValue(user.uid);
+        this.attendanceForm.get('userName')?.setValue(user.name);
+      },
+    });
   }
 
   cancel() {
@@ -87,5 +113,11 @@ export class AttendanceComponent implements OnInit {
 
   save() {
     console.log(this.attendanceForm.value);
+  }
+
+  proxyUserChange(event: MatSelectChange) {
+    this.attendanceForm
+      .get('proxyUserName')
+      ?.setValue((event.source.selected as MatOption).viewValue);
   }
 }
