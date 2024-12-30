@@ -10,5 +10,4 @@ export const routes: Routes = [
   { path: 'Login', component: LoginComponent, canActivate: [noAuthGuard] },
   { path: 'Register', component: RegisterComponent, canActivate: [noAuthGuard]},
   { path: 'CodeLab', component: CodelabComponent },
-  { path: 'Text', component: TextComponent, canActivate: [yourGuardGuard] },
 ];
