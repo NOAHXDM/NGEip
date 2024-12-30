@@ -1,14 +1,14 @@
-import { APP_INITIALIZER, ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import {
+  APP_INITIALIZER,
+  ApplicationConfig,
+  provideZoneChangeDetection,
+} from '@angular/core';
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
 import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
-import { getAuth, provideAuth, connectAuthEmulator } from '@angular/fire/auth';
-import {
-  getFirestore,
-  provideFirestore,
-  connectFirestoreEmulator,
-} from '@angular/fire/firestore';
+import { getAuth, provideAuth } from '@angular/fire/auth';
+import { getFirestore, provideFirestore } from '@angular/fire/firestore';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { SystemConfigService } from './services/system-config.service';
 
@@ -18,28 +18,17 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideFirebaseApp(() =>
       initializeApp({
-        apiKey: 'AIzaSyBigNRXTWt2AG78OhY03LE9yq5NTgRXeJ0',
-        authDomain: 'fir-eip.firebaseapp.com',
-        projectId: 'fir-eip',
-        storageBucket: 'fir-eip.firebasestorage.app',
-        messagingSenderId: '757825775592',
-        appId: '1:757825775592:web:99c975263289ccbb52665d',
+        projectId: 'noah-eip',
+        appId: '1:596868888265:web:521cbfab9471bd2aa0ff18',
+        storageBucket: 'noah-eip.firebasestorage.app',
+        apiKey: 'AIzaSyAAfL4F-eSuDLeDrgppC-jcNqAqE5dwqKY',
+        authDomain: 'noah-eip.firebaseapp.com',
+        messagingSenderId: '596868888265',
+        measurementId: 'G-8GHHDKZNPE',
       })
     ),
-    // provideAuth(() => getAuth()),
-    provideAuth(() => {
-      const auth = getAuth();
-      connectAuthEmulator(auth, 'http://localhost:9099', {
-        disableWarnings: true,
-      });
-      return auth;
-    }),
-    // provideFirestore(() => getFirestore()),
-    provideFirestore(() => {
-      const firestore = getFirestore();
-      connectFirestoreEmulator(firestore, 'localhost', 8080);
-      return firestore;
-    }),
+    provideAuth(() => getAuth()),
+    provideFirestore(() => getFirestore()),
     provideAnimationsAsync(),
     {
       provide: APP_INITIALIZER,
@@ -48,6 +37,6 @@ export const appConfig: ApplicationConfig = {
         return () => systemConfigService.createLicenseIfNotExists();
       },
       multi: true,
-    }
+    },
   ],
 };
