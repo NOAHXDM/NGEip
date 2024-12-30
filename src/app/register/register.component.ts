@@ -79,7 +79,7 @@ export class RegisterComponent {
   }
 
   passwordVisibleToggle(event: MouseEvent) {
-    this.passwordVisible.set(!this.passwordVisible());
+    this.passwordVisible.update(value => !value);
     event.stopPropagation();
   }
 }
