@@ -40,7 +40,7 @@ import { Observable, from, take } from 'rxjs';
 })
 export class CodelabComponent {
   readonly auth = inject(Auth);
-  readonly authState$: Observable<User> = authState(this.auth);
+  readonly authState$: Observable<User | null> = authState(this.auth);
   readonly loggedIn = signal<boolean>(false);
   registerForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
