@@ -13,28 +13,14 @@ import { from, switchMap } from 'rxjs';
 })
 export class AttendanceService {
   readonly firestore: Firestore = inject(Firestore);
-  constructor() {}
+  constructor() { }
 
   typeList() {
-    return Object.keys(AttendanceType)
-      .filter((key) => isNaN(Number(key)))
-      .map((key) => {
-        return {
-          text: key,
-          value: AttendanceType[key as keyof typeof AttendanceType],
-        } as SelectOption;
-      });
+    return attendanceTypeMapping;
   }
 
   reasonPriorityList() {
-    return Object.keys(ReasonPriority)
-      .filter((key) => isNaN(Number(key)))
-      .map((key) => {
-        return {
-          text: key,
-          value: ReasonPriority[key as keyof typeof ReasonPriority],
-        } as SelectOption;
-      });
+    return reasonPriorityMapping;
   }
 
   create(formValue: any) {
@@ -93,6 +79,20 @@ export enum AttendanceType {
   PaternityLeave = 11, // 陪產假
 }
 
+const attendanceTypeMapping = [
+  { value: AttendanceType.SickLeave, text: '病假' },
+  { value: AttendanceType.PersonalLeave, text: '事假' },
+  { value: AttendanceType.Overtime, text: '加班' },
+  { value: AttendanceType.AnnualLeave, text: '特休' },
+  { value: AttendanceType.RemoteWork, text: '遠距工作' },
+  { value: AttendanceType.MenstrualLeave, text: '生理假' },
+  { value: AttendanceType.BereavementLeave, text: '喪假' },
+  { value: AttendanceType.OfficialLeave, text: '公假' },
+  { value: AttendanceType.MarriageLeave, text: '婚假' },
+  { value: AttendanceType.MaternityLeave, text: '產假' },
+  { value: AttendanceType.PaternityLeave, text: '陪產假' },
+]
+
 enum ReasonPriority {
   OnlineDisaster = 1, // 線上災難
   UnscheduledTask = 2, // 插件
@@ -100,6 +100,14 @@ enum ReasonPriority {
   Compensatory = 4, // 補時數
   Creative = 5, // 創意性質
 }
+
+const reasonPriorityMapping = [
+  { value: ReasonPriority.OnlineDisaster, text: '線上災難' },
+  { value: ReasonPriority.UnscheduledTask, text: '插件' },
+  { value: ReasonPriority.UrgentRoutine, text: '緊迫的例行' },
+  { value: ReasonPriority.Compensatory, text: '補時數' },
+  { value: ReasonPriority.Creative, text: '創意性質' },
+]
 
 interface AttendanceLogAuditTrail {
   action: 'create' | 'update' | 'delete';
