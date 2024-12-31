@@ -27,10 +27,10 @@ import { License } from './system-config.service';
 })
 export class UserService {
   private readonly auth = inject(Auth);
-  private readonly authState$: Observable<FirebaseUser> = authState(this.auth);
+  private readonly authState$: Observable<FirebaseUser | null> = authState(this.auth);
   readonly currentUser$ = this.authState$.pipe(
     switchMap((user) => {
-      return from(getDoc(doc(this.firestore, 'users', user.uid)));
+      return from(getDoc(doc(this.firestore, 'users', user!.uid)));
     }),
     map(
       (userDoc) =>

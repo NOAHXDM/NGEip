@@ -5,7 +5,7 @@ import { map, Observable } from 'rxjs';
 
 export const authGuard: CanActivateFn = (route, state) => {
   const auth = inject(Auth);
-  const authState$: Observable<User> = authState(auth);
+  const authState$: Observable<User | null> = authState(auth);
   const router: Router = inject(Router);
   const urlTree: UrlTree = router.parseUrl('/Login');
   return authState$.pipe(
@@ -21,7 +21,7 @@ export const authGuard: CanActivateFn = (route, state) => {
 
 export const noAuthGuard: CanActivateFn = (route, state) => {
   const auth = inject(Auth);
-  const authState$: Observable<User> = authState(auth);
+  const authState$: Observable<User | null> = authState(auth);
   const router: Router = inject(Router);
   const urlTree: UrlTree = router.parseUrl('/');
   return authState$.pipe(
