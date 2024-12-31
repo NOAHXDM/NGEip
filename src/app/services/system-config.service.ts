@@ -29,12 +29,13 @@ export class SystemConfigService {
           throw new Error('License already exists');
         }
 
-        const initialLicense: License = {
-          maxUsers: 1,
+        // Initialize the license
+        this.license = {
+          maxUsers: 10,
           currentUsers: 0,
           lastUpdated: serverTimestamp(),
         };
-        transaction.set(systemConfigRef, initialLicense);
+        transaction.set(systemConfigRef, this.license);
       })
     ).pipe(
       catchError((error) => of())
