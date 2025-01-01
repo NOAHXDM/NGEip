@@ -47,7 +47,7 @@ export class AttendanceService {
 
     const auditTrail = {
       action: 'create',
-      actionBy: formValue.userName,
+      actionBy: formValue.userId,
       actionDateTime: serverTimestamp(),
     };
 
@@ -97,14 +97,12 @@ interface AttendanceLog {
   hours: number;
   id?: string;
   proxyUserId?: string;
-  proxyUserName?: string;
   reason: string;
   reasonPriority?: ReasonPriority;
   startDateTime: Date;
   status: 'pending' | 'approved' | 'rejected';
   type: AttendanceType;
   userId: string;
-  userName: string;
 }
 
 export enum AttendanceType {

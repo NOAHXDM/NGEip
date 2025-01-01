@@ -10,7 +10,6 @@
       <mat-label>Requester</mat-label>
       <mat-select
         formControlName="userId"
-        (selectionChange)="requestUserChange($event)"
       >
         <mat-option value="">Please select</mat-option>
         @for (user of userList$ | async; track user) {
@@ -105,7 +104,6 @@
       <mat-label>Proxy</mat-label>
       <mat-select
         formControlName="proxyUserId"
-        (selectionChange)="proxyUserChange($event)"
       >
         <mat-option value="">Please select</mat-option>
         @for (user of userList$ | async; track user) {
