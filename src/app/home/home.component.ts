@@ -20,6 +20,7 @@ import { DataSource } from '@angular/cdk/collections';
 import { AttendanceTypePipe } from '../pipes/attendance-type.pipe';
 import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
 import { ReasonPriorityPipe } from '../pipes/reason-priority.pipe';
+import { UserNamePipe } from '../pipes/user-name.pipe';
 
 @Component({
   selector: 'app-home',
@@ -39,6 +40,7 @@ import { ReasonPriorityPipe } from '../pipes/reason-priority.pipe';
     AttendanceTypePipe,
     FirestoreTimestampPipe,
     ReasonPriorityPipe,
+    UserNamePipe,
   ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
@@ -47,14 +49,14 @@ export class HomeComponent {
   dataSource: AttendanceDataSource<any>;
   displayedColumns: string[] = [
     'status',
-    'userName',
+    'userId',
     'type',
     'startDateTime',
     'endDateTime',
     'hours',
     'reason',
     'reasonPriority',
-    'proxyUserName',
+    'proxyUserId',
     'callout',
     'history',
   ];

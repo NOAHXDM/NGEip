@@ -17,11 +17,7 @@ import {
 } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import {
-  MatOption,
-  MatSelectChange,
-  MatSelectModule,
-} from '@angular/material/select';
+import { MatSelectModule } from '@angular/material/select';
 import { Observable, take } from 'rxjs';
 import { MtxDatetimepickerModule } from '@ng-matero/extensions/datetimepicker';
 import { provideMomentDatetimeAdapter } from '@ng-matero/extensions-moment-adapter';
@@ -86,11 +82,9 @@ export class AttendanceComponent implements OnInit {
     reasonPriority: new FormControl<string | number>(''),
     status: new FormControl('pending'),
     userId: new FormControl('', [Validators.required]),
-    userName: new FormControl('', [Validators.required]),
     callout: new FormControl(''),
     hours: new FormControl(0.5, [Validators.min(0.5)]),
     proxyUserId: new FormControl(''),
-    proxyUserName: new FormControl(''),
     startDateTime: new FormControl('', [Validators.required]),
     endDateTime: new FormControl('', [Validators.required]),
   });
@@ -138,7 +132,6 @@ export class AttendanceComponent implements OnInit {
     this.userService.currentUser$.pipe(take(1)).subscribe({
       next: (user) => {
         this.attendanceForm.get('userId')?.setValue(user.uid!);
-        this.attendanceForm.get('userName')?.setValue(user.name);
       },
     });
   }
@@ -151,17 +144,5 @@ export class AttendanceComponent implements OnInit {
     this.attendanceService.create(this.attendanceForm.value).subscribe({
       next: () => this.dialogRef.close(true),
     });
-  }
-
-  proxyUserChange(event: MatSelectChange) {
-    this.attendanceForm
-      .get('proxyUserName')
-      ?.setValue((event.source.selected as MatOption).viewValue);
-  }
-
-  requestUserChange(event: MatSelectChange) {
-    this.attendanceForm
-      .get('userName')
-      ?.setValue((event.source.selected as MatOption).viewValue);
   }
 }

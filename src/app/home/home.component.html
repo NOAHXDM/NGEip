@@ -45,11 +45,11 @@
                 </button>
             </mat-cell>
             </ng-container>
-            <!-- UserName -->
-            <ng-container matColumnDef="userName">
+            <!-- UserId -->
+            <ng-container matColumnDef="userId">
               <mat-header-cell *matHeaderCellDef>Requester</mat-header-cell>
               <mat-cell *matCellDef="let element">{{
-                element.userName
+                element.userId | userName
               }}</mat-cell>
             </ng-container>
             <!-- Type -->
@@ -94,13 +94,13 @@
                 {{ element.reasonPriority | reasonPriority }}
               </mat-cell>
             </ng-container>
-            <!-- Proxy UserName -->
-            <ng-container matColumnDef="proxyUserName">
+            <!-- Proxy UserId -->
+            <ng-container matColumnDef="proxyUserId">
               <mat-header-cell *matHeaderCellDef
                 >Proxy UserName</mat-header-cell
               >
               <mat-cell *matCellDef="let element">
-                {{ element.proxyUserName }}
+                {{ element.proxyUserId | userName }}
               </mat-cell>
             </ng-container>
             <!-- Callout -->
