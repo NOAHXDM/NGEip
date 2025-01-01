@@ -31,7 +31,7 @@ import {
   SelectOption,
   AttendanceType,
 } from '../services/attendance.service';
-import { UserService } from '../services/user.service';
+import { UserService, User } from '../services/user.service';
 
 @Component({
   selector: 'app-attendance',
@@ -85,8 +85,8 @@ export class AttendanceComponent implements OnInit {
     ]),
     reasonPriority: new FormControl<string | number>(''),
     status: new FormControl('pending'),
-    userId: new FormControl(''),
-    userName: new FormControl(''),
+    userId: new FormControl('', [Validators.required]),
+    userName: new FormControl('', [Validators.required]),
     callout: new FormControl(''),
     hours: new FormControl(0.5, [Validators.min(0.5)]),
     proxyUserId: new FormControl(''),
@@ -97,7 +97,7 @@ export class AttendanceComponent implements OnInit {
   reasonPriorityVisible = signal(false);
   calloutVisible = signal(false);
   proxyVisible = signal(true);
-  userList$: Observable<any[]>;
+  userList$: Observable<User[]>;
 
   constructor(
     private dialogRef: MatDialogRef<AttendanceComponent>,
@@ -105,12 +105,12 @@ export class AttendanceComponent implements OnInit {
     private userService: UserService,
     @Inject(MAT_DIALOG_DATA) protected data: any
   ) {
-    this.userList$ = this.userService.list();
+    this.userList$ = this.userService.list$ as Observable<User[]>;
   }
 
   ngOnInit() {
-    this.typeList = this.attendanceService.typeList();
-    this.reasonPriorityList = this.attendanceService.reasonPriorityList();
+    this.typeList = this.attendanceService.typeList;
+    this.reasonPriorityList = this.attendanceService.reasonPriorityList;
     // Detect attendanceForm type changes
     this.attendanceForm.get('type')?.valueChanges.subscribe({
       next: (value) => {
@@ -137,7 +137,7 @@ export class AttendanceComponent implements OnInit {
     // Set current user to the form
     this.userService.currentUser$.pipe(take(1)).subscribe({
       next: (user) => {
-        this.attendanceForm.get('userId')?.setValue(user.uid);
+        this.attendanceForm.get('userId')?.setValue(user.uid!);
         this.attendanceForm.get('userName')?.setValue(user.name);
       },
     });
@@ -156,6 +156,12 @@ export class AttendanceComponent implements OnInit {
   proxyUserChange(event: MatSelectChange) {
     this.attendanceForm
       .get('proxyUserName')
+      ?.setValue((event.source.selected as MatOption).viewValue);
+  }
+
+  requestUserChange(event: MatSelectChange) {
+    this.attendanceForm
+      .get('userName')
       ?.setValue((event.source.selected as MatOption).viewValue);
   }
 }

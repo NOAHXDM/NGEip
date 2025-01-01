@@ -11,14 +11,15 @@ import {
   Firestore,
   collection,
   doc,
-  getDoc,
   getDocs,
   query,
   runTransaction,
   serverTimestamp,
   where,
+  collectionData,
+  docData,
 } from '@angular/fire/firestore';
-import { from, map, Observable, shareReplay, switchMap } from 'rxjs';
+import { from, Observable, shareReplay, switchMap } from 'rxjs';
 
 import { License } from './system-config.service';
 
@@ -27,37 +28,21 @@ import { License } from './system-config.service';
 })
 export class UserService {
   private readonly auth = inject(Auth);
-  private readonly authState$: Observable<FirebaseUser | null> = authState(this.auth);
+  private readonly authState$: Observable<FirebaseUser | null> = authState(
+    this.auth
+  );
   readonly currentUser$ = this.authState$.pipe(
-    switchMap((user) => {
-      return from(getDoc(doc(this.firestore, 'users', user!.uid)));
-    }),
-    map(
-      (userDoc) =>
-        ({
-          ...userDoc.data(),
-          uid: userDoc.id,
-        } as User & { uid: string })
-    )
+    switchMap((user) =>
+      docData(doc(this.firestore, 'users', user!.uid), { idField: 'uid' }) as Observable<User>
+    ),
+    shareReplay(1)
   );
   readonly firestore: Firestore = inject(Firestore);
+  readonly list$ = collectionData(collection(this.firestore, 'users'), {
+    idField: 'uid',
+  }).pipe(shareReplay(1));
 
   constructor() {}
-
-  list() {
-    return from(getDocs(collection(this.firestore, 'users'))).pipe(
-      map((snapshot) =>
-        snapshot.docs.map(
-          (doc) =>
-            ({
-              ...doc.data(),
-              uid: doc.id,
-            } as User & { uid: string })
-        )
-      ),
-      shareReplay(1)
-    );
-  }
 
   createUser(email: string, password: string, name: string) {
     return from(
@@ -122,7 +107,7 @@ export class UserService {
   }
 }
 
-interface User {
+export interface User {
   birthday?: Date;
   email: string;
   jobRank?: string;
@@ -136,6 +121,7 @@ interface User {
   remoteWorkRecommender: string[];
   role: 'admin' | 'user';
   startDate?: Date; // 到職日
+  uid?: string;
 }
 
 interface LeaveTransaction {
