@@ -85,8 +85,8 @@ export class AttendanceComponent implements OnInit {
     ]),
     reasonPriority: new FormControl<string | number>(''),
     status: new FormControl('pending'),
-    userId: new FormControl(''),
-    userName: new FormControl(''),
+    userId: new FormControl('', [Validators.required]),
+    userName: new FormControl('', [Validators.required]),
     callout: new FormControl(''),
     hours: new FormControl(0.5, [Validators.min(0.5)]),
     proxyUserId: new FormControl(''),
@@ -156,6 +156,12 @@ export class AttendanceComponent implements OnInit {
   proxyUserChange(event: MatSelectChange) {
     this.attendanceForm
       .get('proxyUserName')
+      ?.setValue((event.source.selected as MatOption).viewValue);
+  }
+
+  requestUserChange(event: MatSelectChange) {
+    this.attendanceForm
+      .get('userName')
       ?.setValue((event.source.selected as MatOption).viewValue);
   }
 }
