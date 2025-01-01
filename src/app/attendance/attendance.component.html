@@ -119,7 +119,7 @@
       <mat-select formControlName="callout">
         <mat-option value="">Please select</mat-option>
         @for (user of userList$ | async; track user) {
-        <mat-option [value]="user.name">{{ user.name }}</mat-option>
+        <mat-option [value]="user.uid">{{ user.name }}</mat-option>
         }
       </mat-select>
     </mat-form-field>
