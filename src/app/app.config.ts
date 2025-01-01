@@ -26,20 +26,8 @@ export const appConfig: ApplicationConfig = {
         appId: '1:757825775592:web:99c975263289ccbb52665d',
       })
     ),
-    // provideAuth(() => getAuth()),
-    provideAuth(() => {
-      const auth = getAuth();
-      connectAuthEmulator(auth, 'http://localhost:9099', {
-        disableWarnings: true,
-      });
-      return auth;
-    }),
-    // provideFirestore(() => getFirestore()),
-    provideFirestore(() => {
-      const firestore = getFirestore();
-      connectFirestoreEmulator(firestore, 'localhost', 8080);
-      return firestore;
-    }),
+    provideAuth(() => getAuth()),
+    provideFirestore(() => getFirestore()),
     provideAnimationsAsync(),
     {
       provide: APP_INITIALIZER,
