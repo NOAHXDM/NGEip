@@ -31,7 +31,7 @@ import {
   SelectOption,
   AttendanceType,
 } from '../services/attendance.service';
-import { UserService } from '../services/user.service';
+import { UserService, User } from '../services/user.service';
 
 @Component({
   selector: 'app-attendance',
@@ -97,7 +97,7 @@ export class AttendanceComponent implements OnInit {
   reasonPriorityVisible = signal(false);
   calloutVisible = signal(false);
   proxyVisible = signal(true);
-  userList$: Observable<any[]>;
+  userList$: Observable<User[]>;
 
   constructor(
     private dialogRef: MatDialogRef<AttendanceComponent>,
@@ -105,7 +105,7 @@ export class AttendanceComponent implements OnInit {
     private userService: UserService,
     @Inject(MAT_DIALOG_DATA) protected data: any
   ) {
-    this.userList$ = this.userService.list();
+    this.userList$ = this.userService.list$ as Observable<User[]>;
   }
 
   ngOnInit() {
@@ -137,7 +137,7 @@ export class AttendanceComponent implements OnInit {
     // Set current user to the form
     this.userService.currentUser$.pipe(take(1)).subscribe({
       next: (user) => {
-        this.attendanceForm.get('userId')?.setValue(user.uid);
+        this.attendanceForm.get('userId')?.setValue(user.uid!);
         this.attendanceForm.get('userName')?.setValue(user.name);
       },
     });
