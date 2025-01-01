@@ -109,8 +109,8 @@ export class AttendanceComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.typeList = this.attendanceService.typeList();
-    this.reasonPriorityList = this.attendanceService.reasonPriorityList();
+    this.typeList = this.attendanceService.typeList;
+    this.reasonPriorityList = this.attendanceService.reasonPriorityList;
     // Detect attendanceForm type changes
     this.attendanceForm.get('type')?.valueChanges.subscribe({
       next: (value) => {

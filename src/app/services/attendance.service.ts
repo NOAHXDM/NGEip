@@ -4,7 +4,11 @@ import {
   Timestamp,
   addDoc,
   collection,
+  collectionData,
+  query,
   serverTimestamp,
+  where,
+  orderBy,
 } from '@angular/fire/firestore';
 import { from, switchMap } from 'rxjs';
 
@@ -13,29 +17,24 @@ import { from, switchMap } from 'rxjs';
 })
 export class AttendanceService {
   readonly firestore: Firestore = inject(Firestore);
+  readonly typeList = Object.keys(AttendanceType)
+    .filter((key) => isNaN(Number(key)))
+    .map((key) => {
+      return {
+        text: key,
+        value: AttendanceType[key as keyof typeof AttendanceType],
+      } as SelectOption;
+    });
+  readonly reasonPriorityList = Object.keys(ReasonPriority)
+    .filter((key) => isNaN(Number(key)))
+    .map((key) => {
+      return {
+        text: key,
+        value: ReasonPriority[key as keyof typeof ReasonPriority],
+      } as SelectOption;
+    });
+
   constructor() {}
-
-  typeList() {
-    return Object.keys(AttendanceType)
-      .filter((key) => isNaN(Number(key)))
-      .map((key) => {
-        return {
-          text: key,
-          value: AttendanceType[key as keyof typeof AttendanceType],
-        } as SelectOption;
-      });
-  }
-
-  reasonPriorityList() {
-    return Object.keys(ReasonPriority)
-      .filter((key) => isNaN(Number(key)))
-      .map((key) => {
-        return {
-          text: key,
-          value: ReasonPriority[key as keyof typeof ReasonPriority],
-        } as SelectOption;
-      });
-  }
 
   create(formValue: any) {
     const data = {
@@ -60,6 +59,34 @@ export class AttendanceService {
       })
     );
   }
+
+  search(query?: any) {
+    // TODO: query
+    return this.getCurrentMonth();
+  }
+
+  getCurrentMonth() {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const startOfNextMonth = new Date(startOfMonth);
+    startOfNextMonth.setMonth(startOfMonth.getMonth() + 1);
+
+    const startTimestamp = Timestamp.fromDate(startOfMonth);
+    const endTimestamp = Timestamp.fromDate(startOfNextMonth);
+
+    const collectRef = collection(this.firestore, 'attendanceLogs');
+    return collectionData(
+      query(
+        collectRef,
+        where('startDateTime', '>=', startTimestamp),
+        where('startDateTime', '<', endTimestamp),
+        orderBy('startDateTime', 'desc')
+      ),
+      { idField: 'id' }
+    );
+  }
 }
 
 interface AttendanceLog {
@@ -68,6 +95,7 @@ interface AttendanceLog {
   callout?: string; // 外援呼叫
   endDateTime: Date;
   hours: number;
+  id?: string;
   proxyUserId?: string;
   proxyUserName?: string;
   reason: string;
