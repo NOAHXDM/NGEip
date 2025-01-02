@@ -12,120 +12,8 @@
 <!-- Main content -->
 <mat-grid-list cols="4" rowHeight="200px" gutterSize="5px">
   <mat-grid-tile colspan="3" rowspan="3">
-    <!-- Floating action button -->
-    <div class="fab-button-container">
-      <button mat-mini-fab (click)="openNewAttendanceDialog()">
-        <mat-icon>edit</mat-icon>
-      </button>
-    </div>
     <!-- Grid 1 -->
-    <mat-card appearance="raised" class="mw-100 mh-100">
-      <mat-card-header class="d-flex justify-content-end">
-        <mat-chip-listbox>
-          <mat-chip-option>Today</mat-chip-option>
-          <mat-chip-option>This Week</mat-chip-option>
-          <mat-chip-option selected>This Month</mat-chip-option>
-          <mat-chip-option>Custom Range</mat-chip-option>
-        </mat-chip-listbox>
-      </mat-card-header>
-      <mat-card-content class="pt-2">
-        <section class="table-container mat-elevation-z8">
-          <mat-table [dataSource]="dataSource">
-            <!-- Status -->
-            <ng-container matColumnDef="status" sticky>
-              <mat-header-cell *matHeaderCellDef>Status</mat-header-cell>
-              <mat-cell *matCellDef="let element">
-                <button mat-icon-button [matMenuTriggerFor]="statusMenu">
-                  @switch (element.status) {
-                    @case ('pending') { <mat-icon [style.color]="'gray'">pending</mat-icon>  }
-                    @case ('approved') { <mat-icon [style.color]="'green'">recommend</mat-icon> }
-                    @case ('rejected') { <mat-icon [style.color]="'red'">cancel</mat-icon> }
-                    @default { <mat-icon>help</mat-icon> }
-                  }
-                </button>
-            </mat-cell>
-            </ng-container>
-            <!-- UserId -->
-            <ng-container matColumnDef="userId">
-              <mat-header-cell *matHeaderCellDef>Requester</mat-header-cell>
-              <mat-cell *matCellDef="let element">{{
-                element.userId | userName
-              }}</mat-cell>
-            </ng-container>
-            <!-- Type -->
-            <ng-container matColumnDef="type">
-              <mat-header-cell *matHeaderCellDef>Type</mat-header-cell>
-              <mat-cell *matCellDef="let element">{{ element.type | attendanceType }}</mat-cell>
-            </ng-container>
-            <!-- Start DateTime -->
-            <ng-container matColumnDef="startDateTime">
-              <mat-header-cell *matHeaderCellDef
-                >Start DateTime</mat-header-cell
-              >
-              <mat-cell *matCellDef="let element">
-                {{ element.startDateTime | firestoreTimestamp }}
-              </mat-cell>
-            </ng-container>
-            <!-- End DateTime -->
-            <ng-container matColumnDef="endDateTime">
-              <mat-header-cell *matHeaderCellDef>End DateTime</mat-header-cell>
-              <mat-cell *matCellDef="let element">
-                {{ element.endDateTime | firestoreTimestamp }}
-              </mat-cell>
-            </ng-container>
-            <!-- Hours -->
-            <ng-container matColumnDef="hours">
-              <mat-header-cell *matHeaderCellDef>Hours</mat-header-cell>
-              <mat-cell *matCellDef="let element">{{ element.hours }}</mat-cell>
-            </ng-container>
-            <!-- Reason -->
-            <ng-container matColumnDef="reason">
-              <mat-header-cell *matHeaderCellDef>Reason</mat-header-cell>
-              <mat-cell *matCellDef="let element">{{
-                element.reason
-              }}</mat-cell>
-            </ng-container>
-            <!-- Reason Priority -->
-            <ng-container matColumnDef="reasonPriority">
-              <mat-header-cell *matHeaderCellDef
-                >Reason Priority</mat-header-cell
-              >
-              <mat-cell *matCellDef="let element">
-                {{ element.reasonPriority | reasonPriority }}
-              </mat-cell>
-            </ng-container>
-            <!-- Proxy UserId -->
-            <ng-container matColumnDef="proxyUserId">
-              <mat-header-cell *matHeaderCellDef
-                >Proxy UserName</mat-header-cell
-              >
-              <mat-cell *matCellDef="let element">
-                {{ element.proxyUserId | userName }}
-              </mat-cell>
-            </ng-container>
-            <!-- Callout -->
-            <ng-container matColumnDef="callout">
-              <mat-header-cell *matHeaderCellDef>Callout</mat-header-cell>
-              <mat-cell *matCellDef="let element">{{
-                element.callout | userName
-              }}</mat-cell>
-            </ng-container>
-            <!-- Action -->
-            <ng-container matColumnDef="history">
-              <mat-header-cell *matHeaderCellDef>History</mat-header-cell>
-              <mat-cell *matCellDef="let element">
-                <button mat-icon-button>
-                  <mat-icon>history</mat-icon>
-                </button>
-              </mat-cell>
-            </ng-container>
-
-            <mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></mat-header-row>
-            <mat-row *matRowDef="let row; columns: displayedColumns"></mat-row>
-          </mat-table>
-        </section>
-      </mat-card-content>
-    </mat-card>
+    <app-attendance-list></app-attendance-list>
   </mat-grid-tile>
   <mat-grid-tile colspan="1" rowspan="3" [style.background]="'lightgray'">
     <!-- Grid 2 -->
@@ -145,16 +33,5 @@
   <button mat-menu-item (click)="logout()">
     <mat-icon>logout</mat-icon>
     <span>Logout</span>
-  </button>
-</mat-menu>
-<!-- Attendance status menu  -->
-<mat-menu #statusMenu="matMenu">
-  <button mat-menu-item>
-    <mat-icon [style.color]="'green'">recommend</mat-icon>
-    <span>Approved</span>
-  </button>
-  <button mat-menu-item>
-    <mat-icon [style.color]="'red'">cancel</mat-icon>
-    <span>Rejected</span>
   </button>
 </mat-menu>
