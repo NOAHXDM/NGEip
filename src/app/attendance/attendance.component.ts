@@ -108,10 +108,7 @@ export class AttendanceComponent implements OnInit {
     // Detect attendanceForm type changes
     this.attendanceForm.get('type')?.valueChanges.subscribe({
       next: (value) => {
-        if (
-          value == AttendanceType.Overtime ||
-          value == AttendanceType.RemoteWork
-        ) {
+        if (value == AttendanceType.Overtime) {
           this.attendanceForm
             .get('reasonPriority')
             ?.setValidators([Validators.required]);
