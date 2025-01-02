@@ -90,7 +90,6 @@ export class AttendanceService {
 }
 
 interface AttendanceLog {
-  approver?: string;
   auditTrail: AttendanceLogAuditTrail[];
   callout?: string; // 外援呼叫
   endDateTime: Date;
@@ -128,7 +127,7 @@ enum ReasonPriority {
 }
 
 interface AttendanceLogAuditTrail {
-  action: 'create' | 'update' | 'delete';
+  action: 'create' | 'update';
   actionBy: string;
   actionDateTime: Date;
 }
