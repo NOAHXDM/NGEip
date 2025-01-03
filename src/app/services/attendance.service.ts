@@ -1,16 +1,19 @@
 import { inject, Injectable } from '@angular/core';
 import {
+  FieldValue,
   Firestore,
   Timestamp,
   addDoc,
   collection,
   collectionData,
+  doc,
+  orderBy,
   query,
   serverTimestamp,
+  updateDoc,
   where,
-  orderBy,
 } from '@angular/fire/firestore';
-import { from, switchMap } from 'rxjs';
+import { from, Observable, of, switchMap } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -60,6 +63,40 @@ export class AttendanceService {
     );
   }
 
+  update(formValue: any, originValue: any): Observable<any> {
+    const data = {
+      ...formValue,
+      startDateTime: Timestamp.fromDate(
+        formValue.startDateTime instanceof Date
+          ? formValue.startDateTime
+          : (formValue.startDateTime as any).toDate()
+      ),
+      endDateTime: Timestamp.fromDate(
+        formValue.endDateTime instanceof Date
+          ? formValue.endDateTime
+          : (formValue.endDateTime as any).toDate()
+      ),
+    };
+    const diff = this.diff(data, originValue);
+    if (!diff) {
+      return of(null);
+    }
+
+    const auditTrail = {
+      action: 'update',
+      actionBy: formValue.userId,
+      actionDateTime: serverTimestamp(),
+      content: JSON.stringify(diff),
+    };
+
+    const docRef = doc(this.firestore, 'attendanceLogs', originValue.id);
+    return from(updateDoc(docRef, diff)).pipe(
+      switchMap(() => {
+        return from(addDoc(collection(docRef, 'auditTrail'), auditTrail));
+      })
+    );
+  }
+
   search(query?: any) {
     // TODO: query
     return this.getCurrentMonth();
@@ -87,18 +124,42 @@ export class AttendanceService {
       { idField: 'id' }
     );
   }
+
+  private diff(targetValue: any, originValue: any) {
+    const target = {
+      ...targetValue,
+      startDateTime: targetValue.startDateTime.valueOf(),
+      endDateTime: targetValue.endDateTime.valueOf(),
+    };
+    const origin = {
+      ...originValue,
+      startDateTime: originValue.startDateTime.valueOf(),
+      endDateTime: originValue.endDateTime.valueOf(),
+    };
+
+    let diff = {} as any;
+    let changed = false;
+    Object.keys(target).forEach((key) => {
+      if (target[key] != origin[key]) {
+        diff[key] = target[key];
+        changed = true;
+      }
+    });
+
+    return changed ? diff : null;
+  }
 }
 
-interface AttendanceLog {
+export interface AttendanceLog {
   auditTrail: AttendanceLogAuditTrail[];
   callout?: string; // 外援呼叫
-  endDateTime: Date;
+  endDateTime: Timestamp | FieldValue;
   hours: number;
   id?: string;
   proxyUserId?: string;
   reason: string;
   reasonPriority?: ReasonPriority;
-  startDateTime: Date;
+  startDateTime: Timestamp | FieldValue;
   status: 'pending' | 'approved' | 'rejected';
   type: AttendanceType;
   userId: string;
@@ -129,7 +190,8 @@ enum ReasonPriority {
 interface AttendanceLogAuditTrail {
   action: 'create' | 'update';
   actionBy: string;
-  actionDateTime: Date;
+  actionDateTime: Timestamp | FieldValue;
+  content?: string;
 }
 
 export interface SelectOption {

@@ -11,7 +11,10 @@ import { MatTableModule } from '@angular/material/table';
 
 import { Observable } from 'rxjs';
 
-import { AttendanceService } from '../../services/attendance.service';
+import {
+  AttendanceLog,
+  AttendanceService,
+} from '../../services/attendance.service';
 import { AttendanceComponent } from '../../attendance/attendance.component';
 import { AttendanceTypePipe } from '../../pipes/attendance-type.pipe';
 import { FirestoreTimestampPipe } from '../../pipes/firestore-timestamp.pipe';
@@ -72,6 +75,21 @@ export class AttendanceListComponent {
       next: (result) => {
         if (result) {
           this.openSnackBar('Request created successfully');
+        }
+      },
+    });
+  }
+
+  openEditAttendanceDialog(attendance: AttendanceLog) {
+    const dialogRef = this._dialog.open(AttendanceComponent, {
+      data: { title: 'Edit request', attendance },
+      width: '65vw',
+    });
+
+    dialogRef.afterClosed().subscribe({
+      next: (message) => {
+        if (message) {
+          this.openSnackBar(message);
         }
       },
     });
