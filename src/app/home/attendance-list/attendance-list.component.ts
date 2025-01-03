@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { DataSource } from '@angular/cdk/collections';
+import { AfterViewInit, Component, ViewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatCardModule } from '@angular/material/card';
@@ -7,9 +7,8 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatTableModule } from '@angular/material/table';
-
-import { Observable } from 'rxjs';
+import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 
 import {
   AttendanceLog,
@@ -32,6 +31,7 @@ import { UserNamePipe } from '../../pipes/user-name.pipe';
     MatIconModule,
     MatMenuModule,
     MatSnackBarModule,
+    MatSortModule,
     MatTableModule,
     AttendanceTypePipe,
     FirestoreTimestampPipe,
@@ -41,8 +41,8 @@ import { UserNamePipe } from '../../pipes/user-name.pipe';
   templateUrl: './attendance-list.component.html',
   styleUrl: './attendance-list.component.scss',
 })
-export class AttendanceListComponent {
-  dataSource: AttendanceDataSource<any>;
+export class AttendanceListComponent implements AfterViewInit {
+  dataSource = new MatTableDataSource<any>();
   displayedColumns: string[] = [
     'status',
     'userId',
@@ -57,12 +57,21 @@ export class AttendanceListComponent {
     'history',
   ];
 
+  @ViewChild(MatSort) sort?: MatSort;
+
   constructor(
     private attendanceService: AttendanceService,
     private _dialog: MatDialog,
     private _snackBar: MatSnackBar
   ) {
-    this.dataSource = new AttendanceDataSource(this.attendanceService.search());
+    this.attendanceService
+      .search()
+      .pipe(takeUntilDestroyed())
+      .subscribe({ next: (data) => (this.dataSource.data = data) });
+  }
+
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort!;
   }
 
   openNewAttendanceDialog() {
@@ -102,19 +111,4 @@ export class AttendanceListComponent {
       duration: 5000,
     });
   }
-}
-
-class AttendanceDataSource<T> extends DataSource<T> {
-  private _dataSource: Observable<T[]>;
-
-  constructor(source$: Observable<T[]>) {
-    super();
-    this._dataSource = source$;
-  }
-
-  connect() {
-    return this._dataSource;
-  }
-
-  disconnect() {}
 }

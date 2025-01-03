@@ -16,7 +16,7 @@
   </mat-card-header>
   <mat-card-content class="pt-2">
     <section class="table-container mat-elevation-z8">
-      <mat-table [dataSource]="dataSource">
+      <mat-table [dataSource]="dataSource" matSort>
         <!-- Status -->
         <ng-container matColumnDef="status" sticky>
           <mat-header-cell *matHeaderCellDef>Status</mat-header-cell>
@@ -38,28 +38,28 @@
         </ng-container>
         <!-- UserId -->
         <ng-container matColumnDef="userId">
-          <mat-header-cell *matHeaderCellDef>Requester</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef mat-sort-header>Requester</mat-header-cell>
           <mat-cell *matCellDef="let element">{{
             element.userId | userName
           }}</mat-cell>
         </ng-container>
         <!-- Type -->
         <ng-container matColumnDef="type">
-          <mat-header-cell *matHeaderCellDef>Type</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef mat-sort-header>Type</mat-header-cell>
           <mat-cell *matCellDef="let element">{{
             element.type | attendanceType
           }}</mat-cell>
         </ng-container>
         <!-- Start DateTime -->
         <ng-container matColumnDef="startDateTime">
-          <mat-header-cell *matHeaderCellDef>Start DateTime</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef mat-sort-header>Start DateTime</mat-header-cell>
           <mat-cell *matCellDef="let element">
             {{ element.startDateTime | firestoreTimestamp }}
           </mat-cell>
         </ng-container>
         <!-- End DateTime -->
         <ng-container matColumnDef="endDateTime">
-          <mat-header-cell *matHeaderCellDef>End DateTime</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef mat-sort-header>End DateTime</mat-header-cell>
           <mat-cell *matCellDef="let element">
             {{ element.endDateTime | firestoreTimestamp }}
           </mat-cell>
