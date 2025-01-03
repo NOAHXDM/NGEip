@@ -107,7 +107,7 @@
             <ng-container matColumnDef="callout">
               <mat-header-cell *matHeaderCellDef>Callout</mat-header-cell>
               <mat-cell *matCellDef="let element">{{
-                element.callout
+                element.callout | userName
               }}</mat-cell>
             </ng-container>
             <!-- Action -->
