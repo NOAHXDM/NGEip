@@ -42,10 +42,8 @@ export class AttendanceService {
   create(formValue: any) {
     const data = {
       ...formValue,
-      startDateTime: Timestamp.fromDate(
-        (formValue.startDateTime as any).toDate()
-      ),
-      endDateTime: Timestamp.fromDate((formValue.endDateTime as any).toDate()),
+      startDateTime: Timestamp.fromDate(formValue.startDateTime),
+      endDateTime: Timestamp.fromDate(formValue.endDateTime),
     };
 
     const auditTrail = {
@@ -66,16 +64,8 @@ export class AttendanceService {
   update(formValue: any, originValue: any): Observable<any> {
     const data = {
       ...formValue,
-      startDateTime: Timestamp.fromDate(
-        formValue.startDateTime instanceof Date
-          ? formValue.startDateTime
-          : (formValue.startDateTime as any).toDate()
-      ),
-      endDateTime: Timestamp.fromDate(
-        formValue.endDateTime instanceof Date
-          ? formValue.endDateTime
-          : (formValue.endDateTime as any).toDate()
-      ),
+      startDateTime: Timestamp.fromDate(formValue.startDateTime),
+      endDateTime: Timestamp.fromDate(formValue.endDateTime),
     };
     const diff = this.diff(data, originValue);
     if (!diff) {

@@ -1,6 +1,6 @@
 import { Pipe, PipeTransform } from '@angular/core';
 import { Timestamp } from '@angular/fire/firestore';
-import moment from 'moment';
+import { format } from 'date-fns'
 
 @Pipe({
   name: 'firestoreTimestamp',
@@ -8,6 +8,6 @@ import moment from 'moment';
 })
 export class FirestoreTimestampPipe implements PipeTransform {
   transform(value: Timestamp): string {
-    return moment(value.toDate()).format('YYYY-MM-DD dddd HH:mm:ss');
+    return format(value.toDate(), 'yyyy-MM-dd EEE HH:mm:ss')
   }
 }
