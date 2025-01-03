@@ -8,8 +8,9 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { take } from 'rxjs';
 
-import { AttendanceListComponent } from "./attendance-list/attendance-list.component";
+import { AttendanceListComponent } from './attendance-list/attendance-list.component';
 import { UserService } from '../services/user.service';
+import { AvatarComponent } from '../avatar/avatar.component';
 
 @Component({
   selector: 'app-home',
@@ -22,6 +23,7 @@ import { UserService } from '../services/user.service';
     MatMenuModule,
     MatToolbarModule,
     AttendanceListComponent,
+    AvatarComponent,
   ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
