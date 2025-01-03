@@ -1,4 +1,8 @@
-import { APP_INITIALIZER, ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import {
+  APP_INITIALIZER,
+  ApplicationConfig,
+  provideZoneChangeDetection,
+} from '@angular/core';
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
@@ -18,12 +22,13 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideFirebaseApp(() =>
       initializeApp({
-        apiKey: 'AIzaSyBigNRXTWt2AG78OhY03LE9yq5NTgRXeJ0',
-        authDomain: 'fir-eip.firebaseapp.com',
-        projectId: 'fir-eip',
-        storageBucket: 'fir-eip.firebasestorage.app',
-        messagingSenderId: '757825775592',
-        appId: '1:757825775592:web:99c975263289ccbb52665d',
+        apiKey: 'AIzaSyAAfL4F-eSuDLeDrgppC-jcNqAqE5dwqKY',
+        authDomain: 'noah-eip.firebaseapp.com',
+        projectId: 'noah-eip',
+        storageBucket: 'noah-eip.firebasestorage.app',
+        messagingSenderId: '596868888265',
+        appId: '1:596868888265:web:521cbfab9471bd2aa0ff18',
+        measurementId: 'G-8GHHDKZNPE',
       })
     ),
     provideAuth(() => getAuth()),
@@ -36,6 +41,6 @@ export const appConfig: ApplicationConfig = {
         return () => systemConfigService.createLicenseIfNotExists();
       },
       multi: true,
-    }
+    },
   ],
 };
