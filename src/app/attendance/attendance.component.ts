@@ -21,11 +21,13 @@ import { MatSelectModule } from '@angular/material/select';
 import { Observable, take } from 'rxjs';
 import { MtxDatetimepickerModule } from '@ng-matero/extensions/datetimepicker';
 import { provideMomentDatetimeAdapter } from '@ng-matero/extensions-moment-adapter';
+import { Timestamp } from '@angular/fire/firestore';
 
 import {
+  AttendanceLog,
   AttendanceService,
-  SelectOption,
   AttendanceType,
+  SelectOption,
 } from '../services/attendance.service';
 import { UserService, User } from '../services/user.service';
 
@@ -97,7 +99,8 @@ export class AttendanceComponent implements OnInit {
     private dialogRef: MatDialogRef<AttendanceComponent>,
     private attendanceService: AttendanceService,
     private userService: UserService,
-    @Inject(MAT_DIALOG_DATA) protected data: any
+    @Inject(MAT_DIALOG_DATA)
+    protected data: { title: string; attendance?: AttendanceLog }
   ) {
     this.userList$ = this.userService.list$ as Observable<User[]>;
   }
@@ -108,10 +111,7 @@ export class AttendanceComponent implements OnInit {
     // Detect attendanceForm type changes
     this.attendanceForm.get('type')?.valueChanges.subscribe({
       next: (value) => {
-        if (
-          value == AttendanceType.Overtime ||
-          value == AttendanceType.RemoteWork
-        ) {
+        if (value == AttendanceType.Overtime) {
           this.attendanceForm
             .get('reasonPriority')
             ?.setValidators([Validators.required]);
@@ -128,12 +128,25 @@ export class AttendanceComponent implements OnInit {
         this.attendanceForm.get('reasonPriority')?.updateValueAndValidity();
       },
     });
-    // Set current user to the form
-    this.userService.currentUser$.pipe(take(1)).subscribe({
-      next: (user) => {
-        this.attendanceForm.get('userId')?.setValue(user.uid!);
-      },
-    });
+
+    if (this.data.attendance) {
+      // Set attendance data to the form
+      const value: any = {
+        ...this.data.attendance,
+        startDateTime: (
+          this.data.attendance.startDateTime as Timestamp
+        ).toDate(),
+        endDateTime: (this.data.attendance.endDateTime as Timestamp).toDate(),
+      };
+      this.attendanceForm.patchValue(value);
+    } else {
+      // Set current user to the form
+      this.userService.currentUser$.pipe(take(1)).subscribe({
+        next: (user) => {
+          this.attendanceForm.get('userId')?.setValue(user.uid!);
+        },
+      });
+    }
   }
 
   cancel() {
@@ -141,8 +154,25 @@ export class AttendanceComponent implements OnInit {
   }
 
   save() {
-    this.attendanceService.create(this.attendanceForm.value).subscribe({
-      next: () => this.dialogRef.close(true),
-    });
+    if (!this.data.attendance) {
+      // Create new attendance
+      this.attendanceService
+        .create(this.attendanceForm.value)
+        .pipe(take(1))
+        .subscribe({
+          next: () => this.dialogRef.close(true),
+        });
+    } else {
+      // Update attendance
+      this.attendanceService
+        .update(this.attendanceForm.value, this.data.attendance)
+        .pipe(take(1))
+        .subscribe({
+          next: (result: any) =>
+            this.dialogRef.close(
+              result ? 'Request updated successfully' : 'No changes'
+            ),
+        });
+    }
   }
 }
