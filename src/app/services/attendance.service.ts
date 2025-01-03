@@ -141,7 +141,11 @@ export class AttendanceService {
     let changed = false;
     Object.keys(target).forEach((key) => {
       if (target[key] != origin[key]) {
-        diff[key] = target[key];
+        if (key === 'startDateTime' || key === 'endDateTime') {
+          diff[key] = targetValue[key];
+        } else {
+          diff[key] = target[key];
+        }
         changed = true;
       }
     });
