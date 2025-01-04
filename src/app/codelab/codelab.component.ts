@@ -30,11 +30,12 @@ import {
   getDoc,
 } from '@angular/fire/firestore';
 import { Observable, from, take } from 'rxjs';
+import { AvatarComponent } from '../avatar/avatar.component';
 
 @Component({
   selector: 'app-codelab',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, AvatarComponent],
   templateUrl: './codelab.component.html',
   styleUrl: './codelab.component.scss',
 })
