@@ -1,1 +1,36 @@
-<p>user-profile works!</p>
+<div class="container d-flex justify-content-center align-items-center">
+  <form class="d-flex flex-column gap-3" [formGroup]="profileForm" (ngSubmit)="update()" novalidate>
+    <h3 class="text-center">My Profile</h3>
+    <mat-form-field appearance="outline">
+      <mat-label>Name</mat-label>
+      <input type="text" matInput formControlName="name" />
+      <mat-icon matSuffix>title</mat-icon>
+      <mat-hint>Enter you name</mat-hint>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Phone</mat-label>
+      <input type="text" matInput formControlName="phone" />
+      <mat-icon matSuffix>call</mat-icon>
+      <mat-hint>Enter you phone</mat-hint>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Remote Work Eligibility</mat-label>
+      <mat-select formControlName="remoteWorkEligibility">
+        @for (value of remoteWorkEligibilityOptions; track value) {
+        <mat-option [value]="value">{{ value }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Remote Work Recommender</mat-label>
+      <mat-select formControlName="remoteWorkRecommender" multiple>
+        @for (user of userList$ | async; track user) {
+        <mat-option [value]="user.uid">{{ user.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <button type="submit" mat-flat-button [disabled]="profileForm.invalid">
+      Update
+    </button>
+  </form>
+</div>

@@ -10,14 +10,15 @@ import {
 import {
   Firestore,
   collection,
+  collectionData,
   doc,
+  docData,
   getDocs,
   query,
   runTransaction,
   serverTimestamp,
+  updateDoc,
   where,
-  collectionData,
-  docData,
 } from '@angular/fire/firestore';
 import { from, Observable, shareReplay, switchMap } from 'rxjs';
 
@@ -106,6 +107,17 @@ export class UserService {
         )
       )
     );
+  }
+
+  updateUser(user: User) {
+    const docRef = doc(this.firestore, 'users', user.uid!);
+    const data = {
+      name: user.name,
+      phone: user.phone,
+      remoteWorkEligibility: user.remoteWorkEligibility,
+      remoteWorkRecommender: user.remoteWorkRecommender,
+    };
+    return from(updateDoc(docRef, data));
   }
 
   login(email: string, password: string) {
