@@ -22,7 +22,7 @@ import {
   updateDoc,
   where,
 } from '@angular/fire/firestore';
-import { from, Observable, shareReplay, switchMap } from 'rxjs';
+import { from, map, Observable, shareReplay, switchMap } from 'rxjs';
 
 import { License } from './system-config.service';
 
@@ -47,6 +47,9 @@ export class UserService {
   readonly list$ = collectionData(collection(this.firestore, 'users'), {
     idField: 'uid',
   }).pipe(shareReplay(1));
+  readonly isAdmin$ = this.currentUser$.pipe(
+    map((user) => user.role == 'admin')
+  );
 
   constructor() {}
 
