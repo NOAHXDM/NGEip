@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import {
+  DocumentReference,
   FieldValue,
   Firestore,
   Timestamp,
@@ -42,13 +43,11 @@ export class AttendanceService {
   create(formValue: any) {
     const data = {
       ...formValue,
-      startDateTime: Timestamp.fromDate(
-        (formValue.startDateTime as any).toDate()
-      ),
-      endDateTime: Timestamp.fromDate((formValue.endDateTime as any).toDate()),
+      startDateTime: Timestamp.fromDate(formValue.startDateTime),
+      endDateTime: Timestamp.fromDate(formValue.endDateTime),
     };
 
-    const auditTrail = {
+    const auditTrail: AttendanceLogAuditTrail = {
       action: 'create',
       actionBy: formValue.userId,
       actionDateTime: serverTimestamp(),
@@ -56,44 +55,30 @@ export class AttendanceService {
 
     return from(
       addDoc(collection(this.firestore, 'attendanceLogs'), data)
-    ).pipe(
-      switchMap((docRef) => {
-        return from(addDoc(collection(docRef, 'auditTrail'), auditTrail));
-      })
-    );
+    ).pipe(switchMap((docRef) => this.addAuditTrail(docRef, auditTrail)));
   }
 
   update(formValue: any, originValue: any): Observable<any> {
     const data = {
       ...formValue,
-      startDateTime: Timestamp.fromDate(
-        formValue.startDateTime instanceof Date
-          ? formValue.startDateTime
-          : (formValue.startDateTime as any).toDate()
-      ),
-      endDateTime: Timestamp.fromDate(
-        formValue.endDateTime instanceof Date
-          ? formValue.endDateTime
-          : (formValue.endDateTime as any).toDate()
-      ),
+      startDateTime: Timestamp.fromDate(formValue.startDateTime),
+      endDateTime: Timestamp.fromDate(formValue.endDateTime),
     };
     const diff = this.diff(data, originValue);
     if (!diff) {
       return of(null);
     }
 
-    const auditTrail = {
+    const auditTrail: AttendanceLogAuditTrail = {
       action: 'update',
       actionBy: formValue.userId,
       actionDateTime: serverTimestamp(),
-      content: JSON.stringify(diff),
+      content: this.maskCotent(diff),
     };
 
     const docRef = doc(this.firestore, 'attendanceLogs', originValue.id);
     return from(updateDoc(docRef, diff)).pipe(
-      switchMap(() => {
-        return from(addDoc(collection(docRef, 'auditTrail'), auditTrail));
-      })
+      switchMap(() => this.addAuditTrail(docRef, auditTrail))
     );
   }
 
@@ -125,6 +110,13 @@ export class AttendanceService {
     );
   }
 
+  addAuditTrail(
+    docRef: DocumentReference,
+    auditTrail: AttendanceLogAuditTrail
+  ) {
+    return from(addDoc(collection(docRef, 'auditTrail'), auditTrail));
+  }
+
   private diff(targetValue: any, originValue: any) {
     const target = {
       ...targetValue,
@@ -151,6 +143,28 @@ export class AttendanceService {
     });
 
     return changed ? diff : null;
+  }
+
+  private maskCotent(diff: any) {
+    const masked = { ...diff };
+    if (masked.callout) {
+      masked.callout = maskString(masked.callout);
+    }
+    if (masked.proxyUserId) {
+      masked.proxyUserId = maskString(masked.proxyUserId);
+    }
+    if (masked.userId) {
+      masked.userId = maskString(masked.userId);
+    }
+
+    return JSON.stringify(masked);
+
+    function maskString(str: string) {
+      return str.replace(
+        /^(.{3})(.*)(.{3})$/,
+        (match, p1, p2, p3) => `${p1}${'*'.repeat(p2.length)}${p3}`
+      );
+    }
   }
 }
 

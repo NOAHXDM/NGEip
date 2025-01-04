@@ -20,8 +20,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable, take } from 'rxjs';
 import { MtxDatetimepickerModule } from '@ng-matero/extensions/datetimepicker';
-import { provideMomentDatetimeAdapter } from '@ng-matero/extensions-moment-adapter';
+import { MAT_DATE_LOCALE } from "@angular/material/core";
+import { provideDateFnsDatetimeAdapter } from '@ng-matero/extensions-date-fns-adapter';
 import { Timestamp } from '@angular/fire/firestore';
+import { enUS } from "date-fns/locale";
 
 import {
   AttendanceLog,
@@ -48,26 +50,27 @@ import { UserService, User } from '../services/user.service';
     MtxDatetimepickerModule,
   ],
   providers: [
-    provideMomentDatetimeAdapter({
+    provideDateFnsDatetimeAdapter({
       parse: {
-        dateInput: 'YYYY-MM-DD',
+        dateInput: 'yyyy-MM-dd',
         monthInput: 'MMMM',
-        yearInput: 'YYYY',
+        yearInput: 'yyyy',
         timeInput: 'HH:mm:ss',
-        datetimeInput: 'YYYY-MM-DD HH:mm:ss',
+        datetimeInput: 'yyyy-MM-dd HH:mm:ss',
       },
       display: {
-        dateInput: 'YYYY-MM-DD',
+        dateInput: 'yyyy-MM-dd',
         monthInput: 'MMMM',
-        yearInput: 'YYYY',
+        yearInput: 'yyyy',
         timeInput: 'HH:mm:ss',
-        datetimeInput: 'YYYY-MM-DD HH:mm:ss',
-        monthYearLabel: 'YYYY MMMM',
-        dateA11yLabel: 'LL',
-        monthYearA11yLabel: 'MMMM YYYY',
-        popupHeaderDateLabel: 'MMM DD, ddd',
+        datetimeInput: 'yyyy-MM-dd HH:mm:ss',
+        monthYearLabel: 'yyyy MMMM',
+        dateA11yLabel: 'PP',
+        monthYearA11yLabel: 'MMMM yyyy',
+        popupHeaderDateLabel: 'MMM dd, EEE',
       },
     }),
+    { provide: MAT_DATE_LOCALE, useValue: enUS}
   ],
   templateUrl: './attendance.component.html',
   styleUrl: './attendance.component.scss',
@@ -118,11 +121,16 @@ export class AttendanceComponent implements OnInit {
           this.reasonPriorityVisible.set(true);
           this.calloutVisible.set(true);
           this.proxyVisible.set(false);
+          // Clear proxyUserId value
+          this.attendanceForm.get('proxyUserId')?.setValue('');
         } else {
           this.attendanceForm.get('reasonPriority')?.clearValidators();
           this.reasonPriorityVisible.set(false);
           this.calloutVisible.set(false);
           this.proxyVisible.set(true);
+          // Clear reasonPriority value and callout value
+          this.attendanceForm.get('reasonPriority')?.setValue('');
+          this.attendanceForm.get('callout')?.setValue('');
         }
 
         this.attendanceForm.get('reasonPriority')?.updateValueAndValidity();
