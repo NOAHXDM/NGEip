@@ -32,8 +32,11 @@ export class UserService {
     this.auth
   );
   readonly currentUser$ = this.authState$.pipe(
-    switchMap((user) =>
-      docData(doc(this.firestore, 'users', user!.uid), { idField: 'uid' }) as Observable<User>
+    switchMap(
+      (user) =>
+        docData(doc(this.firestore, 'users', user!.uid), {
+          idField: 'uid',
+        }) as Observable<User>
     ),
     shareReplay(1)
   );
@@ -46,17 +49,7 @@ export class UserService {
 
   createUser(email: string, password: string, name: string) {
     return from(
-      runTransaction(this.firestore, async (transaction) => {
-        // Check license
-        const systemConfigDoc = await transaction.get(
-          doc(this.firestore, 'systemConfig', 'license')
-        );
-        const systemConfig = systemConfigDoc.data() as License;
-        if (systemConfig.currentUsers >= systemConfig.maxUsers) {
-          throw new Error(
-            'The maximum number of users has been reached. Please contact your administrator.'
-          );
-        }
+      (async () => {
         // Check users has the duplicate email
         const emailQuery = query(
           collection(this.firestore, 'users'),
@@ -67,34 +60,51 @@ export class UserService {
         if (!emailSnapshot.empty) {
           throw new Error('Email already exists');
         }
-        // Create user
-        let uid: string;
-        try {
-          const userCredential = await createUserWithEmailAndPassword(
-            this.auth,
-            email,
-            password
-          );
-          uid = userCredential.user.uid;
-        } catch (error: any) {
-          throw new Error(error.message);
-        }
-        // Add a new document with a uid
-        const user: User = {
-          email,
-          name,
-          remainingLeaveHours: 0,
-          remoteWorkEligibility: 'N/A',
-          remoteWorkRecommender: [],
-          role: 'user',
-        };
-        transaction.set(doc(this.firestore, 'users', uid), user);
-        // Update license
-        transaction.update(doc(this.firestore, 'systemConfig', 'license'), {
-          currentUsers: systemConfig.currentUsers + 1,
-          lastUpdated: serverTimestamp(),
-        });
-      })
+      })()
+    ).pipe(
+      switchMap(() =>
+        from(
+          runTransaction(this.firestore, async (transaction) => {
+            // Check license
+            const systemConfigDoc = await transaction.get(
+              doc(this.firestore, 'systemConfig', 'license')
+            );
+            const systemConfig = systemConfigDoc.data() as License;
+            if (systemConfig.currentUsers >= systemConfig.maxUsers) {
+              throw new Error(
+                'The maximum number of users has been reached. Please contact your administrator.'
+              );
+            }
+            // Create user
+            let uid: string;
+            try {
+              const userCredential = await createUserWithEmailAndPassword(
+                this.auth,
+                email,
+                password
+              );
+              uid = userCredential.user.uid;
+            } catch (error: any) {
+              throw new Error(error.message);
+            }
+            // Add a new document with a uid
+            const user: User = {
+              email,
+              name,
+              remainingLeaveHours: 0,
+              remoteWorkEligibility: 'N/A',
+              remoteWorkRecommender: [],
+              role: 'user',
+            };
+            transaction.set(doc(this.firestore, 'users', uid), user);
+            // Update license
+            transaction.update(doc(this.firestore, 'systemConfig', 'license'), {
+              currentUsers: systemConfig.currentUsers + 1,
+              lastUpdated: serverTimestamp(),
+            });
+          })
+        )
+      )
     );
   }
 
