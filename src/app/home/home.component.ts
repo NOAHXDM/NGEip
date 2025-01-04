@@ -10,7 +10,6 @@ import { take } from 'rxjs';
 
 import { AttendanceListComponent } from './attendance-list/attendance-list.component';
 import { UserService } from '../services/user.service';
-import { AvatarComponent } from '../avatar/avatar.component';
 
 @Component({
   selector: 'app-home',
@@ -23,7 +22,6 @@ import { AvatarComponent } from '../avatar/avatar.component';
     MatMenuModule,
     MatToolbarModule,
     AttendanceListComponent,
-    AvatarComponent,
   ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
