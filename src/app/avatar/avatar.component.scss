@@ -37,10 +37,16 @@
   height: 100%;
   width: 100%;
   border-radius: 50%;
-  background-image: url("https://via.placeholder.com/100/CED6EB/808080");
-  background-size: cover;
-  background-position: center;
-  overflow: hidden;
+  background-color: #f5a021;
+  color: white;
+  font-size: 2.5rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase; /* 字便大寫 */
+  letter-spacing: 0.05em;
+  font-family: "Arial", sans-serif;
 }
 
 .avatar-right {
