@@ -121,11 +121,16 @@ export class AttendanceComponent implements OnInit {
           this.reasonPriorityVisible.set(true);
           this.calloutVisible.set(true);
           this.proxyVisible.set(false);
+          // Clear proxyUserId value
+          this.attendanceForm.get('proxyUserId')?.setValue('');
         } else {
           this.attendanceForm.get('reasonPriority')?.clearValidators();
           this.reasonPriorityVisible.set(false);
           this.calloutVisible.set(false);
           this.proxyVisible.set(true);
+          // Clear reasonPriority value and callout value
+          this.attendanceForm.get('reasonPriority')?.setValue('');
+          this.attendanceForm.get('callout')?.setValue('');
         }
 
         this.attendanceForm.get('reasonPriority')?.updateValueAndValidity();
