@@ -8,7 +8,9 @@ import {
   signOut,
 } from '@angular/fire/auth';
 import {
+  FieldValue,
   Firestore,
+  Timestamp,
   collection,
   collectionData,
   doc,
@@ -116,6 +118,7 @@ export class UserService {
       phone: user.phone,
       remoteWorkEligibility: user.remoteWorkEligibility,
       remoteWorkRecommender: user.remoteWorkRecommender,
+      birthday: user.birthday,
     };
     return from(updateDoc(docRef, data));
   }
@@ -130,7 +133,7 @@ export class UserService {
 }
 
 export interface User {
-  birthday?: Date;
+  birthday?: Timestamp | FieldValue;
   email: string;
   jobRank?: string;
   jobTitle?: string;
@@ -142,13 +145,13 @@ export interface User {
   remoteWorkEligibility: 'N/A' | 'WFH2' | 'WFH4.5'; // 遠距工作資格
   remoteWorkRecommender: string[];
   role: 'admin' | 'user';
-  startDate?: Date; // 到職日
+  startDate?: Timestamp | FieldValue; // 到職日
   uid?: string;
 }
 
 interface LeaveTransaction {
   actionBy?: string;
-  date: Date;
+  date: Timestamp | FieldValue;
   hours: number;
   reason?: string;
   type: 'add' | 'deduct';
