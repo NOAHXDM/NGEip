@@ -8,7 +8,9 @@ import {
   signOut,
 } from '@angular/fire/auth';
 import {
+  FieldValue,
   Firestore,
+  Timestamp,
   collection,
   collectionData,
   doc,
@@ -20,7 +22,7 @@ import {
   updateDoc,
   where,
 } from '@angular/fire/firestore';
-import { from, Observable, shareReplay, switchMap } from 'rxjs';
+import { from, map, Observable, shareReplay, switchMap } from 'rxjs';
 
 import { License } from './system-config.service';
 
@@ -45,6 +47,9 @@ export class UserService {
   readonly list$ = collectionData(collection(this.firestore, 'users'), {
     idField: 'uid',
   }).pipe(shareReplay(1));
+  readonly isAdmin$ = this.currentUser$.pipe(
+    map((user) => user.role == 'admin')
+  );
 
   constructor() {}
 
@@ -116,6 +121,7 @@ export class UserService {
       phone: user.phone,
       remoteWorkEligibility: user.remoteWorkEligibility,
       remoteWorkRecommender: user.remoteWorkRecommender,
+      birthday: user.birthday,
     };
     return from(updateDoc(docRef, data));
   }
@@ -130,7 +136,7 @@ export class UserService {
 }
 
 export interface User {
-  birthday?: Date;
+  birthday?: Timestamp | FieldValue;
   email: string;
   jobRank?: string;
   jobTitle?: string;
@@ -142,13 +148,13 @@ export interface User {
   remoteWorkEligibility: 'N/A' | 'WFH2' | 'WFH4.5'; // 遠距工作資格
   remoteWorkRecommender: string[];
   role: 'admin' | 'user';
-  startDate?: Date; // 到職日
+  startDate?: Timestamp | FieldValue; // 到職日
   uid?: string;
 }
 
 interface LeaveTransaction {
   actionBy?: string;
-  date: Date;
+  date: Timestamp | FieldValue;
   hours: number;
   reason?: string;
   type: 'add' | 'deduct';

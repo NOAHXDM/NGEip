@@ -1,18 +1,21 @@
 <div class="container d-flex justify-content-center align-items-center">
   <form class="d-flex flex-column gap-3" [formGroup]="profileForm" (ngSubmit)="update()" novalidate>
     <h3 class="text-center">My Profile</h3>
+    <!-- Name -->
     <mat-form-field appearance="outline">
       <mat-label>Name</mat-label>
       <input type="text" matInput formControlName="name" />
       <mat-icon matSuffix>title</mat-icon>
       <mat-hint>Enter you name</mat-hint>
     </mat-form-field>
+    <!-- Phone -->
     <mat-form-field appearance="outline">
       <mat-label>Phone</mat-label>
       <input type="text" matInput formControlName="phone" />
       <mat-icon matSuffix>call</mat-icon>
       <mat-hint>Enter you phone</mat-hint>
     </mat-form-field>
+    <!-- Remote Work Eligibility -->
     <mat-form-field appearance="outline">
       <mat-label>Remote Work Eligibility</mat-label>
       <mat-select formControlName="remoteWorkEligibility">
@@ -21,6 +24,7 @@
         }
       </mat-select>
     </mat-form-field>
+    <!-- Remote Work Recommender -->
     <mat-form-field appearance="outline">
       <mat-label>Remote Work Recommender</mat-label>
       <mat-select formControlName="remoteWorkRecommender" multiple>
@@ -28,6 +32,26 @@
         <mat-option [value]="user.uid">{{ user.name }}</mat-option>
         }
       </mat-select>
+    </mat-form-field>
+    <!-- Birthday -->
+    <mat-form-field appearance="outline">
+      <mat-label>Birthday</mat-label>
+      <mtx-datetimepicker
+        #birthdayPicker
+        type="date"
+        mode="auto"
+        multiYearSelector="month"
+      >
+      </mtx-datetimepicker>
+      <input
+        [mtxDatetimepicker]="birthdayPicker"
+        formControlName="birthday"
+        matInput
+      />
+      <mtx-datetimepicker-toggle
+        [for]="birthdayPicker"
+        matSuffix
+      ></mtx-datetimepicker-toggle>
     </mat-form-field>
     <button type="submit" mat-flat-button [disabled]="profileForm.invalid">
       Update
