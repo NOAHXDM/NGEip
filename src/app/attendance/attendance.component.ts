@@ -96,7 +96,7 @@ export class AttendanceComponent implements OnInit {
   reasonPriorityVisible = signal(false);
   calloutVisible = signal(false);
   proxyVisible = signal(true);
-  userList$: Observable<User[]>;
+  readonly userList$: Observable<User[]>;
 
   constructor(
     private dialogRef: MatDialogRef<AttendanceComponent>,

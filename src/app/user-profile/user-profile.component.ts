@@ -81,19 +81,21 @@ export class UserProfileComponent {
   });
   readonly remoteWorkEligibilityOptions = ['N/A', 'WFH2', 'WFH4.5'];
   readonly roleOptions = ['user', 'admin'];
-  userList$: Observable<User[]>;
+  readonly isAdmin$: Observable<boolean>;
+  readonly userList$: Observable<User[]>;
 
   constructor(
     private userService: UserService,
     private _snackBar: MatSnackBar,
     @Optional() @Inject(MAT_DIALOG_DATA) protected data: any
   ) {
+    this.isAdmin$ = this.userService.isAdmin$;  // TODO: Need to renender the html to show the admin options
     this.userList$ = this.userService.list$ as Observable<User[]>;
     this.userService.currentUser$.pipe(takeUntilDestroyed()).subscribe({
       next: (user) => {
         let value: any = { ...user };
         if (user.birthday) {
-          value.birthday = startOfDay((user.birthday as Timestamp).toDate())
+          value.birthday = startOfDay((user.birthday as Timestamp).toDate());
         }
         this.profileForm.patchValue(value);
       },
