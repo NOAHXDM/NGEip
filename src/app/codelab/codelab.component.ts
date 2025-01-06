@@ -160,4 +160,9 @@ export class CodelabComponent {
         },
       });
   }
+  content = '建立代辦事項';
+  state: 'none' | 'finish' = 'none';
+  onSetState(state: 'none' | 'finish'): void {
+    this.state = state;
+  }
 }

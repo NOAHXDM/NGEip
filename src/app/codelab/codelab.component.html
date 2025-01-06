@@ -32,4 +32,8 @@
   </form>
   }
 </div>
+<div>task 1-{{ content }}</div>
+<div>代辦事項狀態:{{ state }}</div>
+<button type="button" (click)="onSetState('none')">未安裝</button>
+<button type="button" (click)="onSetState('finish')">已完成</button>
 <app-avatar></app-avatar>

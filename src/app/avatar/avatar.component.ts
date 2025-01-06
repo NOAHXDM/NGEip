@@ -8,6 +8,6 @@ import { Component } from '@angular/core';
   styleUrl: './avatar.component.scss',
 })
 export class AvatarComponent {
-  name: string = 'example'; // 初始化名字
-  email: string = 'example@gmail.com'; // 初始化邮箱
+  name = 'example';
+  email = 'example@gmail.com';
 }
