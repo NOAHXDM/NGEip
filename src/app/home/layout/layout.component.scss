@@ -3,10 +3,20 @@
 }
 
 .avator {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   margin: 0 10px;
-  background-image: url("https://placehold.co/40x40");
+  background-image: url("https://placehold.co/36x36");
   background-size: cover;
+}
+
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  background-image: url("/icons8-lightweight-48.png");
+  background-size: cover;
+  margin-right: 5px;
+  display: inline-block;
+  vertical-align: middle;
 }
