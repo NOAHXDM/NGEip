@@ -1,6 +1,22 @@
 <div class="container d-flex justify-content-center align-items-center">
-  <form class="d-flex flex-column gap-3" [formGroup]="profileForm" (ngSubmit)="update()" novalidate>
-    <h3 class="text-center">My Profile</h3>
+  <ng-container *ngIf="isAdmin$ | async; else normalContent">
+    <mat-tab-group class="tab-group">
+      <mat-tab label="Normal"
+        ><ng-container *ngTemplateOutlet="normalContent"></ng-container
+      ></mat-tab>
+      <mat-tab label="Admin" disabled> Coming Soon </mat-tab>
+    </mat-tab-group>
+  </ng-container>
+</div>
+
+<ng-template #normalContent>
+  <form
+    class="d-flex flex-column gap-3"
+    [formGroup]="profileForm"
+    (ngSubmit)="update()"
+    novalidate
+  >
+    <h3 class="pt-3 text-center">My Profile</h3>
     <!-- Name -->
     <mat-form-field appearance="outline">
       <mat-label>Name</mat-label>
@@ -57,4 +73,4 @@
       Update
     </button>
   </form>
-</div>
+</ng-template>

@@ -1,4 +1,4 @@
-import { AsyncPipe } from '@angular/common';
+import { AsyncPipe, NgIf, NgTemplateOutlet } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Component, Inject, Optional } from '@angular/core';
 import {
@@ -15,6 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MtxDatetimepickerModule } from '@ng-matero/extensions/datetimepicker';
 import { provideDateFnsDatetimeAdapter } from '@ng-matero/extensions-date-fns-adapter';
 import { Timestamp } from '@angular/fire/firestore';
@@ -29,6 +30,8 @@ import { User, UserService } from '../services/user.service';
   selector: 'app-user-profile',
   standalone: true,
   imports: [
+    NgIf,
+    NgTemplateOutlet,
     AsyncPipe,
     ReactiveFormsModule,
     MatButtonModule,
@@ -37,6 +40,7 @@ import { User, UserService } from '../services/user.service';
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     MtxDatetimepickerModule,
   ],
   providers: [
@@ -89,7 +93,7 @@ export class UserProfileComponent {
     private _snackBar: MatSnackBar,
     @Optional() @Inject(MAT_DIALOG_DATA) protected data: any
   ) {
-    this.isAdmin$ = this.userService.isAdmin$;  // TODO: Need to renender the html to show the admin options
+    this.isAdmin$ = this.userService.isAdmin$; // TODO: Need to renender the html to show the admin options
     this.userList$ = this.userService.list$ as Observable<User[]>;
     this.userService.currentUser$.pipe(takeUntilDestroyed()).subscribe({
       next: (user) => {
