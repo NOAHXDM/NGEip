@@ -1,0 +1,17 @@
+<h2 mat-dialog-title>Change status to {{ data.newStatus }}</h2>
+<mat-dialog-content class="mat-typography">
+  <div class="d-flex align-items-center my-3">
+    <mat-icon [style.color]="sourceStatusIcon.color" [fontIcon]="sourceStatusIcon.name"></mat-icon>
+    <mat-progress-bar mode="buffer"></mat-progress-bar>
+    <mat-icon [style.color]="targetStatusIcon.color" [fontIcon]="targetStatusIcon.name"></mat-icon>
+  </div>
+  @if(warningVisible()) {
+    <div class="alert alert-warning" role="alert">
+      <strong>Warning!</strong> Changing the status will add/deduct the user's leave hours.
+    </div>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button type="button" mat-button mat-dialog-close>Discard</button>
+  <button type="button" mat-button (click)="updateStatus()">Save</button>
+</mat-dialog-actions>

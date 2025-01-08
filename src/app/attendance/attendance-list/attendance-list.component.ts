@@ -19,6 +19,7 @@ import { AttendanceTypePipe } from '../../pipes/attendance-type.pipe';
 import { FirestoreTimestampPipe } from '../../pipes/firestore-timestamp.pipe';
 import { ReasonPriorityPipe } from '../../pipes/reason-priority.pipe';
 import { UserNamePipe } from '../../pipes/user-name.pipe';
+import { AttendanceStatusChangeComponent } from '../attendance-status-change/attendance-status-change.component';
 
 @Component({
   selector: 'app-attendance-list',
@@ -93,6 +94,22 @@ export class AttendanceListComponent implements AfterViewInit {
     const dialogRef = this._dialog.open(AttendanceComponent, {
       data: { title: 'Edit request', attendance },
       width: '65vw',
+    });
+
+    dialogRef.afterClosed().subscribe({
+      next: (message) => {
+        if (message) {
+          this.openSnackBar(message);
+        }
+      },
+    });
+  }
+
+  openAttendanceStatusChangeDialog(attendance: AttendanceLog, newStatus: string) {
+    const dialogRef = this._dialog.open(AttendanceStatusChangeComponent, {
+      data: { attendance, newStatus },
+      width: '65vw',
+      maxWidth: '400px'
     });
 
     dialogRef.afterClosed().subscribe({

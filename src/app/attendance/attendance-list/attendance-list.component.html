@@ -117,17 +117,24 @@
 <!-- Attendance status menu  -->
 <mat-menu #statusMenu>
   <ng-template matMenuContent let-data="data">
-    <button mat-menu-item>
-      <mat-icon [style.color]="'green'">recommend</mat-icon>
-      <span>Approved</span>
-    </button>
-    <button mat-menu-item>
-      <mat-icon [style.color]="'red'">cancel</mat-icon>
-      <span>Rejected</span>
-    </button>
-    <button mat-menu-item (click)="openEditAttendanceDialog(data)">
-      <mat-icon [style.color]="'gray'">edit_square</mat-icon>
-      <span>Edit</span>
-    </button>
+    @if (data.status == 'pending') {
+      <button mat-menu-item (click)="openAttendanceStatusChangeDialog(data, 'approved')">
+        <mat-icon [style.color]="'green'">recommend</mat-icon>
+        <span>Approved</span>
+      </button>
+      <button mat-menu-item (click)="openAttendanceStatusChangeDialog(data, 'rejected')">
+        <mat-icon [style.color]="'red'">cancel</mat-icon>
+        <span>Rejected</span>
+      </button>
+      <button mat-menu-item (click)="openEditAttendanceDialog(data)">
+        <mat-icon [style.color]="'gray'">edit_square</mat-icon>
+        <span>Edit</span>
+      </button>
+    } @else {
+      <button mat-menu-item (click)="openAttendanceStatusChangeDialog(data, 'pending')">
+        <mat-icon [style.color]="'gray'">pending_actions</mat-icon>
+        <span>Pending</span>
+      </button>
+    }
   </ng-template>
 </mat-menu>

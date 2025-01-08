@@ -8,13 +8,16 @@ import {
   collection,
   collectionData,
   doc,
+  or,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   updateDoc,
   where,
 } from '@angular/fire/firestore';
 import { from, Observable, of, switchMap } from 'rxjs';
+import { User } from './user.service';
 
 @Injectable({
   providedIn: 'root',
@@ -82,6 +85,80 @@ export class AttendanceService {
     );
   }
 
+  updateStatus(
+    data: AttendanceLog,
+    status: 'pending' | 'approved' | 'rejected',
+    actionBy: string
+  ) {
+    const diff = { status };
+    const auditTrail: AttendanceLogAuditTrail = {
+      action: 'update',
+      actionBy: actionBy,
+      actionDateTime: serverTimestamp(),
+      content: this.maskCotent(diff),
+    };
+
+    return from(
+      runTransaction(this.firestore, async (transaction) => {
+        const leaveTransactionHistory =
+          this.shouldUpdateUserRemainingLeaveHours(data, status, actionBy);
+        if (leaveTransactionHistory) {
+          const userRef = doc(this.firestore, 'users', data.userId);
+          const userSnapshot = await transaction.get(userRef);
+          const { remainingLeaveHours } = userSnapshot.data() as User;
+          if (remainingLeaveHours + leaveTransactionHistory.hours < 0) {
+            throw new Error('Insufficient leave hours');
+          }
+
+          const leaveTransactionHistoryCollectionRef = collection(
+            userRef,
+            'leaveTransactionHistory'
+          );
+          const newleaveTransactionHistoryDocRef = doc(
+            leaveTransactionHistoryCollectionRef
+          );
+
+          transaction
+            .update(userRef, {
+              remainingLeaveHours: remainingLeaveHours + leaveTransactionHistory.hours,
+            })
+            .set(newleaveTransactionHistoryDocRef, leaveTransactionHistory);
+        }
+
+        const attendanceLogDocRef = doc(
+          this.firestore,
+          'attendanceLogs',
+          data.id!
+        );
+        const auditTrailRef = doc(
+          collection(attendanceLogDocRef, 'auditTrail')
+        );
+        transaction
+          .update(attendanceLogDocRef, diff)
+          .set(auditTrailRef, auditTrail);
+      })
+    );
+  }
+
+  private shouldUpdateUserRemainingLeaveHours(
+    data: AttendanceLog,
+    status: 'pending' | 'approved' | 'rejected',
+    actionBy: string
+  ) {
+    const deduct = data.status == 'pending' && status == 'approved';
+    const add = data.status == 'approved' && status == 'pending';
+    if (data.type == AttendanceType.AnnualLeave && (add || deduct)) {
+      return {
+        actionBy: actionBy,
+        date: serverTimestamp(),
+        hours: deduct ? 0 - data.hours : data.hours,
+        reason: `From attendance#${data.id}`,
+      };
+    }
+
+    return null;
+  }
+
   search(query?: any) {
     // TODO: query
     return this.getCurrentMonth();
@@ -102,8 +179,10 @@ export class AttendanceService {
     return collectionData(
       query(
         collectRef,
-        where('startDateTime', '>=', startTimestamp),
-        where('startDateTime', '<', endTimestamp),
+        or(
+          where('startDateTime', '>=', startTimestamp),
+          where('endDateTime', '<', endTimestamp),
+        ),
         orderBy('startDateTime', 'desc')
       ),
       { idField: 'id' }
