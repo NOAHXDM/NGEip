@@ -1,22 +1,17 @@
 <div class="container d-flex justify-content-center align-items-center">
-  <ng-container *ngIf="isAdmin$ | async; else normalContent">
-    <mat-tab-group dynamicHeight>
-      <mat-tab label="Normal">
-        <ng-container *ngTemplateOutlet="normalContent"></ng-container>
-      </mat-tab>
-      <mat-tab label="Advanced">
-        <ng-container *ngTemplateOutlet="advancedContent"></ng-container>
-      </mat-tab>
-      <mat-tab>
-        <ng-template mat-tab-label>
-          <div [matBadge]="remainingLeaveHours()" matBadgeOverlap="false">
-            Remaining Leave Hours
-          </div>
-        </ng-template>
-        Content
-      </mat-tab>
-    </mat-tab-group>
-  </ng-container>
+  <mat-tab-group dynamicHeight>
+    <mat-tab label="Normal">
+      <ng-container *ngTemplateOutlet="normalContent"></ng-container>
+    </mat-tab>
+    <mat-tab label="Advanced" *ngIf="isAdmin$ | async">
+      <ng-container *ngTemplateOutlet="advancedContent"></ng-container>
+    </mat-tab>
+    <mat-tab label="Remaining Leave Hours">
+      <ng-container
+        *ngTemplateOutlet="remainingLeaveHoursContent"
+      ></ng-container>
+    </mat-tab>
+  </mat-tab-group>
 </div>
 
 <ng-template #normalContent>
@@ -140,4 +135,74 @@
       Update
     </button>
   </form>
+</ng-template>
+
+<ng-template #remainingLeaveHoursContent>
+  <div class="d-flex flex-column gap-3">
+    <button mat-button disabled>
+      <mat-icon>local_cafe</mat-icon>
+      Remaining {{ remainingLeaveHours() }} hours
+    </button>
+
+    <mat-table
+      [dataSource]="(leaveTransactionHistory$ | async)!"
+      class="mat-elevation-z8"
+    >
+      <!-- Date -->
+      <ng-container matColumnDef="date">
+        <mat-header-cell *matHeaderCellDef>Date</mat-header-cell>
+        <mat-cell *matCellDef="let element">{{
+          element.date | firestoreTimestamp
+        }}</mat-cell>
+      </ng-container>
+      <!-- Hours -->
+      <ng-container matColumnDef="hours">
+        <mat-header-cell *matHeaderCellDef>Hours</mat-header-cell>
+        <mat-cell *matCellDef="let element">{{ element.hours }}</mat-cell>
+      </ng-container>
+      <!-- Reason -->
+      <ng-container matColumnDef="reason">
+        <mat-header-cell *matHeaderCellDef>Reason</mat-header-cell>
+        <mat-cell *matCellDef="let element">{{ element.reason }}</mat-cell>
+      </ng-container>
+      <!-- Action by -->
+      <ng-container matColumnDef="actionBy">
+        <mat-header-cell *matHeaderCellDef>Action by</mat-header-cell>
+        <mat-cell *matCellDef="let element">{{
+          element.actionBy | userName
+        }}</mat-cell>
+      </ng-container>
+
+      <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: displayedColumns"></mat-row>
+    </mat-table>
+
+    @if(isAdmin$ | async) {
+    <form
+      class="d-flex flex-column gap-3"
+      [formGroup]="remainingLeaveHoursForm"
+      (ngSubmit)="leaveTransaction()"
+      novalidate
+    >
+      <h3 class="text-center">Add/Deduct</h3>
+      <!-- HOURS -->
+      <mat-form-field appearance="outline">
+        <mat-label>Hours</mat-label>
+        <input matInput type="number" step="0.5" formControlName="hours" />
+      </mat-form-field>
+      <!-- REASON -->
+      <mat-form-field appearance="outline">
+        <mat-label>Reason</mat-label>
+        <textarea matInput formControlName="reason"></textarea>
+      </mat-form-field>
+      <button
+        type="submit"
+        mat-flat-button
+        [disabled]="remainingLeaveHoursForm.invalid"
+      >
+        Submit
+      </button>
+    </form>
+    }
+  </div>
 </ng-template>

@@ -16,6 +16,7 @@ import {
   doc,
   docData,
   getDocs,
+  orderBy,
   query,
   runTransaction,
   serverTimestamp,
@@ -126,7 +127,7 @@ export class UserService {
     return from(updateDoc(docRef, data));
   }
 
-  updateUserAdvanced(user: User) { 
+  updateUserAdvanced(user: User) {
     const docRef = doc(this.firestore, 'users', user.uid!);
     const data = {
       jobRank: user.jobRank,
@@ -135,6 +136,46 @@ export class UserService {
       startDate: user.startDate,
     };
     return from(updateDoc(docRef, data));
+  }
+
+  updateRemainingLeaveHours(data: LeaveTransaction) {
+    return from(
+      runTransaction(this.firestore, async (transaction) => {
+        const userRef = doc(this.firestore, 'users', data.uid!);
+        const userSnapshot = await transaction.get(userRef);
+        const leaveTransactionHistoryCollectionRef = collection(
+          userRef,
+          'leaveTransactionHistory'
+        );
+        const newleaveTransactionHistoryDocRef = doc(
+          leaveTransactionHistoryCollectionRef
+        );
+
+        const { remainingLeaveHours } = userSnapshot.data() as User;
+        const leaveTransactionHistory = {
+          actionBy: data.actionBy,
+          date: serverTimestamp(),
+          hours: data.hours,
+          reason: data.reason,
+        };
+
+        transaction
+          .update(userRef, {
+            remainingLeaveHours: remainingLeaveHours + data.hours,
+          })
+          .set(newleaveTransactionHistoryDocRef, leaveTransactionHistory);
+      })
+    );
+  }
+
+  leaveTransactionHistory(uid: string) {
+    return collectionData(
+      query(
+        collection(this.firestore, 'users', uid, 'leaveTransactionHistory'),
+        orderBy('date', 'desc')
+      ),
+      { idField: 'id' }
+    ) as Observable<LeaveTransaction[]>;
   }
 
   login(email: string, password: string) {
@@ -163,10 +204,10 @@ export interface User {
   uid?: string;
 }
 
-interface LeaveTransaction {
-  actionBy?: string;
+export interface LeaveTransaction {
+  actionBy: string;
   date: Timestamp | FieldValue;
   hours: number;
-  reason?: string;
-  type: 'add' | 'deduct';
+  reason: string;
+  uid?: string;
 }

@@ -14,7 +14,7 @@ service cloud.firestore {
     }
 
     // 管理員對所有 users 有完全權限
-    match /users/{userId} {
+    match /users/{userId}/{document=**} {
       allow read, create: if true
 
       // 確保 role 欄位沒被修改
