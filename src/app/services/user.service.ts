@@ -126,6 +126,17 @@ export class UserService {
     return from(updateDoc(docRef, data));
   }
 
+  updateUserAdvanced(user: User) { 
+    const docRef = doc(this.firestore, 'users', user.uid!);
+    const data = {
+      jobRank: user.jobRank,
+      jobTitle: user.jobTitle,
+      role: user.role,
+      startDate: user.startDate,
+    };
+    return from(updateDoc(docRef, data));
+  }
+
   login(email: string, password: string) {
     return from(signInWithEmailAndPassword(this.auth, email, password));
   }

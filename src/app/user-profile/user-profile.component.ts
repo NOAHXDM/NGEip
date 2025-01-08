@@ -1,12 +1,13 @@
 import { AsyncPipe, NgIf, NgTemplateOutlet } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Component, Inject, Optional } from '@angular/core';
+import { Component, Inject, Optional, signal } from '@angular/core';
 import {
   FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DATE_LOCALE } from '@angular/material/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -34,6 +35,7 @@ import { User, UserService } from '../services/user.service';
     NgTemplateOutlet,
     AsyncPipe,
     ReactiveFormsModule,
+    MatBadgeModule,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,
@@ -72,21 +74,25 @@ import { User, UserService } from '../services/user.service';
 export class UserProfileComponent {
   profileForm = new FormGroup({
     birthday: new FormControl(''),
-    // jobRank: new FormControl(''),
-    // jobTitle: new FormControl(''),
     name: new FormControl('', [Validators.required]),
     phone: new FormControl(''),
     // photo: new FormControl(''),
     remoteWorkEligibility: new FormControl('N/A'),
     remoteWorkRecommender: new FormControl<string[]>([]),
+    uid: new FormControl('', [Validators.required]),
+  });
+  advancedForm = new FormGroup({
+    jobRank: new FormControl(''),
+    jobTitle: new FormControl(''),
     role: new FormControl('user'),
-    // startDate: new FormControl(''),
+    startDate: new FormControl(''),
     uid: new FormControl('', [Validators.required]),
   });
   readonly remoteWorkEligibilityOptions = ['N/A', 'WFH2', 'WFH4.5'];
   readonly roleOptions = ['user', 'admin'];
   readonly isAdmin$: Observable<boolean>;
   readonly userList$: Observable<User[]>;
+  readonly remainingLeaveHours = signal(0);
 
   constructor(
     private userService: UserService,
@@ -99,20 +105,42 @@ export class UserProfileComponent {
       next: (user) => {
         let value: any = { ...user };
         if (user.birthday) {
-          value.birthday = startOfDay((user.birthday as Timestamp).toDate());
+          value.birthday = (user.birthday as Timestamp).toDate();
         }
+
+        if (user.startDate) {
+          value.startDate = (user.startDate as Timestamp).toDate();
+        }
+
         this.profileForm.patchValue(value);
+        this.advancedForm.patchValue(value);
+        this.remainingLeaveHours.set(user.remainingLeaveHours);
       },
     });
   }
 
-  update() {
+  normalFieldsUpdate() {
     const data: any = this.profileForm.value;
     if (data.birthday) {
-      data.birthday = Timestamp.fromDate(data.birthday);
+      data.birthday = Timestamp.fromDate(startOfDay(data.birthday));
     }
+
     this.userService
       .updateUser(data)
+      .pipe(take(1))
+      .subscribe({
+        next: () => this.openSnackBar('Profile updated successfully.'),
+      });
+  }
+
+  advancedFieldsUpdate() {
+    const data: any = this.advancedForm.value;
+    if (data.startDate) {
+      data.startDate = Timestamp.fromDate(startOfDay(data.startDate));
+    }
+
+    this.userService
+      .updateUserAdvanced(data)
       .pipe(take(1))
       .subscribe({
         next: () => this.openSnackBar('Profile updated successfully.'),
@@ -125,5 +153,13 @@ export class UserProfileComponent {
       verticalPosition: 'top',
       duration: 5000,
     });
+  }
+
+  openLeaveTransactionHistoryDialog() {
+    this.openSnackBar('Coming soon');
+  }
+
+  openLeaveTransactionDialog() {
+    console.log('openLeaveTransactionDialog');
   }
 }

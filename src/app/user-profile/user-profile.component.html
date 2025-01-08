@@ -2,9 +2,19 @@
   <ng-container *ngIf="isAdmin$ | async; else normalContent">
     <mat-tab-group dynamicHeight>
       <mat-tab label="Normal">
-        <ng-container *ngTemplateOutlet="normalContent"></ng-container
-      ></mat-tab>
-      <mat-tab label="Admin" disabled> Coming Soon </mat-tab>
+        <ng-container *ngTemplateOutlet="normalContent"></ng-container>
+      </mat-tab>
+      <mat-tab label="Advanced">
+        <ng-container *ngTemplateOutlet="advancedContent"></ng-container>
+      </mat-tab>
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <div [matBadge]="remainingLeaveHours()" matBadgeOverlap="false">
+            Remaining Leave Hours
+          </div>
+        </ng-template>
+        Content
+      </mat-tab>
     </mat-tab-group>
   </ng-container>
 </div>
@@ -13,7 +23,7 @@
   <form
     class="d-flex flex-column gap-3"
     [formGroup]="profileForm"
-    (ngSubmit)="update()"
+    (ngSubmit)="normalFieldsUpdate()"
     novalidate
   >
     <h3 class="pt-3 text-center">My Profile</h3>
@@ -44,7 +54,7 @@
     <mat-form-field appearance="outline">
       <mat-label>Remote Work Recommender</mat-label>
       <mat-select formControlName="remoteWorkRecommender" multiple>
-        @for (user of userList$ | async; track user) {
+        @for (user of userList$ | async; track user.uid) {
         <mat-option [value]="user.uid">{{ user.name }}</mat-option>
         }
       </mat-select>
@@ -70,6 +80,63 @@
       ></mtx-datetimepicker-toggle>
     </mat-form-field>
     <button type="submit" mat-flat-button [disabled]="profileForm.invalid">
+      Update
+    </button>
+  </form>
+</ng-template>
+
+<ng-template #advancedContent>
+  <form
+    class="d-flex flex-column gap-3"
+    [formGroup]="advancedForm"
+    (ngSubmit)="advancedFieldsUpdate()"
+    novalidate
+  >
+    <h3 class="pt-3 text-center">My Profile</h3>
+    <!-- Job Title -->
+    <mat-form-field appearance="outline">
+      <mat-label>Job Title</mat-label>
+      <input type="text" matInput formControlName="jobTitle" />
+      <mat-icon matSuffix>badge</mat-icon>
+      <mat-hint>Enter you job title</mat-hint>
+    </mat-form-field>
+    <!-- Job Rank -->
+    <mat-form-field appearance="outline">
+      <mat-label>Job Rank</mat-label>
+      <input type="text" matInput formControlName="jobRank" />
+      <mat-icon matSuffix>military_tech</mat-icon>
+      <mat-hint>Enter you job rank</mat-hint>
+    </mat-form-field>
+    <!-- Role -->
+    <mat-form-field appearance="outline">
+      <mat-label>Role</mat-label>
+      <mat-select formControlName="role">
+        @for (role of roleOptions; track role) {
+        <mat-option [value]="role">{{ role }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <!-- Birthday -->
+    <mat-form-field appearance="outline">
+      <mat-label>Start Date</mat-label>
+      <mtx-datetimepicker
+        #startDatePicker
+        type="date"
+        mode="auto"
+        multiYearSelector="month"
+      >
+      </mtx-datetimepicker>
+      <input
+        [mtxDatetimepicker]="startDatePicker"
+        formControlName="startDate"
+        matInput
+      />
+      <mtx-datetimepicker-toggle
+        [for]="startDatePicker"
+        matSuffix
+      ></mtx-datetimepicker-toggle>
+    </mat-form-field>
+    <button type="submit" mat-flat-button [disabled]="advancedForm.invalid">
       Update
     </button>
   </form>
