@@ -14,7 +14,7 @@ import {
   AttendanceLog,
   AttendanceService,
 } from '../../services/attendance.service';
-import { AttendanceComponent } from '../../attendance/attendance.component';
+import { AttendanceComponent } from '../attendance.component';
 import { AttendanceTypePipe } from '../../pipes/attendance-type.pipe';
 import { FirestoreTimestampPipe } from '../../pipes/firestore-timestamp.pipe';
 import { ReasonPriorityPipe } from '../../pipes/reason-priority.pipe';
