@@ -1,8 +1,8 @@
 <div class="container d-flex justify-content-center align-items-center">
   <ng-container *ngIf="isAdmin$ | async; else normalContent">
-    <mat-tab-group class="tab-group">
-      <mat-tab label="Normal"
-        ><ng-container *ngTemplateOutlet="normalContent"></ng-container
+    <mat-tab-group dynamicHeight>
+      <mat-tab label="Normal">
+        <ng-container *ngTemplateOutlet="normalContent"></ng-container
       ></mat-tab>
       <mat-tab label="Admin" disabled> Coming Soon </mat-tab>
     </mat-tab-group>
