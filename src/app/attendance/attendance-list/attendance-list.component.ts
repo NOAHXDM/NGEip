@@ -1,14 +1,19 @@
+import { AsyncPipe } from '@angular/common';
 import { AfterViewInit, Component, ViewChild } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatCardModule } from '@angular/material/card';
-import { MatChipsModule } from '@angular/material/chips';
+import {
+  MatChipListbox,
+  MatChipSelectionChange,
+  MatChipsModule,
+} from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { map, Observable } from 'rxjs';
 
 import {
   AttendanceLog,
@@ -25,6 +30,7 @@ import { AttendanceStatusChangeComponent } from '../attendance-status-change/att
   selector: 'app-attendance-list',
   standalone: true,
   imports: [
+    AsyncPipe,
     MatButtonModule,
     MatCardModule,
     MatChipsModule,
@@ -43,7 +49,7 @@ import { AttendanceStatusChangeComponent } from '../attendance-status-change/att
   styleUrl: './attendance-list.component.scss',
 })
 export class AttendanceListComponent implements AfterViewInit {
-  dataSource = new MatTableDataSource<any>();
+  attendanceList$: Observable<MatTableDataSource<any>>;
   displayedColumns: string[] = [
     'status',
     'userId',
@@ -59,20 +65,50 @@ export class AttendanceListComponent implements AfterViewInit {
   ];
 
   @ViewChild(MatSort) sort?: MatSort;
+  @ViewChild(MatChipListbox) chipList?: MatChipListbox;
 
   constructor(
     private attendanceService: AttendanceService,
     private _dialog: MatDialog,
     private _snackBar: MatSnackBar
   ) {
-    this.attendanceService
-      .search()
-      .pipe(takeUntilDestroyed())
-      .subscribe({ next: (data) => (this.dataSource.data = data) });
+    this.attendanceList$ = this.attendanceService
+      .getCurrentDay()
+      .pipe(map((data) => this.transformToDataSource(data)));
   }
 
   ngAfterViewInit() {
-    this.dataSource.sort = this.sort!;
+    this.chipList?.chipSelectionChanges.subscribe({
+      next: (change: MatChipSelectionChange) => {
+        if (change.selected) {
+          switch (change.source.value) {
+            case '0':
+              this.attendanceList$ = this.attendanceService
+                .getCurrentDay()
+                .pipe(map((data) => this.transformToDataSource(data)));
+              break;
+            case '1':
+              this.attendanceList$ = this.attendanceService
+                .getCurrentWeek()
+                .pipe(map((data) => this.transformToDataSource(data)));
+              break;
+            case '2':
+              this.attendanceList$ = this.attendanceService
+                .getCurrentMonth()
+                .pipe(map((data) => this.transformToDataSource(data)));
+              break;
+            default:
+              break;
+          }
+        }
+      },
+    });
+  }
+
+  transformToDataSource(data: any[]): MatTableDataSource<any> {
+    const dataSource = new MatTableDataSource(data);
+    dataSource.sort = this.sort!;
+    return dataSource;
   }
 
   openNewAttendanceDialog() {
@@ -105,11 +141,14 @@ export class AttendanceListComponent implements AfterViewInit {
     });
   }
 
-  openAttendanceStatusChangeDialog(attendance: AttendanceLog, newStatus: string) {
+  openAttendanceStatusChangeDialog(
+    attendance: AttendanceLog,
+    newStatus: string
+  ) {
     const dialogRef = this._dialog.open(AttendanceStatusChangeComponent, {
       data: { attendance, newStatus },
       width: '65vw',
-      maxWidth: '400px'
+      maxWidth: '400px',
     });
 
     dialogRef.afterClosed().subscribe({

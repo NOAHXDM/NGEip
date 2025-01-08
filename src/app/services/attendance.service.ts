@@ -8,15 +8,18 @@ import {
   collection,
   collectionData,
   doc,
-  or,
   orderBy,
   query,
   runTransaction,
   serverTimestamp,
   updateDoc,
   where,
+  or,
+  and,
 } from '@angular/fire/firestore';
+import { startOfWeek, addDays, startOfDay } from 'date-fns';
 import { from, Observable, of, switchMap } from 'rxjs';
+
 import { User } from './user.service';
 
 @Injectable({
@@ -120,7 +123,8 @@ export class AttendanceService {
 
           transaction
             .update(userRef, {
-              remainingLeaveHours: remainingLeaveHours + leaveTransactionHistory.hours,
+              remainingLeaveHours:
+                remainingLeaveHours + leaveTransactionHistory.hours,
             })
             .set(newleaveTransactionHistoryDocRef, leaveTransactionHistory);
         }
@@ -161,7 +165,58 @@ export class AttendanceService {
 
   search(query?: any) {
     // TODO: query
-    return this.getCurrentMonth();
+  }
+
+  getCurrentDay() {
+    const today = new Date();
+    const dayStart = startOfDay(today);
+    const dayEnd = startOfDay(addDays(today, 1));
+    const startTimestamp = Timestamp.fromDate(dayStart);
+    const endTimestamp = Timestamp.fromDate(dayEnd);
+    const collectRef = collection(this.firestore, 'attendanceLogs');
+    return collectionData(
+      query(
+        collectRef,
+        or(
+          and(
+            where('startDateTime', '>=', startTimestamp),
+            where('startDateTime', '<', endTimestamp)
+          ),
+          and(
+            where('endDateTime', '>=', startTimestamp),
+            where('endDateTime', '<', endTimestamp)
+          )
+        ),
+        orderBy('startDateTime', 'desc')
+      ),
+      { idField: 'id' }
+    );
+  }
+
+  getCurrentWeek() {
+    const today = new Date();
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+    const weekEnd = startOfDay(addDays(weekStart, 7));
+    const startTimestamp = Timestamp.fromDate(weekStart);
+    const endTimestamp = Timestamp.fromDate(weekEnd);
+    const collectRef = collection(this.firestore, 'attendanceLogs');
+    return collectionData(
+      query(
+        collectRef,
+        or(
+          and(
+            where('startDateTime', '>=', startTimestamp),
+            where('startDateTime', '<', endTimestamp)
+          ),
+          and(
+            where('endDateTime', '>=', startTimestamp),
+            where('endDateTime', '<', endTimestamp)
+          )
+        ),
+        orderBy('startDateTime', 'desc')
+      ),
+      { idField: 'id' }
+    );
   }
 
   getCurrentMonth() {
@@ -180,8 +235,14 @@ export class AttendanceService {
       query(
         collectRef,
         or(
-          where('startDateTime', '>=', startTimestamp),
-          where('endDateTime', '<', endTimestamp),
+          and(
+            where('startDateTime', '>=', startTimestamp),
+            where('startDateTime', '<', endTimestamp)
+          ),
+          and(
+            where('endDateTime', '>=', startTimestamp),
+            where('endDateTime', '<', endTimestamp)
+          )
         ),
         orderBy('startDateTime', 'desc')
       ),
