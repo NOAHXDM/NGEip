@@ -1,19 +1,24 @@
 <div class="container d-flex justify-content-center align-items-center">
-  <ng-container *ngIf="isAdmin$ | async; else normalContent">
-    <mat-tab-group class="tab-group">
-      <mat-tab label="Normal"
-        ><ng-container *ngTemplateOutlet="normalContent"></ng-container
-      ></mat-tab>
-      <mat-tab label="Admin" disabled> Coming Soon </mat-tab>
-    </mat-tab-group>
-  </ng-container>
+  <mat-tab-group dynamicHeight>
+    <mat-tab label="Normal">
+      <ng-container *ngTemplateOutlet="normalContent"></ng-container>
+    </mat-tab>
+    <mat-tab label="Advanced" *ngIf="isAdmin$ | async">
+      <ng-container *ngTemplateOutlet="advancedContent"></ng-container>
+    </mat-tab>
+    <mat-tab label="Remaining Leave Hours">
+      <ng-container
+        *ngTemplateOutlet="remainingLeaveHoursContent"
+      ></ng-container>
+    </mat-tab>
+  </mat-tab-group>
 </div>
 
 <ng-template #normalContent>
   <form
     class="d-flex flex-column gap-3"
     [formGroup]="profileForm"
-    (ngSubmit)="update()"
+    (ngSubmit)="normalFieldsUpdate()"
     novalidate
   >
     <h3 class="pt-3 text-center">My Profile</h3>
@@ -44,7 +49,7 @@
     <mat-form-field appearance="outline">
       <mat-label>Remote Work Recommender</mat-label>
       <mat-select formControlName="remoteWorkRecommender" multiple>
-        @for (user of userList$ | async; track user) {
+        @for (user of userList$ | async; track user.uid) {
         <mat-option [value]="user.uid">{{ user.name }}</mat-option>
         }
       </mat-select>
@@ -73,4 +78,131 @@
       Update
     </button>
   </form>
+</ng-template>
+
+<ng-template #advancedContent>
+  <form
+    class="d-flex flex-column gap-3"
+    [formGroup]="advancedForm"
+    (ngSubmit)="advancedFieldsUpdate()"
+    novalidate
+  >
+    <h3 class="pt-3 text-center">My Profile</h3>
+    <!-- Job Title -->
+    <mat-form-field appearance="outline">
+      <mat-label>Job Title</mat-label>
+      <input type="text" matInput formControlName="jobTitle" />
+      <mat-icon matSuffix>badge</mat-icon>
+      <mat-hint>Enter you job title</mat-hint>
+    </mat-form-field>
+    <!-- Job Rank -->
+    <mat-form-field appearance="outline">
+      <mat-label>Job Rank</mat-label>
+      <input type="text" matInput formControlName="jobRank" />
+      <mat-icon matSuffix>military_tech</mat-icon>
+      <mat-hint>Enter you job rank</mat-hint>
+    </mat-form-field>
+    <!-- Role -->
+    <mat-form-field appearance="outline">
+      <mat-label>Role</mat-label>
+      <mat-select formControlName="role">
+        @for (role of roleOptions; track role) {
+        <mat-option [value]="role">{{ role }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <!-- Birthday -->
+    <mat-form-field appearance="outline">
+      <mat-label>Start Date</mat-label>
+      <mtx-datetimepicker
+        #startDatePicker
+        type="date"
+        mode="auto"
+        multiYearSelector="month"
+      >
+      </mtx-datetimepicker>
+      <input
+        [mtxDatetimepicker]="startDatePicker"
+        formControlName="startDate"
+        matInput
+      />
+      <mtx-datetimepicker-toggle
+        [for]="startDatePicker"
+        matSuffix
+      ></mtx-datetimepicker-toggle>
+    </mat-form-field>
+    <button type="submit" mat-flat-button [disabled]="advancedForm.invalid">
+      Update
+    </button>
+  </form>
+</ng-template>
+
+<ng-template #remainingLeaveHoursContent>
+  <div class="d-flex flex-column gap-3">
+    <button mat-button disabled>
+      <mat-icon>local_cafe</mat-icon>
+      Remaining {{ remainingLeaveHours() }} hours
+    </button>
+
+    <mat-table
+      [dataSource]="(leaveTransactionHistory$ | async)!"
+      class="mat-elevation-z8"
+    >
+      <!-- Date -->
+      <ng-container matColumnDef="date">
+        <mat-header-cell *matHeaderCellDef>Date</mat-header-cell>
+        <mat-cell *matCellDef="let element">{{
+          element.date | firestoreTimestamp
+        }}</mat-cell>
+      </ng-container>
+      <!-- Hours -->
+      <ng-container matColumnDef="hours">
+        <mat-header-cell *matHeaderCellDef>Hours</mat-header-cell>
+        <mat-cell *matCellDef="let element">{{ element.hours }}</mat-cell>
+      </ng-container>
+      <!-- Reason -->
+      <ng-container matColumnDef="reason">
+        <mat-header-cell *matHeaderCellDef>Reason</mat-header-cell>
+        <mat-cell *matCellDef="let element">{{ element.reason }}</mat-cell>
+      </ng-container>
+      <!-- Action by -->
+      <ng-container matColumnDef="actionBy">
+        <mat-header-cell *matHeaderCellDef>Action by</mat-header-cell>
+        <mat-cell *matCellDef="let element">{{
+          element.actionBy | userName
+        }}</mat-cell>
+      </ng-container>
+
+      <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: displayedColumns"></mat-row>
+    </mat-table>
+
+    @if(isAdmin$ | async) {
+    <form
+      class="d-flex flex-column gap-3"
+      [formGroup]="remainingLeaveHoursForm"
+      (ngSubmit)="leaveTransaction()"
+      novalidate
+    >
+      <h3 class="text-center">Add/Deduct</h3>
+      <!-- HOURS -->
+      <mat-form-field appearance="outline">
+        <mat-label>Hours</mat-label>
+        <input matInput type="number" step="0.5" formControlName="hours" />
+      </mat-form-field>
+      <!-- REASON -->
+      <mat-form-field appearance="outline">
+        <mat-label>Reason</mat-label>
+        <textarea matInput formControlName="reason"></textarea>
+      </mat-form-field>
+      <button
+        type="submit"
+        mat-flat-button
+        [disabled]="remainingLeaveHoursForm.invalid"
+      >
+        Submit
+      </button>
+    </form>
+    }
+  </div>
 </ng-template>

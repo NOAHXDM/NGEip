@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { MatGridListModule } from '@angular/material/grid-list';
 
-import { AttendanceListComponent } from './attendance-list/attendance-list.component';
+import { AttendanceListComponent } from '../attendance/attendance-list/attendance-list.component';
 
 @Component({
   selector: 'app-home',

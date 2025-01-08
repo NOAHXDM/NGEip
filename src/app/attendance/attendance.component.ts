@@ -157,10 +157,6 @@ export class AttendanceComponent implements OnInit {
     }
   }
 
-  cancel() {
-    this.dialogRef.close();
-  }
-
   save() {
     if (!this.data.attendance) {
       // Create new attendance

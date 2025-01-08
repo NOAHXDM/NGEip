@@ -6,7 +6,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { take } from 'rxjs';
 
-import { UserService } from '../../services/user.service';
+import { UserService } from '../services/user.service';
 
 @Component({
   selector: 'app-layout',
