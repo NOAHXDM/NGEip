@@ -14,8 +14,6 @@ import {
   serverTimestamp,
   updateDoc,
   where,
-  or,
-  and,
 } from '@angular/fire/firestore';
 import { startOfWeek, addDays, startOfDay } from 'date-fns';
 import { from, Observable, of, switchMap } from 'rxjs';
@@ -177,16 +175,8 @@ export class AttendanceService {
     return collectionData(
       query(
         collectRef,
-        or(
-          and(
-            where('startDateTime', '>=', startTimestamp),
-            where('startDateTime', '<', endTimestamp)
-          ),
-          and(
-            where('endDateTime', '>=', startTimestamp),
-            where('endDateTime', '<', endTimestamp)
-          )
-        ),
+        where('startDateTime', '>=', startTimestamp),
+        where('startDateTime', '<', endTimestamp),
         orderBy('startDateTime', 'desc')
       ),
       { idField: 'id' }
@@ -203,16 +193,8 @@ export class AttendanceService {
     return collectionData(
       query(
         collectRef,
-        or(
-          and(
-            where('startDateTime', '>=', startTimestamp),
-            where('startDateTime', '<', endTimestamp)
-          ),
-          and(
-            where('endDateTime', '>=', startTimestamp),
-            where('endDateTime', '<', endTimestamp)
-          )
-        ),
+        where('startDateTime', '>=', startTimestamp),
+        where('startDateTime', '<', endTimestamp),
         orderBy('startDateTime', 'desc')
       ),
       { idField: 'id' }
@@ -234,16 +216,8 @@ export class AttendanceService {
     return collectionData(
       query(
         collectRef,
-        or(
-          and(
-            where('startDateTime', '>=', startTimestamp),
-            where('startDateTime', '<', endTimestamp)
-          ),
-          and(
-            where('endDateTime', '>=', startTimestamp),
-            where('endDateTime', '<', endTimestamp)
-          )
-        ),
+        where('startDateTime', '>=', startTimestamp),
+        where('startDateTime', '<', endTimestamp),
         orderBy('startDateTime', 'desc')
       ),
       { idField: 'id' }
