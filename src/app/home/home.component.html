@@ -6,10 +6,13 @@
   <mat-grid-tile
     [colspan]="gridTile2colspan"
     rowspan="3"
-    [style.background]="'lightgray'"
   >
     <!-- Grid 2 -->
-    Coming Soon
+    <section class="card-container">
+      @for(user of userList$ | async; track user.uid ) {
+        <app-user-card [user]="user"></app-user-card>
+      }
+    </section>
   </mat-grid-tile>
   <mat-grid-tile colspan="4" rowspan="1" [style.background]="'lightgray'">
     <!-- Grid 3 -->
