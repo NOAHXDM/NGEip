@@ -5,9 +5,11 @@ import {
   Firestore,
   Timestamp,
   addDoc,
+  and,
   collection,
   collectionData,
   doc,
+  or,
   orderBy,
   query,
   runTransaction,
@@ -175,8 +177,16 @@ export class AttendanceService {
     return collectionData(
       query(
         collectRef,
-        where('startDateTime', '>=', startTimestamp),
-        where('startDateTime', '<', endTimestamp),
+        or(
+          and(
+            where('startDateTime', '>=', startTimestamp),
+            where('startDateTime', '<', endTimestamp)
+          ),
+          and(
+            where('endDateTime', '>=', startTimestamp),
+            where('endDateTime', '<', endTimestamp)
+          )
+        ),
         orderBy('startDateTime', 'desc')
       ),
       { idField: 'id' }
@@ -193,8 +203,16 @@ export class AttendanceService {
     return collectionData(
       query(
         collectRef,
-        where('startDateTime', '>=', startTimestamp),
-        where('startDateTime', '<', endTimestamp),
+        or(
+          and(
+            where('startDateTime', '>=', startTimestamp),
+            where('startDateTime', '<', endTimestamp)
+          ),
+          and(
+            where('endDateTime', '>=', startTimestamp),
+            where('endDateTime', '<', endTimestamp)
+          )
+        ),
         orderBy('startDateTime', 'desc')
       ),
       { idField: 'id' }
@@ -216,8 +234,16 @@ export class AttendanceService {
     return collectionData(
       query(
         collectRef,
-        where('startDateTime', '>=', startTimestamp),
-        where('startDateTime', '<', endTimestamp),
+        or(
+          and(
+            where('startDateTime', '>=', startTimestamp),
+            where('startDateTime', '<', endTimestamp)
+          ),
+          and(
+            where('endDateTime', '>=', startTimestamp),
+            where('endDateTime', '<', endTimestamp)
+          )
+        ),
         orderBy('startDateTime', 'desc')
       ),
       { idField: 'id' }
