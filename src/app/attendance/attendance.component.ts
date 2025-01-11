@@ -6,8 +6,9 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { Timestamp } from '@angular/fire/firestore';
 import { MatButton } from '@angular/material/button';
-import { MAT_DATE_LOCALE } from "@angular/material/core";
+import { MAT_DATE_LOCALE } from '@angular/material/core';
 import {
   MAT_DIALOG_DATA,
   MatDialogActions,
@@ -19,11 +20,12 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { Observable, take } from 'rxjs';
 import { MtxDatetimepickerModule } from '@ng-matero/extensions/datetimepicker';
 import { provideDateFnsDatetimeAdapter } from '@ng-matero/extensions-date-fns-adapter';
-import { Timestamp } from '@angular/fire/firestore';
-import { enUS } from "date-fns/locale";
+
+import { startOfMonth, addMonths, subMonths } from 'date-fns';
+import { enUS } from 'date-fns/locale';
+import { debounceTime, Observable, take } from 'rxjs';
 
 import {
   AttendanceLog,
@@ -70,7 +72,7 @@ import { UserService, User } from '../services/user.service';
         popupHeaderDateLabel: 'MMM dd, EEE',
       },
     }),
-    { provide: MAT_DATE_LOCALE, useValue: enUS}
+    { provide: MAT_DATE_LOCALE, useValue: enUS },
   ],
   templateUrl: './attendance.component.html',
   styleUrl: './attendance.component.scss',
@@ -97,6 +99,8 @@ export class AttendanceComponent implements OnInit {
   calloutVisible = signal(false);
   proxyVisible = signal(true);
   readonly userList$: Observable<User[]>;
+  endDatetimePickerMaxDate: Date | null = null;
+  startDatetimePickerMinDate: Date | null = null;
 
   constructor(
     private dialogRef: MatDialogRef<AttendanceComponent>,
@@ -155,6 +159,34 @@ export class AttendanceComponent implements OnInit {
         },
       });
     }
+
+    this.attendanceForm
+      .get('startDateTime')
+      ?.valueChanges.pipe(debounceTime(500))
+      .subscribe({
+        next: (startDateTime: any) => {
+          if (startDateTime instanceof Date) {
+            const endDateTimeMax = startOfMonth(addMonths(startDateTime, 1));
+            this.endDatetimePickerMaxDate = endDateTimeMax;
+          } else {
+            this.endDatetimePickerMaxDate = null;
+          }
+        },
+      });
+
+    this.attendanceForm
+      .get('endDateTime')
+      ?.valueChanges.pipe(debounceTime(500))
+      .subscribe({
+        next: (endDateTime: any) => {
+          if (endDateTime instanceof Date) {
+            const startDateTimeMin = startOfMonth(subMonths(endDateTime, 1));
+            this.startDatetimePickerMinDate = startDateTimeMin;
+          } else {
+            this.startDatetimePickerMinDate = null;
+          }
+        },
+      });
   }
 
   save() {

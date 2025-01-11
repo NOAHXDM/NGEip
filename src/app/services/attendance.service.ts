@@ -5,9 +5,11 @@ import {
   Firestore,
   Timestamp,
   addDoc,
+  and,
   collection,
   collectionData,
   doc,
+  or,
   orderBy,
   query,
   runTransaction,
@@ -175,8 +177,16 @@ export class AttendanceService {
     return collectionData(
       query(
         collectRef,
-        where('startDateTime', '>=', startTimestamp),
-        where('startDateTime', '<', endTimestamp),
+        or(
+          and(
+            where('startDateTime', '>=', startTimestamp),
+            where('startDateTime', '<', endTimestamp)
+          ),
+          and(
+            where('endDateTime', '>=', startTimestamp),
+            where('endDateTime', '<', endTimestamp)
+          )
+        ),
         orderBy('startDateTime', 'desc')
       ),
       { idField: 'id' }
@@ -193,8 +203,16 @@ export class AttendanceService {
     return collectionData(
       query(
         collectRef,
-        where('startDateTime', '>=', startTimestamp),
-        where('startDateTime', '<', endTimestamp),
+        or(
+          and(
+            where('startDateTime', '>=', startTimestamp),
+            where('startDateTime', '<', endTimestamp)
+          ),
+          and(
+            where('endDateTime', '>=', startTimestamp),
+            where('endDateTime', '<', endTimestamp)
+          )
+        ),
         orderBy('startDateTime', 'desc')
       ),
       { idField: 'id' }
@@ -216,8 +234,16 @@ export class AttendanceService {
     return collectionData(
       query(
         collectRef,
-        where('startDateTime', '>=', startTimestamp),
-        where('startDateTime', '<', endTimestamp),
+        or(
+          and(
+            where('startDateTime', '>=', startTimestamp),
+            where('startDateTime', '<', endTimestamp)
+          ),
+          and(
+            where('endDateTime', '>=', startTimestamp),
+            where('endDateTime', '<', endTimestamp)
+          )
+        ),
         orderBy('startDateTime', 'desc')
       ),
       { idField: 'id' }
@@ -229,6 +255,15 @@ export class AttendanceService {
     auditTrail: AttendanceLogAuditTrail
   ) {
     return from(addDoc(collection(docRef, 'auditTrail'), auditTrail));
+  }
+
+  getAuditTrail(id: string) {
+    const attendanceLogRef = doc(this.firestore, 'attendanceLogs', id);
+    const auditTrailCollection = collection(attendanceLogRef, 'auditTrail');
+    return collectionData(
+      query(auditTrailCollection, orderBy('actionDateTime', 'desc')),
+      { idField: 'id' }
+    );
   }
 
   private diff(targetValue: any, originValue: any) {
@@ -324,6 +359,7 @@ interface AttendanceLogAuditTrail {
   actionBy: string;
   actionDateTime: Timestamp | FieldValue;
   content?: string;
+  id?: string;
 }
 
 export interface SelectOption {

@@ -99,7 +99,7 @@
         <ng-container matColumnDef="history">
           <mat-header-cell *matHeaderCellDef>History</mat-header-cell>
           <mat-cell *matCellDef="let element">
-            <button mat-icon-button>
+            <button mat-icon-button (click)="openAttendanceHistoryDialog(element)">
               <mat-icon>history</mat-icon>
             </button>
           </mat-cell>
