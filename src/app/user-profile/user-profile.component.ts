@@ -207,6 +207,8 @@ export class UserProfileComponent {
       .pipe(take(1))
       .subscribe({
         next: () => {
+          this.remainingLeaveHoursForm.get('hours')?.reset();
+          this.remainingLeaveHoursForm.get('reason')?.reset();
           this.openSnackBar('Leave transaction updated successfully.');
         },
       });
