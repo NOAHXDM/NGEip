@@ -40,6 +40,7 @@
         [mtxDatetimepicker]="startDatetimePicker"
         formControlName="startDateTime"
         matInput
+        [min]="startDatetimePickerMinDate"
       />
       <mtx-datetimepicker-toggle
         [for]="startDatetimePicker"
@@ -60,6 +61,7 @@
         [mtxDatetimepicker]="endDatetimePicker"
         formControlName="endDateTime"
         matInput
+        [max]="endDatetimePickerMaxDate"
       />
       <mtx-datetimepicker-toggle
         [for]="endDatetimePicker"
