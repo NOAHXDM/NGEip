@@ -25,6 +25,7 @@ import { FirestoreTimestampPipe } from '../../pipes/firestore-timestamp.pipe';
 import { ReasonPriorityPipe } from '../../pipes/reason-priority.pipe';
 import { UserNamePipe } from '../../pipes/user-name.pipe';
 import { AttendanceStatusChangeComponent } from '../attendance-status-change/attendance-status-change.component';
+import { AttendanceHistoryComponent } from '../attendance-history/attendance-history.component';
 
 @Component({
   selector: 'app-attendance-list',
@@ -157,6 +158,18 @@ export class AttendanceListComponent implements AfterViewInit {
           this.openSnackBar(message);
         }
       },
+    });
+  }
+
+  openAttendanceHistoryDialog(attendance: AttendanceLog) {
+    const dialogRef = this._dialog.open(AttendanceHistoryComponent, {
+      data: { id: attendance.id },
+      width: '65vw',
+      maxWidth: '400px',
+    });
+
+    dialogRef.afterClosed().subscribe({
+      next: () => {},
     });
   }
 

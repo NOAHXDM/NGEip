@@ -257,6 +257,15 @@ export class AttendanceService {
     return from(addDoc(collection(docRef, 'auditTrail'), auditTrail));
   }
 
+  getAuditTrail(id: string) {
+    const attendanceLogRef = doc(this.firestore, 'attendanceLogs', id);
+    const auditTrailCollection = collection(attendanceLogRef, 'auditTrail');
+    return collectionData(
+      query(auditTrailCollection, orderBy('actionDateTime', 'desc')),
+      { idField: 'id' }
+    );
+  }
+
   private diff(targetValue: any, originValue: any) {
     const target = {
       ...targetValue,
@@ -350,6 +359,7 @@ interface AttendanceLogAuditTrail {
   actionBy: string;
   actionDateTime: Timestamp | FieldValue;
   content?: string;
+  id?: string;
 }
 
 export interface SelectOption {

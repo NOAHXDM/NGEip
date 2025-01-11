@@ -1,0 +1,21 @@
+<h2 mat-dialog-title>History</h2>
+<mat-dialog-content class="mat-typography">
+  <mat-stepper orientation="vertical" linear="false" #stepper>
+    @for (auditTrail of list$ | async; track auditTrail.id) {
+    <mat-step>
+      <ng-template matStepLabel>
+        {{ auditTrail.actionDateTime | firestoreTimestamp }} -
+        {{ auditTrail.action }}
+      </ng-template>
+      <figure class="text-end">
+        <blockquote class="blockquote">
+          <p>{{ auditTrail.content }}</p>
+        </blockquote>
+        <figcaption class="blockquote-footer">
+          {{ auditTrail.actionBy | userName }}
+        </figcaption>
+      </figure>
+    </mat-step>
+    }
+  </mat-stepper>
+</mat-dialog-content>
