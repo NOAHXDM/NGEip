@@ -14,7 +14,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule, MatSnackBarVerticalPosition } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MtxDatetimepickerModule } from '@ng-matero/extensions/datetimepicker';
@@ -191,10 +191,10 @@ export class UserProfileComponent {
       });
   }
 
-  openSnackBar(message: string) {
+  openSnackBar(message: string, verticalPosition: MatSnackBarVerticalPosition = 'top') {
     this._snackBar.open(message, 'Close', {
       horizontalPosition: 'center',
-      verticalPosition: 'top',
+      verticalPosition: verticalPosition,
       duration: 5000,
     });
   }
@@ -209,7 +209,7 @@ export class UserProfileComponent {
         next: () => {
           this.remainingLeaveHoursForm.get('hours')?.reset();
           this.remainingLeaveHoursForm.get('reason')?.reset();
-          this.openSnackBar('Leave transaction updated successfully.');
+          this.openSnackBar('Leave transaction updated successfully.', 'bottom');
         },
       });
   }
