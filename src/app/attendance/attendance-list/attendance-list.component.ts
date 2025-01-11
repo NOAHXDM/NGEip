@@ -26,6 +26,7 @@ import { ReasonPriorityPipe } from '../../pipes/reason-priority.pipe';
 import { UserNamePipe } from '../../pipes/user-name.pipe';
 import { AttendanceStatusChangeComponent } from '../attendance-status-change/attendance-status-change.component';
 import { AttendanceHistoryComponent } from '../attendance-history/attendance-history.component';
+import { ClientPreferencesService } from '../../services/client-preferences.service';
 
 @Component({
   selector: 'app-attendance-list',
@@ -67,43 +68,59 @@ export class AttendanceListComponent implements AfterViewInit {
 
   @ViewChild(MatSort) sort?: MatSort;
   @ViewChild(MatChipListbox) chipList?: MatChipListbox;
+  logsSearchOption: string;
 
   constructor(
     private attendanceService: AttendanceService,
+    private clientPreferencesService: ClientPreferencesService,
     private _dialog: MatDialog,
     private _snackBar: MatSnackBar
   ) {
     this.attendanceList$ = this.attendanceService
       .getCurrentDay()
       .pipe(map((data) => this.transformToDataSource(data)));
+
+    this.logsSearchOption =
+      this.clientPreferencesService.getPreference('logsSearchOption') || '0';
   }
 
   ngAfterViewInit() {
     this.chipList?.chipSelectionChanges.subscribe({
       next: (change: MatChipSelectionChange) => {
         if (change.selected) {
-          switch (change.source.value) {
-            case '0':
-              this.attendanceList$ = this.attendanceService
-                .getCurrentDay()
-                .pipe(map((data) => this.transformToDataSource(data)));
-              break;
-            case '1':
-              this.attendanceList$ = this.attendanceService
-                .getCurrentWeek()
-                .pipe(map((data) => this.transformToDataSource(data)));
-              break;
-            case '2':
-              this.attendanceList$ = this.attendanceService
-                .getCurrentMonth()
-                .pipe(map((data) => this.transformToDataSource(data)));
-              break;
-            default:
-              break;
-          }
+          this.dateRangeChange(change.source.value);
         }
       },
     });
+  }
+
+  dateRangeChange(option: string) {
+    // Save the selected option to the client preferences
+    this.logsSearchOption = option;
+    this.clientPreferencesService.setPreference(
+      'logsSearchOption',
+      this.logsSearchOption
+    );
+    // Load the attendance list based on the selected option
+    switch (option) {
+      case '0':
+        this.attendanceList$ = this.attendanceService
+          .getCurrentDay()
+          .pipe(map((data) => this.transformToDataSource(data)));
+        break;
+      case '1':
+        this.attendanceList$ = this.attendanceService
+          .getCurrentWeek()
+          .pipe(map((data) => this.transformToDataSource(data)));
+        break;
+      case '2':
+        this.attendanceList$ = this.attendanceService
+          .getCurrentMonth()
+          .pipe(map((data) => this.transformToDataSource(data)));
+        break;
+      default:
+        break;
+    }
   }
 
   transformToDataSource(data: any[]): MatTableDataSource<any> {
