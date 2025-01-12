@@ -5,27 +5,24 @@
   font-family: "Arial", sans-serif; /* 使用通用無襯線字體 */
 }
 
-:host {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
 .container {
   height: 100%;
   width: 100%;
-  padding: 5%;
 }
 
 .avatar {
-  width: 100%;
-  height: 100px;
-  background-color: #fff;
-  border-top-left-radius: 60px;
-  border-bottom-left-radius: 60px;
-  margin-bottom: 17px;
+  width: 95%;
   display: flex;
-  align-items: center;
+  padding: 5px;
 }
+
+.avatar-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
 .circle {
   height: 100px;
   width: 100px;
@@ -49,25 +46,32 @@
   font-family: "Arial", sans-serif;
 }
 
-.avatar-right {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  width: 50%;
-  height: 100%;
-  margin-left: 10px;
-}
-.name,
-.mail {
-  margin: 0;
-  padding: 2px 0;
-}
 .name {
-  font-weight: bold;
-  font-size: 1.5rem;
+  margin-top: 5px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
 }
-.mail {
-  font-weight: 500;
-  font-size: 1rem;
-  color: #666;
+
+/* 右邊資訊區 */
+.avatar-right {
+  margin-left: 15px;
+  font-size: 16px;
+  line-height: 1.4;
+  color: #333;
+}
+
+.info-block {
+  padding: 3px;
+  border-bottom: 2px solid #eee;
+}
+
+.info-block:last-child {
+  border-bottom: none;
+}
+
+.info-block strong {
+  font-weight: 800;
+  color: #555;
+  margin-right: 5px;
 }

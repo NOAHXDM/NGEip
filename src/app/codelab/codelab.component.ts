@@ -161,8 +161,13 @@ export class CodelabComponent {
       });
   }
   content = '建立代辦事項';
-  state: 'none' | 'finish' = 'none';
-  onSetState(state: 'none' | 'finish'): void {
+  state: 'none' | 'doing' | 'finish' = 'none';
+  onSetState(state: 'none' | 'doing' | 'finish'): void {
     this.state = state;
+  }
+
+  isChecked: boolean = false;
+  toggleChecked() {
+    this.isChecked = !this.isChecked;
   }
 }
