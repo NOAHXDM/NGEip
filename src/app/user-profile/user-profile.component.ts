@@ -14,7 +14,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBar, MatSnackBarModule, MatSnackBarVerticalPosition } from '@angular/material/snack-bar';
+import {
+  MatSnackBar,
+  MatSnackBarModule,
+  MatSnackBarVerticalPosition,
+} from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MtxDatetimepickerModule } from '@ng-matero/extensions/datetimepicker';
@@ -104,59 +108,55 @@ export class UserProfileComponent {
   readonly remoteWorkEligibilityOptions = ['N/A', 'WFH2', 'WFH4.5'];
   readonly roleOptions = ['user', 'admin'];
   readonly isAdmin$: Observable<boolean>;
-  readonly userList$: Observable<User[]>;
+  readonly userListExculdeCurrentUser$: Observable<User[]>;
   readonly remainingLeaveHours = signal(0);
   readonly leaveTransactionHistory$: Observable<MatTableDataSource<any>>;
   displayedColumns: string[] = ['date', 'hours', 'reason', 'actionBy'];
-  title = '';
+  myProfileMode = true;
+  title = 'My Profile';
 
   constructor(
     private userService: UserService,
     private _snackBar: MatSnackBar,
     @Optional() @Inject(MAT_DIALOG_DATA) protected data: any
   ) {
+    this.myProfileMode = !this.data;
     this.isAdmin$ = this.userService.isAdmin$;
-    this.userList$ = (this.userService.list$ as Observable<User[]>).pipe(
-      // Update remainingLeaveHours
-      tap((userList) => {
-        const matchUser = userList.find(
-          (user) => user.uid == this.data?.user.uid
-        );
+    this.userListExculdeCurrentUser$ = this.userService.list$.pipe(
+      map((users) => {
+        this.title = this.myProfileMode ? 'My Profile' : 'User Profile';
+        const currentUser = users[0];
+        const editUser: any = this.myProfileMode
+          ? currentUser
+          : users.find((user) => user.uid == this.data.user.uid)!;
 
-        if (this.data && matchUser) {
-          this.remainingLeaveHours.set(matchUser.remainingLeaveHours);
+        if (editUser.birthday) {
+          editUser.birthday = (editUser.birthday as Timestamp).toDate();
         }
+
+        if (editUser.startDate) {
+          editUser.startDate = (editUser.startDate as Timestamp).toDate();
+        }
+
+        this.profileForm.patchValue(editUser);
+        this.advancedForm.patchValue(editUser);
+        // Update remainingLeaveHours
+        this.remainingLeaveHours.set(editUser.remainingLeaveHours);
+        // Set uid for remainingLeaveHoursForm
+        this.remainingLeaveHoursForm.get('uid')?.setValue(editUser.uid);
+        // Set actionBy for leave transaction
+        this.remainingLeaveHoursForm
+          .get('actionBy')
+          ?.setValue(currentUser.uid!);
+
+        return users.slice(1);
       })
     );
-    this.userService.currentUser$.pipe(takeUntilDestroyed()).subscribe({
-      next: (user) => {
-        // Dialog/My profile mode
-        this.title = this.data ? 'User Profile' : 'My Profile';
-        let value: any = this.data ? { ...this.data.user } : { ...user };
 
-        if (value.birthday) {
-          value.birthday = (value.birthday as Timestamp).toDate();
-        }
-
-        if (value.startDate) {
-          value.startDate = (value.startDate as Timestamp).toDate();
-        }
-
-        this.profileForm.patchValue(value);
-        this.advancedForm.patchValue(value);
-        // Update remainingLeaveHours
-        this.remainingLeaveHours.set(value.remainingLeaveHours);
-        // Set uid for remainingLeaveHoursForm
-        this.remainingLeaveHoursForm.get('uid')?.setValue(value.uid);
-        // Set actionBy for leave transaction
-        this.remainingLeaveHoursForm.get('actionBy')?.setValue(user.uid!);
-      },
-    });
-
-    this.leaveTransactionHistory$ = this.userService.currentUser$.pipe(
-      switchMap((user) =>
+    this.leaveTransactionHistory$ = this.userService.list$.pipe(
+      switchMap((users) =>
         this.userService.leaveTransactionHistory(
-          this.data ? this.data.user.uid : user.uid!
+          this.myProfileMode ? users[0].uid : this.data.user.uid
         )
       ),
       map((data) => new MatTableDataSource(data))
@@ -191,7 +191,10 @@ export class UserProfileComponent {
       });
   }
 
-  openSnackBar(message: string, verticalPosition: MatSnackBarVerticalPosition = 'top') {
+  openSnackBar(
+    message: string,
+    verticalPosition: MatSnackBarVerticalPosition = 'top'
+  ) {
     this._snackBar.open(message, 'Close', {
       horizontalPosition: 'center',
       verticalPosition: verticalPosition,
@@ -209,7 +212,10 @@ export class UserProfileComponent {
         next: () => {
           this.remainingLeaveHoursForm.get('hours')?.reset();
           this.remainingLeaveHoursForm.get('reason')?.reset();
-          this.openSnackBar('Leave transaction updated successfully.', 'bottom');
+          this.openSnackBar(
+            'Leave transaction updated successfully.',
+            'bottom'
+          );
         },
       });
   }

@@ -109,7 +109,7 @@ export class AttendanceComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA)
     protected data: { title: string; attendance?: AttendanceLog }
   ) {
-    this.userList$ = this.userService.list$ as Observable<User[]>;
+    this.userList$ = this.userService.list$;
   }
 
   ngOnInit() {

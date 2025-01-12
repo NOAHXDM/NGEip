@@ -12,15 +12,13 @@ export class UserNamePipe implements PipeTransform {
   private latestMapping: Map<string, string> = new Map();
 
   constructor(private userService: UserService) {
-    (this.userService.list$ as Observable<User[]>)
-      .pipe(takeUntilDestroyed())
-      .subscribe({
-        next: (users) => {
-          this.latestMapping = new Map(
-            users.map((user) => [user.uid!, user.name])
-          );
-        },
-      });
+    this.userService.list$.pipe(takeUntilDestroyed()).subscribe({
+      next: (users) => {
+        this.latestMapping = new Map(
+          users.map((user) => [user.uid!, user.name])
+        );
+      },
+    });
   }
 
   transform(value: string): string {

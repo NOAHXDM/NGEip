@@ -15,6 +15,7 @@ import {
   collectionData,
   doc,
   docData,
+  getCountFromServer,
   getDocs,
   orderBy,
   query,
@@ -23,7 +24,14 @@ import {
   updateDoc,
   where,
 } from '@angular/fire/firestore';
-import { from, map, Observable, shareReplay, switchMap } from 'rxjs';
+import {
+  combineLatest,
+  from,
+  map,
+  Observable,
+  shareReplay,
+  switchMap,
+} from 'rxjs';
 
 import { License } from './system-config.service';
 
@@ -45,9 +53,20 @@ export class UserService {
     shareReplay(1)
   );
   readonly firestore: Firestore = inject(Firestore);
-  readonly list$ = collectionData(collection(this.firestore, 'users'), {
-    idField: 'uid',
-  }).pipe(shareReplay(1));
+  readonly list$ = combineLatest([
+    this.currentUser$,
+    collectionData(collection(this.firestore, 'users'), {
+      idField: 'uid',
+    }),
+  ]).pipe(
+    map(([currentUser, users]) => {
+      const excludeMyself = users.filter(
+        (user) => user.uid != currentUser.uid
+      ) as User[];
+      return [currentUser, ...excludeMyself];
+    }),
+    shareReplay(1)
+  );
   readonly isAdmin$ = this.currentUser$.pipe(
     map((user) => user.role == 'admin')
   );
@@ -55,6 +74,7 @@ export class UserService {
   constructor() {}
 
   createUser(email: string, password: string, name: string) {
+    let totalUsers = 0;
     return from(
       (async () => {
         // Check users has the duplicate email
@@ -62,11 +82,18 @@ export class UserService {
           collection(this.firestore, 'users'),
           where('email', '==', email)
         );
+        const usersCollection = collection(this.firestore, 'users');
 
-        const emailSnapshot = await getDocs(emailQuery);
+        const [emailSnapshot, countSnapshot] = await Promise.all([
+          getDocs(emailQuery),
+          getCountFromServer(usersCollection),
+        ]);
+
         if (!emailSnapshot.empty) {
           throw new Error('Email already exists');
         }
+
+        totalUsers = countSnapshot.data().count;
       })()
     ).pipe(
       switchMap(() =>
@@ -101,7 +128,7 @@ export class UserService {
               remainingLeaveHours: 0,
               remoteWorkEligibility: 'N/A',
               remoteWorkRecommender: [],
-              role: 'user',
+              role: totalUsers ? 'user' : 'admin', // First user is admin, others are user
             };
             transaction.set(doc(this.firestore, 'users', uid), user);
             // Update license
