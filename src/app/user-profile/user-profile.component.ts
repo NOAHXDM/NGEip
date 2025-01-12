@@ -127,8 +127,8 @@ export class UserProfileComponent {
         this.title = this.myProfileMode ? 'My Profile' : 'User Profile';
         const currentUser = users[0];
         const editUser: any = this.myProfileMode
-          ? currentUser
-          : users.find((user) => user.uid == this.data.user.uid)!;
+          ? { ...currentUser }
+          : { ...users.find((user) => user.uid == this.data.user.uid) };
 
         if (editUser.birthday) {
           editUser.birthday = (editUser.birthday as Timestamp).toDate();

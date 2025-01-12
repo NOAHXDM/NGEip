@@ -55,9 +55,12 @@ export class UserService {
   readonly firestore: Firestore = inject(Firestore);
   readonly list$ = combineLatest([
     this.currentUser$,
-    collectionData(collection(this.firestore, 'users'), {
-      idField: 'uid',
-    }),
+    collectionData(
+      query(collection(this.firestore, 'users'), orderBy('startDate', 'asc')),
+      {
+        idField: 'uid',
+      }
+    ),
   ]).pipe(
     map(([currentUser, users]) => {
       const excludeMyself = users.filter(
