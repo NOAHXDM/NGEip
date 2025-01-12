@@ -51,7 +51,7 @@ import { ClientPreferencesService } from '../../services/client-preferences.serv
   styleUrl: './attendance-list.component.scss',
 })
 export class AttendanceListComponent implements AfterViewInit {
-  attendanceList$: Observable<MatTableDataSource<any>>;
+  attendanceList$?: Observable<MatTableDataSource<any>>;
   displayedColumns: string[] = [
     'status',
     'userId',
@@ -76,10 +76,6 @@ export class AttendanceListComponent implements AfterViewInit {
     private _dialog: MatDialog,
     private _snackBar: MatSnackBar
   ) {
-    this.attendanceList$ = this.attendanceService
-      .getCurrentDay()
-      .pipe(map((data) => this.transformToDataSource(data)));
-
     this.logsSearchOption =
       this.clientPreferencesService.getPreference('logsSearchOption') || '0';
   }
@@ -105,17 +101,17 @@ export class AttendanceListComponent implements AfterViewInit {
     switch (option) {
       case '0':
         this.attendanceList$ = this.attendanceService
-          .getCurrentDay()
+          .getCurrentDay
           .pipe(map((data) => this.transformToDataSource(data)));
         break;
       case '1':
         this.attendanceList$ = this.attendanceService
-          .getCurrentWeek()
+          .getCurrentWeek
           .pipe(map((data) => this.transformToDataSource(data)));
         break;
       case '2':
         this.attendanceList$ = this.attendanceService
-          .getCurrentMonth()
+          .getCurrentMonth
           .pipe(map((data) => this.transformToDataSource(data)));
         break;
       default:

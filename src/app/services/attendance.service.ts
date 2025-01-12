@@ -18,7 +18,7 @@ import {
   where,
 } from '@angular/fire/firestore';
 import { startOfWeek, addDays, startOfDay } from 'date-fns';
-import { from, Observable, of, switchMap } from 'rxjs';
+import { from, Observable, of, shareReplay, switchMap } from 'rxjs';
 
 import { User } from './user.service';
 
@@ -43,6 +43,9 @@ export class AttendanceService {
         value: ReasonPriority[key as keyof typeof ReasonPriority],
       } as SelectOption;
     });
+  readonly getCurrentDay = this._getCurrentDay().pipe(shareReplay(1));
+  readonly getCurrentWeek = this._getCurrentWeek().pipe(shareReplay(1));
+  readonly getCurrentMonth = this._getCurrentMonth().pipe(shareReplay(1));
 
   constructor() {}
 
@@ -163,11 +166,10 @@ export class AttendanceService {
     return null;
   }
 
-  search(query?: any) {
-    // TODO: query
-  }
+  // TODO: query
+  search(query: any) {}
 
-  getCurrentDay() {
+  private _getCurrentDay() {
     const today = new Date();
     const dayStart = startOfDay(today);
     const dayEnd = startOfDay(addDays(today, 1));
@@ -193,7 +195,7 @@ export class AttendanceService {
     );
   }
 
-  getCurrentWeek() {
+  private _getCurrentWeek() {
     const today = new Date();
     const weekStart = startOfWeek(today, { weekStartsOn: 1 });
     const weekEnd = startOfDay(addDays(weekStart, 7));
@@ -219,7 +221,7 @@ export class AttendanceService {
     );
   }
 
-  getCurrentMonth() {
+  private _getCurrentMonth() {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
