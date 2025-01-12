@@ -25,7 +25,7 @@ export class HomeComponent implements OnInit {
   readonly userList$: Observable<User[]>;
 
   constructor(private userService: UserService) {
-    this.userList$ = this.userService.list$ as Observable<User[]>;
+    this.userList$ = this.userService.list$;
   }
   ngOnInit() {
     this.updateGridTileColspan(window.innerWidth);

@@ -49,7 +49,7 @@
     <mat-form-field appearance="outline">
       <mat-label>Remote Work Recommender</mat-label>
       <mat-select formControlName="remoteWorkRecommender" multiple>
-        @for (user of userList$ | async; track user.uid) {
+        @for (user of userListExculdeCurrentUser$ | async; track user.uid) {
         <mat-option [value]="user.uid">{{ user.name }}</mat-option>
         }
       </mat-select>
