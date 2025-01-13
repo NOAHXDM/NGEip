@@ -132,6 +132,7 @@ export class UserService {
               remoteWorkEligibility: 'N/A',
               remoteWorkRecommender: [],
               role: totalUsers ? 'user' : 'admin', // First user is admin, others are user
+              startDate: serverTimestamp(),
             };
             transaction.set(doc(this.firestore, 'users', uid), user);
             // Update license
