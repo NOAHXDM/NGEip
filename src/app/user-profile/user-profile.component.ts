@@ -108,7 +108,7 @@ export class UserProfileComponent {
   readonly remoteWorkEligibilityOptions = ['N/A', 'WFH2', 'WFH4.5'];
   readonly roleOptions = ['user', 'admin'];
   readonly isAdmin$: Observable<boolean>;
-  readonly userListExculdeCurrentUser$: Observable<User[]>;
+  readonly userList$: Observable<User[]>;
   readonly remainingLeaveHours = signal(0);
   readonly leaveTransactionHistory$: Observable<MatTableDataSource<any>>;
   displayedColumns: string[] = ['date', 'hours', 'reason', 'actionBy'];
@@ -122,7 +122,7 @@ export class UserProfileComponent {
   ) {
     this.myProfileMode = !this.data;
     this.isAdmin$ = this.userService.isAdmin$;
-    this.userListExculdeCurrentUser$ = this.userService.list$.pipe(
+    this.userList$ = this.userService.list$.pipe(
       map((users) => {
         this.title = this.myProfileMode ? 'My Profile' : 'User Profile';
         const currentUser = users[0];
@@ -149,7 +149,7 @@ export class UserProfileComponent {
           .get('actionBy')
           ?.setValue(currentUser.uid!);
 
-        return users.slice(1);
+        return users;
       })
     );
 
