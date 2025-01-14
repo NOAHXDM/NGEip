@@ -8,19 +8,30 @@ import {
   signOut,
 } from '@angular/fire/auth';
 import {
+  FieldValue,
   Firestore,
+  Timestamp,
   collection,
   collectionData,
   doc,
   docData,
+  getCountFromServer,
   getDocs,
+  orderBy,
   query,
   runTransaction,
   serverTimestamp,
   updateDoc,
   where,
 } from '@angular/fire/firestore';
-import { from, Observable, shareReplay, switchMap } from 'rxjs';
+import {
+  combineLatest,
+  from,
+  map,
+  Observable,
+  shareReplay,
+  switchMap,
+} from 'rxjs';
 
 import { License } from './system-config.service';
 
@@ -42,13 +53,31 @@ export class UserService {
     shareReplay(1)
   );
   readonly firestore: Firestore = inject(Firestore);
-  readonly list$ = collectionData(collection(this.firestore, 'users'), {
-    idField: 'uid',
-  }).pipe(shareReplay(1));
+  readonly list$ = combineLatest([
+    this.currentUser$,
+    collectionData(
+      query(collection(this.firestore, 'users'), orderBy('startDate', 'asc')),
+      {
+        idField: 'uid',
+      }
+    ),
+  ]).pipe(
+    map(([currentUser, users]) => {
+      const excludeMyself = users.filter(
+        (user) => user.uid != currentUser.uid
+      ) as User[];
+      return [currentUser, ...excludeMyself];
+    }),
+    shareReplay(1)
+  );
+  readonly isAdmin$ = this.currentUser$.pipe(
+    map((user) => user.role == 'admin')
+  );
 
   constructor() {}
 
   createUser(email: string, password: string, name: string) {
+    let totalUsers = 0;
     return from(
       (async () => {
         // Check users has the duplicate email
@@ -56,11 +85,18 @@ export class UserService {
           collection(this.firestore, 'users'),
           where('email', '==', email)
         );
+        const usersCollection = collection(this.firestore, 'users');
 
-        const emailSnapshot = await getDocs(emailQuery);
+        const [emailSnapshot, countSnapshot] = await Promise.all([
+          getDocs(emailQuery),
+          getCountFromServer(usersCollection),
+        ]);
+
         if (!emailSnapshot.empty) {
           throw new Error('Email already exists');
         }
+
+        totalUsers = countSnapshot.data().count;
       })()
     ).pipe(
       switchMap(() =>
@@ -95,7 +131,8 @@ export class UserService {
               remainingLeaveHours: 0,
               remoteWorkEligibility: 'N/A',
               remoteWorkRecommender: [],
-              role: 'user',
+              role: totalUsers ? 'user' : 'admin', // First user is admin, others are user
+              startDate: serverTimestamp(),
             };
             transaction.set(doc(this.firestore, 'users', uid), user);
             // Update license
@@ -116,8 +153,60 @@ export class UserService {
       phone: user.phone,
       remoteWorkEligibility: user.remoteWorkEligibility,
       remoteWorkRecommender: user.remoteWorkRecommender,
+      birthday: user.birthday,
     };
     return from(updateDoc(docRef, data));
+  }
+
+  updateUserAdvanced(user: User) {
+    const docRef = doc(this.firestore, 'users', user.uid!);
+    const data = {
+      jobRank: user.jobRank,
+      jobTitle: user.jobTitle,
+      role: user.role,
+      startDate: user.startDate,
+    };
+    return from(updateDoc(docRef, data));
+  }
+
+  updateRemainingLeaveHours(data: LeaveTransaction) {
+    return from(
+      runTransaction(this.firestore, async (transaction) => {
+        const userRef = doc(this.firestore, 'users', data.uid!);
+        const userSnapshot = await transaction.get(userRef);
+        const leaveTransactionHistoryCollectionRef = collection(
+          userRef,
+          'leaveTransactionHistory'
+        );
+        const newleaveTransactionHistoryDocRef = doc(
+          leaveTransactionHistoryCollectionRef
+        );
+
+        const { remainingLeaveHours } = userSnapshot.data() as User;
+        const leaveTransactionHistory = {
+          actionBy: data.actionBy,
+          date: serverTimestamp(),
+          hours: data.hours,
+          reason: data.reason,
+        };
+
+        transaction
+          .update(userRef, {
+            remainingLeaveHours: remainingLeaveHours + data.hours,
+          })
+          .set(newleaveTransactionHistoryDocRef, leaveTransactionHistory);
+      })
+    );
+  }
+
+  leaveTransactionHistory(uid: string) {
+    return collectionData(
+      query(
+        collection(this.firestore, 'users', uid, 'leaveTransactionHistory'),
+        orderBy('date', 'desc')
+      ),
+      { idField: 'id' }
+    ) as Observable<LeaveTransaction[]>;
   }
 
   login(email: string, password: string) {
@@ -130,7 +219,7 @@ export class UserService {
 }
 
 export interface User {
-  birthday?: Date;
+  birthday?: Timestamp | FieldValue;
   email: string;
   jobRank?: string;
   jobTitle?: string;
@@ -142,14 +231,14 @@ export interface User {
   remoteWorkEligibility: 'N/A' | 'WFH2' | 'WFH4.5'; // 遠距工作資格
   remoteWorkRecommender: string[];
   role: 'admin' | 'user';
-  startDate?: Date; // 到職日
+  startDate?: Timestamp | FieldValue; // 到職日
   uid?: string;
 }
 
-interface LeaveTransaction {
-  actionBy?: string;
-  date: Date;
+export interface LeaveTransaction {
+  actionBy: string;
+  date: Timestamp | FieldValue;
   hours: number;
-  reason?: string;
-  type: 'add' | 'deduct';
+  reason: string;
+  uid?: string;
 }

@@ -7,16 +7,16 @@
 <!-- Grid 1 -->
 <mat-card appearance="outlined">
   <mat-card-header class="d-flex justify-content-end">
-    <mat-chip-listbox>
-      <mat-chip-option>Today</mat-chip-option>
-      <mat-chip-option>This Week</mat-chip-option>
-      <mat-chip-option selected>This Month</mat-chip-option>
-      <mat-chip-option>Custom Range</mat-chip-option>
+    <mat-chip-listbox [value]="logsSearchOption">
+      <mat-chip-option aria-label="today" value="0" selected>Today</mat-chip-option>
+      <mat-chip-option aria-label="this week" value="1">This Week</mat-chip-option>
+      <mat-chip-option aria-label="this month" value="2">This Month</mat-chip-option>
+      <mat-chip-option disabled>Custom Range</mat-chip-option>
     </mat-chip-listbox>
   </mat-card-header>
   <mat-card-content class="pt-2">
     <section class="table-container mat-elevation-z8">
-      <mat-table [dataSource]="dataSource" matSort>
+      <mat-table [dataSource]="(attendanceList$ | async)!" matSort>
         <!-- Status -->
         <ng-container matColumnDef="status" sticky>
           <mat-header-cell *matHeaderCellDef>Status</mat-header-cell>
@@ -99,7 +99,7 @@
         <ng-container matColumnDef="history">
           <mat-header-cell *matHeaderCellDef>History</mat-header-cell>
           <mat-cell *matCellDef="let element">
-            <button mat-icon-button>
+            <button mat-icon-button (click)="openAttendanceHistoryDialog(element)">
               <mat-icon>history</mat-icon>
             </button>
           </mat-cell>
@@ -117,17 +117,24 @@
 <!-- Attendance status menu  -->
 <mat-menu #statusMenu>
   <ng-template matMenuContent let-data="data">
-    <button mat-menu-item>
-      <mat-icon [style.color]="'green'">recommend</mat-icon>
-      <span>Approved</span>
-    </button>
-    <button mat-menu-item>
-      <mat-icon [style.color]="'red'">cancel</mat-icon>
-      <span>Rejected</span>
-    </button>
-    <button mat-menu-item (click)="openEditAttendanceDialog(data)">
-      <mat-icon [style.color]="'gray'">edit_square</mat-icon>
-      <span>Edit</span>
-    </button>
+    @if (data.status == 'pending') {
+      <button mat-menu-item (click)="openAttendanceStatusChangeDialog(data, 'approved')">
+        <mat-icon [style.color]="'green'">recommend</mat-icon>
+        <span>Approved</span>
+      </button>
+      <button mat-menu-item (click)="openAttendanceStatusChangeDialog(data, 'rejected')">
+        <mat-icon [style.color]="'red'">cancel</mat-icon>
+        <span>Rejected</span>
+      </button>
+      <button mat-menu-item (click)="openEditAttendanceDialog(data)">
+        <mat-icon [style.color]="'gray'">edit_square</mat-icon>
+        <span>Edit</span>
+      </button>
+    } @else {
+      <button mat-menu-item (click)="openAttendanceStatusChangeDialog(data, 'pending')">
+        <mat-icon [style.color]="'gray'">pending_actions</mat-icon>
+        <span>Pending</span>
+      </button>
+    }
   </ng-template>
 </mat-menu>

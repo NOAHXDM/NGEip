@@ -1,0 +1,21 @@
+<div class="card">
+  <div class="card-header">
+    {{ user.name }}
+    @if(isAdmin$ | async) {
+    <button
+      type="button"
+      class="btn btn-warning btn-sm position-absolute"
+      style="top: 5px; right: 5px"
+      (click)="openUserProfileDialog()"
+    >
+      Edit
+    </button>
+    }
+  </div>
+  <div class="card-body">
+    <h5 class="card-title">
+      {{ user.email }}
+    </h5>
+    <p class="card-text">User-card-component not complete</p>
+  </div>
+</div>

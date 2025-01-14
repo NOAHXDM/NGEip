@@ -5,16 +5,22 @@ import {
   Firestore,
   Timestamp,
   addDoc,
+  and,
   collection,
   collectionData,
   doc,
+  or,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   updateDoc,
   where,
 } from '@angular/fire/firestore';
-import { from, Observable, of, switchMap } from 'rxjs';
+import { startOfWeek, addDays, startOfDay } from 'date-fns';
+import { from, Observable, of, shareReplay, switchMap } from 'rxjs';
+
+import { User } from './user.service';
 
 @Injectable({
   providedIn: 'root',
@@ -37,6 +43,9 @@ export class AttendanceService {
         value: ReasonPriority[key as keyof typeof ReasonPriority],
       } as SelectOption;
     });
+  readonly getCurrentDay = this._getCurrentDay().pipe(shareReplay(1));
+  readonly getCurrentWeek = this._getCurrentWeek().pipe(shareReplay(1));
+  readonly getCurrentMonth = this._getCurrentMonth().pipe(shareReplay(1));
 
   constructor() {}
 
@@ -82,12 +91,137 @@ export class AttendanceService {
     );
   }
 
-  search(query?: any) {
-    // TODO: query
-    return this.getCurrentMonth();
+  updateStatus(
+    data: AttendanceLog,
+    status: 'pending' | 'approved' | 'rejected',
+    actionBy: string
+  ) {
+    const diff = { status };
+    const auditTrail: AttendanceLogAuditTrail = {
+      action: 'update',
+      actionBy: actionBy,
+      actionDateTime: serverTimestamp(),
+      content: this.maskCotent(diff),
+    };
+
+    return from(
+      runTransaction(this.firestore, async (transaction) => {
+        const leaveTransactionHistory =
+          this.shouldUpdateUserRemainingLeaveHours(data, status, actionBy);
+        if (leaveTransactionHistory) {
+          const userRef = doc(this.firestore, 'users', data.userId);
+          const userSnapshot = await transaction.get(userRef);
+          const { remainingLeaveHours } = userSnapshot.data() as User;
+          if (remainingLeaveHours + leaveTransactionHistory.hours < 0) {
+            throw new Error('Insufficient leave hours');
+          }
+
+          const leaveTransactionHistoryCollectionRef = collection(
+            userRef,
+            'leaveTransactionHistory'
+          );
+          const newleaveTransactionHistoryDocRef = doc(
+            leaveTransactionHistoryCollectionRef
+          );
+
+          transaction
+            .update(userRef, {
+              remainingLeaveHours:
+                remainingLeaveHours + leaveTransactionHistory.hours,
+            })
+            .set(newleaveTransactionHistoryDocRef, leaveTransactionHistory);
+        }
+
+        const attendanceLogDocRef = doc(
+          this.firestore,
+          'attendanceLogs',
+          data.id!
+        );
+        const auditTrailRef = doc(
+          collection(attendanceLogDocRef, 'auditTrail')
+        );
+        transaction
+          .update(attendanceLogDocRef, diff)
+          .set(auditTrailRef, auditTrail);
+      })
+    );
   }
 
-  getCurrentMonth() {
+  private shouldUpdateUserRemainingLeaveHours(
+    data: AttendanceLog,
+    status: 'pending' | 'approved' | 'rejected',
+    actionBy: string
+  ) {
+    const deduct = data.status == 'pending' && status == 'approved';
+    const add = data.status == 'approved' && status == 'pending';
+    if (data.type == AttendanceType.AnnualLeave && (add || deduct)) {
+      return {
+        actionBy: actionBy,
+        date: serverTimestamp(),
+        hours: deduct ? 0 - data.hours : data.hours,
+        reason: `From attendance#${data.id}`,
+      };
+    }
+
+    return null;
+  }
+
+  // TODO: query
+  search(query: any) {}
+
+  private _getCurrentDay() {
+    const today = new Date();
+    const dayStart = startOfDay(today);
+    const dayEnd = startOfDay(addDays(today, 1));
+    const startTimestamp = Timestamp.fromDate(dayStart);
+    const endTimestamp = Timestamp.fromDate(dayEnd);
+    const collectRef = collection(this.firestore, 'attendanceLogs');
+    return collectionData(
+      query(
+        collectRef,
+        or(
+          and(
+            where('startDateTime', '>=', startTimestamp),
+            where('startDateTime', '<', endTimestamp)
+          ),
+          and(
+            where('endDateTime', '>=', startTimestamp),
+            where('endDateTime', '<', endTimestamp)
+          )
+        ),
+        orderBy('startDateTime', 'desc')
+      ),
+      { idField: 'id' }
+    );
+  }
+
+  private _getCurrentWeek() {
+    const today = new Date();
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+    const weekEnd = startOfDay(addDays(weekStart, 7));
+    const startTimestamp = Timestamp.fromDate(weekStart);
+    const endTimestamp = Timestamp.fromDate(weekEnd);
+    const collectRef = collection(this.firestore, 'attendanceLogs');
+    return collectionData(
+      query(
+        collectRef,
+        or(
+          and(
+            where('startDateTime', '>=', startTimestamp),
+            where('startDateTime', '<', endTimestamp)
+          ),
+          and(
+            where('endDateTime', '>=', startTimestamp),
+            where('endDateTime', '<', endTimestamp)
+          )
+        ),
+        orderBy('startDateTime', 'desc')
+      ),
+      { idField: 'id' }
+    );
+  }
+
+  private _getCurrentMonth() {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
@@ -102,8 +236,16 @@ export class AttendanceService {
     return collectionData(
       query(
         collectRef,
-        where('startDateTime', '>=', startTimestamp),
-        where('startDateTime', '<', endTimestamp),
+        or(
+          and(
+            where('startDateTime', '>=', startTimestamp),
+            where('startDateTime', '<', endTimestamp)
+          ),
+          and(
+            where('endDateTime', '>=', startTimestamp),
+            where('endDateTime', '<', endTimestamp)
+          )
+        ),
         orderBy('startDateTime', 'desc')
       ),
       { idField: 'id' }
@@ -115,6 +257,15 @@ export class AttendanceService {
     auditTrail: AttendanceLogAuditTrail
   ) {
     return from(addDoc(collection(docRef, 'auditTrail'), auditTrail));
+  }
+
+  getAuditTrail(id: string) {
+    const attendanceLogRef = doc(this.firestore, 'attendanceLogs', id);
+    const auditTrailCollection = collection(attendanceLogRef, 'auditTrail');
+    return collectionData(
+      query(auditTrailCollection, orderBy('actionDateTime', 'desc')),
+      { idField: 'id' }
+    );
   }
 
   private diff(targetValue: any, originValue: any) {
@@ -210,6 +361,7 @@ interface AttendanceLogAuditTrail {
   actionBy: string;
   actionDateTime: Timestamp | FieldValue;
   content?: string;
+  id?: string;
 }
 
 export interface SelectOption {

@@ -8,11 +8,9 @@
     <!-- Requester -->
     <mat-form-field>
       <mat-label>Requester</mat-label>
-      <mat-select
-        formControlName="userId"
-      >
+      <mat-select formControlName="userId">
         <mat-option value="">Please select</mat-option>
-        @for (user of userList$ | async; track user) {
+        @for (user of userList$ | async; track user.uid) {
         <mat-option [value]="user.uid">{{ user.name }}</mat-option>
         }
       </mat-select>
@@ -23,7 +21,7 @@
       <mat-label>Type</mat-label>
       <mat-select formControlName="type">
         <mat-option value="">Please select</mat-option>
-        @for (type of typeList; track type) {
+        @for (type of typeList; track type.value) {
         <mat-option [value]="type.value">{{ type.text }}</mat-option>
         }
       </mat-select>
@@ -42,6 +40,7 @@
         [mtxDatetimepicker]="startDatetimePicker"
         formControlName="startDateTime"
         matInput
+        [min]="startDatetimePickerMinDate"
       />
       <mtx-datetimepicker-toggle
         [for]="startDatetimePicker"
@@ -62,6 +61,7 @@
         [mtxDatetimepicker]="endDatetimePicker"
         formControlName="endDateTime"
         matInput
+        [max]="endDatetimePickerMaxDate"
       />
       <mtx-datetimepicker-toggle
         [for]="endDatetimePicker"
@@ -90,7 +90,7 @@
       <mat-label>Reason priority</mat-label>
       <mat-select formControlName="reasonPriority">
         <mat-option value="">Please select</mat-option>
-        @for (reasonPriority of reasonPriorityList; track reasonPriority) {
+        @for (reasonPriority of reasonPriorityList; track reasonPriority.value) {
         <mat-option [value]="reasonPriority.value">{{
           reasonPriority.text
         }}</mat-option>
@@ -106,7 +106,7 @@
         formControlName="proxyUserId"
       >
         <mat-option value="">Please select</mat-option>
-        @for (user of userList$ | async; track user) {
+        @for (user of userList$ | async; track user.uid) {
         <mat-option [value]="user.uid">{{ user.name }}</mat-option>
         }
       </mat-select>
@@ -119,7 +119,7 @@
       <mat-label>Callout</mat-label>
       <mat-select formControlName="callout">
         <mat-option value="">Please select</mat-option>
-        @for (user of userList$ | async; track user) {
+        @for (user of userList$ | async; track user.uid) {
         <mat-option [value]="user.uid">{{ user.name }}</mat-option>
         }
       </mat-select>
@@ -128,7 +128,7 @@
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close (click)="cancel()">Cancel</button>
+  <button mat-button mat-dialog-close>Cancel</button>
   <button
     mat-button
     (click)="save()"
