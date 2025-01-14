@@ -1,77 +1,72 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: "Arial", sans-serif; /* 使用通用無襯線字體 */
-}
-
-.container {
-  height: 100%;
-  width: 100%;
-}
-
 .avatar {
-  width: 95%;
   display: flex;
-  padding: 5px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  width: 100%; // 設置為 100% 寬度
+  max-width: 350px; // 設置最大寬度
+  height: 70px;
 }
 
 .avatar-left {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  margin-right: 20px;
+  flex: 1.5;
 }
 
 .circle {
-  height: 100px;
-  width: 100px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
-  border: #d3d3d3 7px solid;
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
+  font-size: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.avatar-right {
+  flex: 8.5;
+  line-height: 1;
+  position: relative;
+}
+.info-top {
+  position: absolute;
+  top: -14px;
+  right: -4px;
+  display: flex;
+  gap: 8px;
 }
 
-.circle-pic {
-  height: 100%;
-  width: 100%;
-  border-radius: 50%;
-  background-color: #f5a021;
+.badge {
+  padding: 4px 8px;
+  background-color: #007bff;
   color: white;
-  font-size: 2.5rem;
+  border-radius: 12px;
+  font-size: 14px;
   font-weight: bold;
+  text-align: center;
+}
+
+.avatar-right .name {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.avatar-right .email,
+.avatar-right .phone {
+  font-size: 18px;
+  color: #666;
+  margin: 2px 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  text-transform: uppercase; /* 字便大寫 */
-  letter-spacing: 0.05em;
-  font-family: "Arial", sans-serif;
 }
 
-.name {
-  margin-top: 5px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-/* 右邊資訊區 */
-.avatar-right {
-  margin-left: 15px;
-  font-size: 16px;
-  line-height: 1.4;
-  color: #333;
-}
-
-.info-block {
-  padding: 3px;
-  border-bottom: 2px solid #eee;
-}
-
-.info-block:last-child {
-  border-bottom: none;
-}
-
-.info-block strong {
-  font-weight: 800;
-  color: #555;
+mat-icon {
+  height: 18px;
+  width: 18px;
+  text-align: center;
   margin-right: 5px;
+  font-size: 18px;
 }

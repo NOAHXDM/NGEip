@@ -1,11 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { UserService } from '../services/user.service';
 import { tap } from 'rxjs';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-avatar',
   standalone: true,
-  imports: [],
+  imports: [MatIconModule],
   templateUrl: './avatar.component.html',
   styleUrl: './avatar.component.scss',
 })
