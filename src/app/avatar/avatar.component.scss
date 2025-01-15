@@ -1,20 +1,32 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 .avatar {
   display: flex;
   align-items: center;
-  padding: 10px;
+  padding: 15px;
   border: 1px solid #ddd;
   border-radius: 8px;
-  width: 100%; // 設置為 100% 寬度
+  width: 100%;
   max-width: 350px; // 設置最大寬度
-  height: 70px;
+  height: 75px;
 }
 
 .avatar-left {
   margin-right: 20px;
   flex: 1.5;
+
+  // display: flex;
+  // flex-direction: column;
+  // align-items: center;
+  // justify-content: center;
 }
 
 .circle {
+  margin-bottom: 25%;
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -25,6 +37,27 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
+}
+
+.name {
+  width: auto;
+  color: #000;
+  position: absolute;
+  font-weight: bold;
+  background: #d8d2d4;
+  padding: 0px 14px;
+  text-align: center;
+  border-radius: 10px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, 56%);
+}
+.name p {
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  font-size: 14px;
 }
 .avatar-right {
   flex: 8.5;
@@ -33,30 +66,34 @@
 }
 .info-top {
   position: absolute;
-  top: -14px;
-  right: -4px;
+  top: -8px;
+  right: -15px;
   display: flex;
   gap: 8px;
 }
 
 .badge {
   padding: 4px 8px;
-  background-color: #007bff;
-  color: white;
-  border-radius: 12px;
+  // background-color: #007bff;
+  // background-color: rgba(0, 123, 255, 0.2);
+  color: #666;
+  // border-radius: 12px;
   font-size: 14px;
   font-weight: bold;
   text-align: center;
 }
 
 .avatar-right .name {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: bold;
 }
 
 .avatar-right .email,
-.avatar-right .phone {
-  font-size: 18px;
+.avatar-right .phone,
+.avatar-right .military,
+.avatar-right .job-rank,
+.avatar-right .job-title {
+  font-size: 14px;
   color: #666;
   margin: 2px 0;
   display: flex;
@@ -69,4 +106,12 @@ mat-icon {
   text-align: center;
   margin-right: 5px;
   font-size: 18px;
+  color: #007bff;
+}
+
+.info-military {
+  display: flex;
+}
+.job-title {
+  margin-right: 10px;
 }
