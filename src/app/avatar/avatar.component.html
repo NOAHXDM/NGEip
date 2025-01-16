@@ -3,24 +3,28 @@
     <div class="circle">
       {{ name[0] }}
       <div class="name">
-        <p>{{ name }}</p>
+        <p>{{ user!.name }}</p>
       </div>
     </div>
   </div>
   <div class="avatar-right">
-    <div class="info-top">
-      <div class="badge">WFH2</div>
-    </div>
-    <!-- <div class="name">yu</div> -->
-    <div class="email"><mat-icon>email</mat-icon>wc8183182/gmail.com</div>
-    <div class="phone"><mat-icon>call</mat-icon>0919-094-765</div>
-    <div class="military">
-      <div class="info-military">
-        <mat-icon>badge</mat-icon>
-        <div class="job-title">Infrastructure Engineer</div>
-        <mat-icon>military_tech</mat-icon>
-        <div class="job-rank">J0</div>
+    <div class="wfh">{{ user!.remoteWorkEligibility }}</div>
+
+    <div class="info-avatar-right">
+      <div class="email"><mat-icon>email</mat-icon>{{ user!.email }}</div>
+      <div class="phone"><mat-icon>call</mat-icon>{{ user!.phone }}</div>
+      <div class="military">
+        <div class="info-military">
+          <mat-icon>badge</mat-icon>
+          <div class="job-title">Infrastructure</div>
+          <mat-icon>military_tech</mat-icon>
+          <div class="job-rank">J0</div>
+        </div>
       </div>
+    </div>
+    <div class="AnnualLeave">
+      <mat-icon>local_cafe</mat-icon>
+      <div class="AnnualLeave-num">121</div>
     </div>
   </div>
 </div>

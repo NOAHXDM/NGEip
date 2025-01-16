@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FirebaseError } from '@angular/fire/app';
+import { MatIconModule } from '@angular/material/icon';
 import {
   Auth,
   authState,
@@ -35,7 +36,7 @@ import { AvatarComponent } from '../avatar/avatar.component';
 @Component({
   selector: 'app-codelab',
   standalone: true,
-  imports: [ReactiveFormsModule, AvatarComponent],
+  imports: [ReactiveFormsModule, AvatarComponent, MatIconModule],
   templateUrl: './codelab.component.html',
   styleUrl: './codelab.component.scss',
 })
