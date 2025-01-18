@@ -20,6 +20,9 @@ export class AvatarComponent implements OnInit {
   email?: User;
   phone?: User;
   remoteWorkEligibility?: User;
+  jobRank?: User;
+  jobTitle?: User;
+  remainingLeaveHours?: User;
 
   constructor(private userService: UserService) {}
 
@@ -33,6 +36,9 @@ export class AvatarComponent implements OnInit {
           this.email = user;
           this.phone = user;
           this.remoteWorkEligibility = user;
+          this.jobRank = user;
+          this.jobTitle = user;
+          this.remainingLeaveHours = user;
         })
       )
       .subscribe();

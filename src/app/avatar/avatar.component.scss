@@ -1,3 +1,8 @@
+:host {
+  margin: 2px 0;
+  display: block;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -5,157 +10,61 @@
 }
 
 .avatar {
-  margin-top: 10px;
+  width: 100%;
   margin-bottom: 10px;
-  margin-left: 10px;
   display: flex;
   align-items: center;
   padding-left: 15px;
-  border: 1px solid #ddd;
   border-radius: 8px;
   width: 100%;
-  max-width: 350px; // 設置最大寬度
   height: 75px;
 }
 
 .avatar-left {
-  margin-right: 20px;
-  flex: 2;
+  margin-right: 10px;
+  width: 20%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .circle {
-  margin-bottom: 14%;
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background-color: #007bff;
+  background-color: #ced6eb;
   color: white;
   font-weight: bold;
   font-size: 20px;
   display: flex;
   justify-content: center;
   align-items: center;
-  position: relative;
 }
-.badge-red {
-  position: absolute;
-  top: 39px;
-  left: 300px;
-  background-color: red;
-  color: white;
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 10px;
-}
+
 .name {
-  width: auto;
+  width: 50px;
   color: #000;
-  position: absolute;
+
   font-weight: bold;
-  background: rgba(102, 102, 102, 0.5);
+  background-color: rgba(222, 215, 397, 0.5);
   text-align: center;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, 119%);
   padding: 1px 5px;
   border-radius: 3px;
 }
 .name p {
   margin: 0;
-  padding: 0;
+  padding: 0px 2px;
   text-align: center;
-  font-size: 14px;
+  font-size: 10px;
   line-height: 14px;
-}
-.avatar-right {
-  flex: 8;
-  height: 100%;
-  line-height: 1;
-  position: relative;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
-.wfh {
-  position: absolute;
-  color: #666;
-  font-size: 14px;
-  font-weight: bold;
-  text-align: center;
-  top: 4px;
-  right: 4px;
-}
-
-.info-avatar-right {
-  display: flex;
-  flex-direction: column; /* 垂直布局 */
-  justify-content: center; /* 上下居中 */
-  align-items: flex-start; /* 左对齐 */
-  height: 100%; /* 占满可用高度 */
-  text-align: left; /* 保持文字左对齐 */
-}
-
-.avatar-right .name {
-  font-size: 15px;
-  font-weight: bold;
-}
-
-.avatar-right .email,
-.avatar-right .phone,
-.avatar-right .military,
-.avatar-right .job-rank,
-.avatar-right .job-title {
-  font-size: 14px;
-  color: #666;
-  margin: 2px 0;
-  display: flex;
-  align-items: center;
-}
-
-mat-icon {
-  height: 18px;
-  width: 18px;
-  text-align: center;
-  margin-right: 5px;
-  font-size: 18px;
-  color: #98b6d8;
-}
-.info-military mat-icon:last-of-type {
-  margin-right: 0;
-}
-.info-military {
-  display: flex;
-}
-.job-title {
-  margin-right: 10px;
-}
-.AnnualLeave {
-  position: relative;
-  display: inline-block;
-  bottom: 34px;
-  right: -230px;
-}
-
-.AnnualLeave mat-icon {
-  height: 18px;
-  width: 18px;
-  font-size: 18px;
-  color: #98b6d8;
-  text-align: center;
-  position: absolute;
-}
-
-.AnnualLeave-num {
-  position: absolute;
-  padding: 9px;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background: rgba(255, 0, 0, 0.7);
-  font-size: 9px;
-  color: #fff;
-  text-align: center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  top: -5px; /* 调整到图标的上方 */
-  right: -5px; /* 调整到图标的右边 */
+@media screen and (max-width: 767px) {
+  .avatar {
+    // width: 50%;
+  }
 }
