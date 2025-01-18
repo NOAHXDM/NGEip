@@ -1,21 +1,32 @@
 <div class="card">
   <div class="card-header">
-    {{ user.name }}
-    @if(isAdmin$ | async) {
-    <button
-      type="button"
-      class="btn btn-warning btn-sm position-absolute"
-      style="top: 5px; right: 5px"
-      (click)="openUserProfileDialog()"
-    >
-      Edit
-    </button>
-    }
+    <app-avatar></app-avatar>
   </div>
   <div class="card-body">
-    <h5 class="card-title">
-      {{ user.email }}
-    </h5>
-    <p class="card-text">User-card-component not complete</p>
+    <div class="info-avatar-center">
+      <div class="email"><mat-icon>email</mat-icon>{{ user!.email }}</div>
+      <div class="phone"><mat-icon>call</mat-icon>{{ user!.phone }}</div>
+      <div class="military">
+        <div class="info-military">
+          <mat-icon>badge</mat-icon>
+          <div class="job-title">{{ user!.jobTitle }}</div>
+          <mat-icon>military_tech</mat-icon>
+          <div class="job-rank">{{ user!.jobRank }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-footer">
+    <div class="wfh">{{ user!.remoteWorkEligibility }}</div>
+
+    <div class="AnnualLeave">
+      <mat-icon>local_cafe</mat-icon>
+      <div class="AnnualLeave-num">{{ user!.remainingLeaveHours }}</div>
+    </div>
   </div>
 </div>
+
+<!-- 需修改地方 
+1.名字顏色貼近圓圈 文字過長時會顯示點點點
+2.縮放比例 -->
