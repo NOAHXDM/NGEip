@@ -10,11 +10,12 @@
 }
 
 .avatar {
-  width: 100%;
-  margin-bottom: 10px;
   display: flex;
+
   align-items: center;
-  padding-left: 15px;
+  justify-content: center;
+  margin-right: 10px;
+
   border-radius: 8px;
   width: 100%;
   height: 75px;
