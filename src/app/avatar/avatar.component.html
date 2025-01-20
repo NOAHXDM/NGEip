@@ -2,9 +2,29 @@
   <div class="avatar-left">
     <div class="circle">
       {{ name[0] }}
+      <div class="name">
+        <p>{{ user!.name }}</p>
+      </div>
     </div>
-    <div class="name">
-      <p>{{ user!.name }}</p>
+  </div>
+  <div class="avatar-right">
+    <div class="wfh">{{ user!.remoteWorkEligibility }}</div>
+
+    <div class="info-avatar-right">
+      <div class="email"><mat-icon>email</mat-icon>{{ user!.email }}</div>
+      <div class="phone"><mat-icon>call</mat-icon>{{ user!.phone }}</div>
+      <div class="military">
+        <div class="info-military">
+          <mat-icon>badge</mat-icon>
+          <div class="job-title">Infrastructure</div>
+          <mat-icon>military_tech</mat-icon>
+          <div class="job-rank">J0</div>
+        </div>
+      </div>
+    </div>
+    <div class="AnnualLeave">
+      <mat-icon>local_cafe</mat-icon>
+      <div class="AnnualLeave-num">121</div>
     </div>
   </div>
 </div>
