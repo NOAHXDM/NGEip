@@ -1,11 +1,11 @@
 .card-container {
   height: 610px;
   width: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  &::-webkit-scrollbar {
-    display: none;
-  }
+  overflow: auto;
+  // overflow-x: hidden;
+  // &::-webkit-scrollbar {
+  //   display: none;
+  // }
 }
 .card-container > .user-card-layout {
   width: 100%;

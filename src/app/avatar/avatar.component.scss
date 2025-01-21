@@ -3,19 +3,11 @@
   display: block;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
 .avatar {
   display: flex;
-
   align-items: center;
   justify-content: center;
   margin-right: 10px;
-
   border-radius: 8px;
   width: 100%;
   height: 75px;
@@ -62,10 +54,4 @@
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
-}
-
-@media screen and (max-width: 767px) {
-  .avatar {
-    // width: 50%;
-  }
 }

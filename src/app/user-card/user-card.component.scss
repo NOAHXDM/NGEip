@@ -1,13 +1,6 @@
 :host {
   margin: 2px 0;
   display: block;
-  // display: contents;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 .card {
@@ -30,6 +23,7 @@
 .card > .card-body {
   width: 60%;
   height: 100%;
+  padding: 0;
 }
 
 .card > .card-footer {
@@ -47,18 +41,15 @@
 
 .info-avatar-center {
   display: flex;
-  flex-direction: column; /* 垂直布局 */
-  justify-content: center; /* 上下居中 */
-  align-items: flex-start; /* 左对齐 */
-  height: 100%; /* 占满可用高度 */
-  text-align: left; /* 保持文字左对齐 */
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  height: 100%;
+  text-align: left;
   overflow-x: auto;
-  ::-webkit-scrollbar {
-    display: none;
-  }
 }
 
-.card > .card-body .name {
+.card > .card-body > .name {
   font-size: 15px;
   font-weight: bold;
 }
@@ -83,7 +74,7 @@ mat-icon {
   font-size: 18px;
   color: #98b6d8;
 }
-.info-military mat-icon:last-of-type {
+.info-military > mat-icon:last-of-type {
   margin-right: 0;
 }
 .info-military {
@@ -94,6 +85,7 @@ mat-icon {
 }
 
 .card-footer {
+  padding: 0;
   width: 20%;
   height: 100%;
   display: flex;
@@ -101,23 +93,28 @@ mat-icon {
   justify-content: space-between;
   border-top: none;
 }
-.wfh {
-  height: 15%;
+.work-from-home {
+  height: 30%;
   color: #666;
   font-size: 14px;
   font-weight: bold;
   text-align: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
 }
-.AnnualLeave {
-  // bottom: 34px;
-  // right: -223px;
+.work-from-home::-webkit-scrollbar {
+  display: none;
+}
+
+.annual-leave {
   height: 30%;
   display: flex;
   flex-direction: row;
   position: relative;
 }
 
-.AnnualLeave mat-icon {
+.annual-leave > mat-icon {
   height: 18px;
   width: 18px;
   font-size: 18px;
@@ -128,7 +125,7 @@ mat-icon {
   right: 19%;
 }
 
-.AnnualLeave-num {
+.annual-leave-num {
   padding: 9px;
   width: 15px;
   height: 15px;
