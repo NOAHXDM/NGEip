@@ -6,7 +6,9 @@
   </a>
   <span class="menu-spacer"></span>
   <div class="d-none d-md-block">
-    <a href="#" mat-button>Coming Soon</a>
+    @if(isAdmin$ | async) {
+    <button mat-button (click)="settlement()">Settlement</button>
+    }
     <a href="#" mat-button>Coming Soon</a>
     <a href="#" mat-button>Coming Soon</a>
   </div>
