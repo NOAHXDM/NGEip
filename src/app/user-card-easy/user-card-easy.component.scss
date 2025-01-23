@@ -32,13 +32,15 @@
 
 .card-header > .name {
   position: absolute;
-  bottom: -11px;
+  bottom: -11%;
   width: auto;
   color: #000;
   font-weight: bold;
   text-align: center;
   font-size: 13px;
+  margin: 0px;
 }
+
 .card > .card-body {
   padding: 0;
   width: 60%;
@@ -50,8 +52,10 @@
   padding: 5px 0;
   overflow-x: auto;
   overflow-y: hidden;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
-
 .card > .card-body .email,
 .card > .card-body .phone,
 .card > .card-body .military,
@@ -59,7 +63,6 @@
 .card > .card-body .job-title {
   font-size: 14px;
   color: #666;
-  margin: 2px 0;
   display: flex;
   align-items: center;
 }
@@ -93,7 +96,7 @@ mat-icon {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 5px 5px 5px 0px;
+  padding: 5px 0px 5px 0px;
   border-top: none;
 }
 
@@ -116,13 +119,14 @@ mat-icon {
   margin-left: auto;
   display: flex;
   flex-direction: row;
-  // position: relative;
 }
-
-.annual-leave > mat-icon {
+.annual-leave > .local_cafe-layout {
+  display: flex;
+  align-items: flex-end;
+}
+.local_cafe-layout > mat-icon {
   height: 18px;
   width: 18px;
-  // font-size: 18px;
   color: #98b6d8;
   text-align: center;
   margin-right: 0;
