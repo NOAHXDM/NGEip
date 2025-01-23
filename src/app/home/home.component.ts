@@ -6,6 +6,7 @@ import { Observable } from 'rxjs';
 import { AttendanceListComponent } from '../attendance/attendance-list/attendance-list.component';
 import { User, UserService } from '../services/user.service';
 import { UserCardComponent } from '../user-card/user-card.component';
+import { UserCardEasyComponent } from '../user-card-easy/user-card-easy.component';
 
 @Component({
   selector: 'app-home',
@@ -15,6 +16,8 @@ import { UserCardComponent } from '../user-card/user-card.component';
     MatGridListModule,
     AttendanceListComponent,
     UserCardComponent,
+    UserCardEasyComponent,
+    UserCardEasyComponent,
   ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
@@ -38,7 +41,7 @@ export class HomeComponent implements OnInit {
   }
 
   private updateGridTileColspan(width: number) {
-    this.gridTile1colspan = width < 768 ? 4 : 3;
-    this.gridTile2colspan = width < 768 ? 4 : 1;
+    this.gridTile1colspan = width < 1200 ? 4 : 3;
+    this.gridTile2colspan = width < 1200 ? 4 : 1;
   }
 }

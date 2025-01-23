@@ -8,7 +8,8 @@
     <section class="card-container">
       @for(user of userList$ | async; track user.uid ) {
       <div class="user-card-layout">
-        <app-user-card class="user-card" [user]="user"></app-user-card>
+        <!-- <app-user-card class="user-card" [user]="user"></app-user-card> -->
+        <app-user-card-easy [user]="user"></app-user-card-easy>
       </div>
 
       }

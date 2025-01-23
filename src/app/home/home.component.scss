@@ -2,16 +2,13 @@
   height: 610px;
   width: 100%;
   overflow: auto;
-  // overflow-x: hidden;
-  // &::-webkit-scrollbar {
-  //   display: none;
-  // }
 }
 .card-container > .user-card-layout {
   width: 100%;
   height: 75px;
+  margin-bottom: 5px;
 }
-@media screen and (max-width: 768px) {
+@media screen and (max-width: 756) {
   .card-container > .user-card-layout {
     display: inline-block;
     flex-direction: row;
