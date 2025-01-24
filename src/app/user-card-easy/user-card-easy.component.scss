@@ -4,9 +4,19 @@
   display: flex;
   flex-direction: row;
   margin-bottom: 5px;
+
+  mat-icon {
+    min-width: 18px;
+    height: 18px;
+    width: 18px;
+    text-align: center;
+    margin-right: 5px;
+    font-size: 18px;
+    color: #98b6d8;
+  }
 }
 
-.card > .card-header {
+.card-header {
   padding: 0;
   width: 20%;
   height: 100%;
@@ -16,33 +26,33 @@
   border-bottom: none;
   background: none;
   position: relative;
+
+  .circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #ced6eb;
+    color: white;
+    font-weight: bold;
+    font-size: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .name {
+    position: absolute;
+    bottom: -11%;
+    width: auto;
+    color: #000;
+    font-weight: bold;
+    text-align: center;
+    font-size: 13px;
+    margin: 0px;
+  }
 }
 
-.circle {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background-color: #ced6eb;
-  color: white;
-  font-weight: bold;
-  font-size: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.card-header > .name {
-  position: absolute;
-  bottom: -11%;
-  width: auto;
-  color: #000;
-  font-weight: bold;
-  text-align: center;
-  font-size: 13px;
-  margin: 0px;
-}
-
-.card > .card-body {
+.card-body {
   padding: 0;
   width: 60%;
   height: 100%;
@@ -56,39 +66,32 @@
   &::-webkit-scrollbar {
     display: none;
   }
-}
-.card > .card-body .email,
-.card > .card-body .phone,
-.card > .card-body .military,
-.card > .card-body .job-rank,
-.card > .card-body .job-title {
-  font-size: 14px;
-  color: #666;
-  display: flex;
-  align-items: center;
+
+  .email,
+  .phone,
+  .military,
+  .job-rank,
+  .job-title {
+    font-size: 14px;
+    color: #666;
+    display: flex;
+    align-items: center;
+
+    .info-military {
+      display: flex;
+
+      mat-icon:last-of-type {
+        margin-right: 0;
+      }
+
+      .job-title {
+        margin-right: 10px;
+      }
+    }
+  }
 }
 
-mat-icon {
-  min-width: 18px;
-  height: 18px;
-  width: 18px;
-  text-align: center;
-  margin-right: 5px;
-  font-size: 18px;
-  color: #98b6d8;
-}
-
-.info-military {
-  display: flex;
-}
-.info-military > mat-icon:last-of-type {
-  margin-right: 0;
-}
-.job-title {
-  margin-right: 10px;
-}
-
-.card > .card-footer {
+.card-footer {
   width: 20%;
   height: 100%;
   background: none;
@@ -99,50 +102,52 @@ mat-icon {
   justify-content: space-between;
   padding: 5px 0px 5px 0px;
   border-top: none;
-}
 
-.work-from-home {
-  height: 30%;
-  color: #666;
-  font-size: 14px;
-  font-weight: bold;
-  text-align: right;
-  overflow-x: auto;
-  overflow-y: hidden;
-  white-space: nowrap;
-}
-.work-from-home::-webkit-scrollbar {
-  display: none;
-}
+  .work-from-home {
+    height: 30%;
+    color: #666;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: right;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    ::-webkit-scrollbar {
+      display: none;
+    }
+  }
 
-.annual-leave {
-  height: 30%;
-  margin-left: auto;
-  display: flex;
-  flex-direction: row;
-}
-.annual-leave > .local_cafe-layout {
-  display: flex;
-  align-items: flex-end;
-}
-.local_cafe-layout > mat-icon {
-  height: 18px;
-  width: 18px;
-  color: #98b6d8;
-  text-align: center;
-  margin-right: 0;
-}
+  .annual-leave {
+    height: 30%;
+    margin-left: auto;
+    display: flex;
+    flex-direction: row;
 
-.annual-leave-num {
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background: rgba(255, 0, 0, 0.7);
-  display: flex;
-  font-size: 9px;
-  color: #fff;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  top: -7px;
+    .local_cafe-layout {
+      display: flex;
+      align-items: flex-end;
+
+      mat-icon {
+        height: 18px;
+        width: 18px;
+        color: #98b6d8;
+        text-align: center;
+        margin-right: 0;
+      }
+    }
+
+    .annual-leave-num {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: rgba(255, 0, 0, 0.7);
+      display: flex;
+      font-size: 9px;
+      color: #fff;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      top: -7px;
+    }
+  }
 }
