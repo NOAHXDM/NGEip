@@ -7,12 +7,11 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { UserProfileComponent } from '../user-profile/user-profile.component';
 import { MatIconModule } from '@angular/material/icon';
 import { tap } from 'rxjs';
-import { AvatarComponent } from '../avatar/avatar.component';
 
 @Component({
   selector: 'app-user-card-easy',
   standalone: true,
-  imports: [MatIconModule, AvatarComponent, AsyncPipe, MatDialogModule],
+  imports: [MatIconModule, AsyncPipe, MatDialogModule],
   templateUrl: './user-card-easy.component.html',
   styleUrl: './user-card-easy.component.scss',
 })

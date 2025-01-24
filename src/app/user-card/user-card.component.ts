@@ -5,14 +5,11 @@ import { Observable } from 'rxjs';
 import { User, UserService } from '../services/user.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { UserProfileComponent } from '../user-profile/user-profile.component';
-import { MatIconModule } from '@angular/material/icon';
-import { tap } from 'rxjs';
-import { AvatarComponent } from '../avatar/avatar.component';
 
 @Component({
   selector: 'app-user-card',
   standalone: true,
-  imports: [AsyncPipe, MatDialogModule, MatIconModule, AvatarComponent],
+  imports: [AsyncPipe, MatDialogModule],
   templateUrl: './user-card.component.html',
   styleUrl: './user-card.component.scss',
 })
@@ -29,9 +26,5 @@ export class UserCardComponent {
       data: { user: this.user },
       width: '65vw',
     });
-  }
-
-  ngOnInit(): void {
-    this.userService.currentUser$.pipe(tap((user) => {})).subscribe();
   }
 }
