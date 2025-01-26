@@ -166,15 +166,10 @@ export class AttendanceService {
     return null;
   }
 
-  // TODO: query
-  search(query: any) {}
+  search(startDateTime: Date, endDateTime: Date) {
+    const startTimestamp = Timestamp.fromDate(startDateTime);
+    const endTimestamp = Timestamp.fromDate(endDateTime);
 
-  private _getCurrentDay() {
-    const today = new Date();
-    const dayStart = startOfDay(today);
-    const dayEnd = startOfDay(addDays(today, 1));
-    const startTimestamp = Timestamp.fromDate(dayStart);
-    const endTimestamp = Timestamp.fromDate(dayEnd);
     const collectRef = collection(this.firestore, 'attendanceLogs');
     return collectionData(
       query(
@@ -193,63 +188,29 @@ export class AttendanceService {
       ),
       { idField: 'id' }
     );
+  }
+
+  private _getCurrentDay() {
+    const today = new Date();
+    const dayStart = startOfDay(today);
+    const dayEnd = startOfDay(addDays(today, 1));
+    return this.search(dayStart, dayEnd);
   }
 
   private _getCurrentWeek() {
     const today = new Date();
     const weekStart = startOfWeek(today, { weekStartsOn: 1 });
     const weekEnd = startOfDay(addDays(weekStart, 7));
-    const startTimestamp = Timestamp.fromDate(weekStart);
-    const endTimestamp = Timestamp.fromDate(weekEnd);
-    const collectRef = collection(this.firestore, 'attendanceLogs');
-    return collectionData(
-      query(
-        collectRef,
-        or(
-          and(
-            where('startDateTime', '>=', startTimestamp),
-            where('startDateTime', '<', endTimestamp)
-          ),
-          and(
-            where('endDateTime', '>=', startTimestamp),
-            where('endDateTime', '<', endTimestamp)
-          )
-        ),
-        orderBy('startDateTime', 'desc')
-      ),
-      { idField: 'id' }
-    );
+    return this.search(weekStart, weekEnd);
   }
 
   private _getCurrentMonth() {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
-
     const startOfNextMonth = new Date(startOfMonth);
     startOfNextMonth.setMonth(startOfMonth.getMonth() + 1);
-
-    const startTimestamp = Timestamp.fromDate(startOfMonth);
-    const endTimestamp = Timestamp.fromDate(startOfNextMonth);
-
-    const collectRef = collection(this.firestore, 'attendanceLogs');
-    return collectionData(
-      query(
-        collectRef,
-        or(
-          and(
-            where('startDateTime', '>=', startTimestamp),
-            where('startDateTime', '<', endTimestamp)
-          ),
-          and(
-            where('endDateTime', '>=', startTimestamp),
-            where('endDateTime', '<', endTimestamp)
-          )
-        ),
-        orderBy('startDateTime', 'desc')
-      ),
-      { idField: 'id' }
-    );
+    return this.search(startOfMonth, startOfNextMonth);
   }
 
   addAuditTrail(

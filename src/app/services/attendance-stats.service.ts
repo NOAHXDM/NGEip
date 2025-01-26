@@ -7,6 +7,7 @@ import {
   setDoc,
   Timestamp,
 } from '@angular/fire/firestore';
+import { format, eachMonthOfInterval, startOfYear, endOfYear } from 'date-fns';
 import { combineLatest, concatMap, from } from 'rxjs';
 
 import { AttendanceService, AttendanceType } from './attendance.service';
@@ -53,6 +54,14 @@ export class AttendanceStatsService {
         return from(setDoc(statDocRef, data));
       })
     );
+  }
+
+  getAllMonthByToday() {
+    // TODO: use systemConfig to set the year that searchable
+    return eachMonthOfInterval({
+      start: startOfYear(new Date()),
+      end: endOfYear(new Date()),
+    }).map((date) => format(date, 'yyyy-MM'));
   }
 }
 
