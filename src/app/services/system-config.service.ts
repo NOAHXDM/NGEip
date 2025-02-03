@@ -6,6 +6,7 @@ import {
   doc,
   runTransaction,
   serverTimestamp,
+  setDoc,
 } from '@angular/fire/firestore';
 import { catchError, from, of } from 'rxjs';
 
@@ -34,11 +35,21 @@ export class SystemConfigService {
           maxUsers: 10,
           currentUsers: 0,
           lastUpdated: serverTimestamp(),
+          initialSettlementYear: new Date().getFullYear(),
         };
         transaction.set(systemConfigRef, this.license);
       })
-    ).pipe(
-      catchError((error) => of())
+    ).pipe(catchError((error) => of()));
+  }
+
+  updateLicense(maxUsers: number, initialSettlementYear: number) {
+    const systemConfigRef = doc(this.firestore, 'systemConfig', 'license');
+    return from(
+      setDoc(
+        systemConfigRef,
+        { maxUsers, initialSettlementYear },
+        { merge: true }
+      )
     );
   }
 }
@@ -47,4 +58,5 @@ export interface License {
   maxUsers: number;
   currentUsers: number;
   lastUpdated: Timestamp | FieldValue;
+  initialSettlementYear: number;
 }

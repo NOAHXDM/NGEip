@@ -1,0 +1,12 @@
+<mat-card appearance="outlined">
+  <mat-card-header class="d-flex justify-content-end">
+    <mat-chip-listbox [value]="quickPickOption">
+      @for(selection of quickPickOptions; track selection) {
+        <mat-chip-option [aria-label]="selection" [value]="selection" selected>{{selection}}</mat-chip-option>
+      }
+    </mat-chip-listbox>
+  </mat-card-header>
+  <mat-card-content class="pt-2">
+    ...
+  </mat-card-content>
+</mat-card>

@@ -4,6 +4,7 @@ import { MatGridListModule } from '@angular/material/grid-list';
 import { Observable } from 'rxjs';
 
 import { AttendanceListComponent } from '../attendance/attendance-list/attendance-list.component';
+import { AttendanceStatsComponent } from '../attendance/attendance-stats/attendance-stats.component';
 import { User, UserService } from '../services/user.service';
 import { UserCardComponent } from '../user-card/user-card.component';
 
@@ -14,8 +15,9 @@ import { UserCardComponent } from '../user-card/user-card.component';
     AsyncPipe,
     MatGridListModule,
     AttendanceListComponent,
+    AttendanceStatsComponent,
     UserCardComponent,
-  ],
+],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
 })

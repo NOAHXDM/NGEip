@@ -4,6 +4,7 @@ import { HomeComponent } from './home/home.component';
 import { LayoutComponent } from './layout/layout.component';
 import { LoginComponent } from './login/login.component';
 import { RegisterComponent } from './register/register.component';
+import { SystemConfigComponent } from './system-config/system-config.component';
 import { UserProfileComponent } from './user-profile/user-profile.component';
 
 export const routes: Routes = [
@@ -14,6 +15,7 @@ export const routes: Routes = [
     children: [
       { path: '', component: HomeComponent },
       { path: 'MyProfile', component: UserProfileComponent },
+      { path: 'SystemConfig', component: SystemConfigComponent },
     ],
   },
   { path: 'Login', component: LoginComponent, canActivate: [noAuthGuard] },
