@@ -4,15 +4,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import {
-  MatSnackBar,
-  MatSnackBarModule,
-  MatSnackBarVerticalPosition,
-} from '@angular/material/snack-bar';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { Observable, take } from 'rxjs';
 
-import { AttendanceStatsService } from '../services/attendance-stats.service';
 import { UserService } from '../services/user.service';
 
 @Component({
@@ -25,7 +19,6 @@ import { UserService } from '../services/user.service';
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
-    MatSnackBarModule,
     MatToolbarModule,
   ],
   templateUrl: './layout.component.html',
@@ -34,12 +27,7 @@ import { UserService } from '../services/user.service';
 export class LayoutComponent {
   readonly isAdmin$: Observable<boolean>;
 
-  constructor(
-    private attendanceStatsService: AttendanceStatsService,
-    private userService: UserService,
-    private _router: Router,
-    private _snackBar: MatSnackBar
-  ) {
+  constructor(private userService: UserService, private _router: Router) {
     this.isAdmin$ = this.userService.isAdmin$;
   }
 
@@ -51,29 +39,5 @@ export class LayoutComponent {
         next: () => this._router.navigate(['/Login']),
         error: (error) => {},
       });
-  }
-
-  // deprecated
-  settlement() {
-    this.attendanceStatsService
-      .updateAttendanceStatsMonthly()
-      .pipe(take(1))
-      .subscribe({
-        next: () => {
-          this.openSnackBar('Settlement completed successfully');
-        },
-        error: (error) => {},
-      });
-  }
-
-  openSnackBar(
-    message: string,
-    verticalPosition: MatSnackBarVerticalPosition = 'top'
-  ) {
-    this._snackBar.open(message, 'Close', {
-      horizontalPosition: 'center',
-      verticalPosition: verticalPosition,
-      duration: 5000,
-    });
   }
 }

@@ -2,11 +2,36 @@
   <mat-card-header class="d-flex justify-content-end">
     <mat-chip-listbox [value]="quickPickOption">
       @for(selection of quickPickOptions; track selection) {
-        <mat-chip-option [aria-label]="selection" [value]="selection" selected>{{selection}}</mat-chip-option>
+      <mat-chip-option [aria-label]="selection" [value]="selection" selected>{{
+        selection
+      }}</mat-chip-option>
       }
     </mat-chip-listbox>
   </mat-card-header>
   <mat-card-content class="pt-2">
-    ...
+    <div class="button-container">
+      <button mat-raised-button (click)="settlement()">Settlement</button>
+    </div>
+
+    <mat-table class="mat-elevation-z8" [dataSource]="(list$ | async)!">
+      @for (column of displayedColumns; track column) {
+        <ng-container [matColumnDef]="column">
+          <mat-header-cell *matHeaderCellDef>{{column}}</mat-header-cell>
+          <mat-cell *matCellDef="let element">
+            @if(column == 'Name') {
+              {{ element.userId | userName }}
+            } @else if(column == 'PersonalLeave' || column == 'Overtime') {
+              {{ element[column] }}
+              <del class="badge rounded-pill text-bg-light">{{ element['_' + column]  }}</del>
+            } @else {
+              {{ element[column] }}
+            }
+          </mat-cell>
+        </ng-container>
+      }
+
+      <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: displayedColumns"></mat-row>
+    </mat-table>
   </mat-card-content>
 </mat-card>
