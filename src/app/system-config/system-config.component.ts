@@ -10,6 +10,12 @@ import { SystemConfigService } from '../services/system-config.service';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import {
+  MatSnackBar,
+  MatSnackBarVerticalPosition,
+} from '@angular/material/snack-bar';
+
+import { take } from 'rxjs';
 
 @Component({
   selector: 'app-system-config',
@@ -29,12 +35,37 @@ export class SystemConfigComponent {
     currentUsers: new FormControl(0, [Validators.min(0)]),
     maxUsers: new FormControl(1, [Validators.required, Validators.min(1)]),
     lastUpdated: new FormControl(''),
-    initialSettlementYear: new FormControl('', [Validators.required]),
+    initialSettlementYear: new FormControl(0, [Validators.required]),
   });
 
-  constructor(private systemConfigService: SystemConfigService) {
+  constructor(
+    private systemConfigService: SystemConfigService,
+    private _snackBar: MatSnackBar
+  ) {
     this.configForm.patchValue(this.systemConfigService.license as any);
     this.configForm.get('currentUsers')?.disable();
     this.configForm.get('lastUpdated')?.disable();
+  }
+
+  updateLicense() {
+    const { maxUsers, initialSettlementYear } = this.configForm.value;
+
+    this.systemConfigService
+      .updateLicense(maxUsers!, initialSettlementYear!)
+      .pipe(take(1))
+      .subscribe({
+        next: () => this.openSnackBar('License updated successfully'),
+      });
+  }
+
+  openSnackBar(
+    message: string,
+    verticalPosition: MatSnackBarVerticalPosition = 'top'
+  ) {
+    this._snackBar.open(message, 'Close', {
+      horizontalPosition: 'center',
+      verticalPosition: verticalPosition,
+      duration: 5000,
+    });
   }
 }
