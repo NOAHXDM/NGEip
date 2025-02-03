@@ -3,12 +3,19 @@ import {
   doc,
   FieldValue,
   Firestore,
+  getDoc,
   serverTimestamp,
   setDoc,
   Timestamp,
 } from '@angular/fire/firestore';
-import { format, eachMonthOfInterval } from 'date-fns';
-import { combineLatest, concatMap, from } from 'rxjs';
+import {
+  format,
+  eachMonthOfInterval,
+  parse,
+  startOfMonth,
+  addMonths,
+} from 'date-fns';
+import { combineLatest, concatMap, from, map } from 'rxjs';
 
 import { AttendanceService, AttendanceType } from './attendance.service';
 import { UserService } from './user.service';
@@ -24,10 +31,23 @@ export class AttendanceStatsService {
     private userService: UserService
   ) {}
 
-  updateAttendanceStatsMonthly(yearMonth: string = '2025-01') {
+  getAttendanceStatsMonthly(yearMonth: string) {
+    return from(getDoc(doc(this.firestore, 'attendanceStats', yearMonth))).pipe(
+      map((doc) =>
+        doc.data()
+          ? new AttendanceStatsModel(doc.data() as AttendanceStats)
+          : null
+      )
+    );
+  }
+
+  updateAttendanceStatsMonthly(yearMonth: string) {
+    const startDate = startOfMonth(parse(yearMonth, 'yyyy-MM', new Date()));
+    const endDate = startOfMonth(addMonths(startDate, 1));
+
     return combineLatest([
       this.userService.list$,
-      this.attendanceService.getCurrentMonth,
+      this.attendanceService.search(startDate, endDate),
     ]).pipe(
       concatMap(([users, attendances]) => {
         const statDocRef = doc(this.firestore, 'attendanceStats', yearMonth);
@@ -80,4 +100,55 @@ interface UserAttendanceStats {
 interface Attendance {
   type: AttendanceType;
   hours: number;
+}
+
+class AttendanceStatsModel {
+  lastUpdated: Timestamp | FieldValue;
+  stats: UserAttendanceStatsModel[];
+
+  constructor(data: AttendanceStats) {
+    this.lastUpdated = data.lastUpdated;
+    this.stats = data.stats.map((stat) => new UserAttendanceStatsModel(stat));
+  }
+}
+
+class UserAttendanceStatsModel {
+  userId: string;
+  [key: string]: number | string;
+
+  constructor(data: UserAttendanceStats) {
+    this.userId = data.userId!;
+    const needOffset = data.attendances
+      .filter(
+        (attendance) =>
+          attendance.type == AttendanceType.PersonalLeave ||
+          attendance.type == AttendanceType.Overtime
+      )
+      .every((attendance) => attendance.hours > 0);
+    let personalLeave = data.attendances.find(
+      (item) => item.type == AttendanceType.PersonalLeave
+    )!;
+    let overtime = data.attendances.find(
+      (item) => item.type == AttendanceType.Overtime
+    )!;
+
+    data.attendances.forEach((attendance) => {
+      const key = AttendanceType[attendance.type];
+      if (needOffset && attendance.type == AttendanceType.PersonalLeave) {
+        this[`_${key}`] = attendance.hours;
+        this[key] =
+          personalLeave.hours > overtime.hours
+            ? personalLeave.hours - overtime.hours
+            : 0;
+      } else if (needOffset && attendance.type == AttendanceType.Overtime) {
+        this[`_${key}`] = attendance.hours;
+        this[key] =
+          overtime.hours > personalLeave.hours
+            ? overtime.hours - personalLeave.hours
+            : 0;
+      } else {
+        this[key] = attendance.hours;
+      }
+    });
+  }
 }
