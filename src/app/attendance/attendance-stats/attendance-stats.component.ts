@@ -19,6 +19,7 @@ import { ClientPreferencesService } from '../../services/client-preferences.serv
 import { SystemConfigService } from '../../services/system-config.service';
 import { UserNamePipe } from '../../pipes/user-name.pipe';
 import { UserService } from '../../services/user.service';
+import { FirestoreTimestampPipe } from '../../pipes/firestore-timestamp.pipe';
 
 @Component({
   selector: 'app-attendance-stats',
@@ -31,6 +32,7 @@ import { UserService } from '../../services/user.service';
     MatTableModule,
     AsyncPipe,
     UserNamePipe,
+    FirestoreTimestampPipe,
   ],
   templateUrl: './attendance-stats.component.html',
   styleUrl: './attendance-stats.component.scss',
@@ -79,9 +81,12 @@ export class AttendanceStatsComponent {
 
   quickPickChanged(option: string) {
     this.quickPickOption = option;
-    this.clientPreferencesService.setPreference('statQuickPickOption', this.quickPickOption);
+    this.clientPreferencesService.setPreference(
+      'statQuickPickOption',
+      this.quickPickOption
+    );
     this.settlementDisabled.set(option == 'CURRENT');
-    
+
     if (option != 'CURRENT') {
       this.list$ = this.attendanceStatsService
         .getAttendanceStatsMonthly(option)
@@ -97,10 +102,12 @@ export class AttendanceStatsComponent {
     } else {
       this.list$ = this.attendanceStatsService
         .getAttendanceStatsTemporary()
-        .pipe(map((summary) => {
-          this.listLastUpdated = undefined;
-          return summary.stats;
-        }))
+        .pipe(
+          map((summary) => {
+            this.listLastUpdated = undefined;
+            return summary.stats;
+          })
+        );
     }
   }
 

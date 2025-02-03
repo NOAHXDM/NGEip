@@ -11,10 +11,13 @@
   </mat-card-header>
   <mat-card-content class="pt-2">
     <div class="button-container">
-      @if(isAdmin$ | async) {
+      @if (isAdmin$ | async) {
         <button mat-raised-button (click)="settlement()" [disabled]="settlementDisabled()">Settlement</button>
       }
       <button mat-raised-button disabled>Download</button>
+      @if (listLastUpdated) {
+        <button mat-button disabled>Last updated: {{ listLastUpdated | firestoreTimestamp }}</button>
+      }
     </div>
 
     <section class="table-container mat-elevation-z8">
