@@ -18,6 +18,7 @@ import { AttendanceStatsService } from '../../services/attendance-stats.service'
 import { ClientPreferencesService } from '../../services/client-preferences.service';
 import { SystemConfigService } from '../../services/system-config.service';
 import { UserNamePipe } from '../../pipes/user-name.pipe';
+import { UserService } from '../../services/user.service';
 
 @Component({
   selector: 'app-attendance-stats',
@@ -41,14 +42,17 @@ export class AttendanceStatsComponent {
   @ViewChild(MatChipListbox) chipList?: MatChipListbox;
   quickPickOptions: string[];
   quickPickOption: string;
+  readonly isAdmin$: Observable<boolean>;
 
   constructor(
     private clientPreferencesService: ClientPreferencesService,
     private attendanceService: AttendanceService,
     private attendanceStatsService: AttendanceStatsService,
+    private userService: UserService,
     private systemConfigService: SystemConfigService,
     private _snackBar: MatSnackBar
   ) {
+    this.isAdmin$ = this.userService.isAdmin$;
     this.displayedColumns = [
       'Name',
       ...this.attendanceService.typeList.map((item) => item.text),
