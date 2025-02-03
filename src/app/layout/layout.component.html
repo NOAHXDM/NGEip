@@ -7,7 +7,7 @@
   <span class="menu-spacer"></span>
   <div class="d-none d-md-block">
     @if(isAdmin$ | async) {
-    <button mat-button (click)="settlement()">Settlement</button>
+    <a mat-button [routerLink]="['/SystemConfig']">System config</a>
     }
     <a href="#" mat-button>Coming Soon</a>
     <a href="#" mat-button>Coming Soon</a>

@@ -53,6 +53,7 @@ export class LayoutComponent {
       });
   }
 
+  // deprecated
   settlement() {
     this.attendanceStatsService
       .updateAttendanceStatsMonthly()

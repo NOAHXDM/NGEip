@@ -1,0 +1,27 @@
+<div class="container d-flex justify-content-center align-items-center py-2">
+  <form class="d-flex flex-column gap-3" [formGroup]="configForm" novalidate>
+    <h3 class="pt-3 text-center">System config</h3>
+    <!-- Current users -->
+    <mat-form-field appearance="outline">
+      <mat-label>Current Users</mat-label>
+      <input type="number" matInput formControlName="currentUsers" />
+      <mat-icon matSuffix>person</mat-icon>
+      <mat-hint>Amount of users</mat-hint>
+    </mat-form-field>
+    <!-- Max users -->
+    <mat-form-field appearance="outline">
+      <mat-label>Max Users</mat-label>
+      <input type="number" matInput formControlName="maxUsers" />
+      <mat-icon matSuffix>person</mat-icon>
+      <mat-hint>Maximize</mat-hint>
+    </mat-form-field>
+    <!-- Initial settlement year -->
+    <mat-form-field appearance="outline">
+      <mat-label>Initial Settlement Year</mat-label>
+      <input type="number" matInput formControlName="initialSettlementYear" />
+      <mat-icon matSuffix>123</mat-icon>
+      <mat-hint>Enter the year</mat-hint>
+    </mat-form-field>
+    <button type="submit" mat-flat-button>Update</button>
+  </form>
+</div>

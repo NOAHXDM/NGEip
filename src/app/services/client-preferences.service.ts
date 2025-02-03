@@ -37,4 +37,5 @@ export class ClientPreferencesService {
 
 interface Preferences {
   logsSearchOption?: string;
+  statQuickPickOption?: string;
 }

@@ -34,6 +34,7 @@ export class SystemConfigService {
           maxUsers: 10,
           currentUsers: 0,
           lastUpdated: serverTimestamp(),
+          initialSettlementYear: new Date().getFullYear(),
         };
         transaction.set(systemConfigRef, this.license);
       })
@@ -47,4 +48,5 @@ export interface License {
   maxUsers: number;
   currentUsers: number;
   lastUpdated: Timestamp | FieldValue;
+  initialSettlementYear: number;
 }
