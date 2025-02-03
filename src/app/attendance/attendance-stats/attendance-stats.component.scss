@@ -7,9 +7,29 @@
 
 .button-container {
   padding-bottom: 16px;
+
+  button + button {
+    margin-left: 8px;
+  }
 }
 
+/** MatTable style start */
 .table-container {
   height: 267px;
   overflow: auto;
 }
+
+.mat-mdc-header-cell,
+.mat-mdc-cell {
+  min-width: 100px;
+  box-sizing: border-box;
+}
+
+.mat-mdc-table-sticky-border-elem-top {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.mat-mdc-table-sticky-border-elem-left {
+  border-right: 1px solid #e0e0e0;
+}
+/** MatTable style end */

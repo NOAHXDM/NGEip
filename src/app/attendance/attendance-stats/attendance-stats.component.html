@@ -6,24 +6,32 @@
         selection
       }}</mat-chip-option>
       }
+      <mat-chip-option aria-label="current" value="CURRENT">Current</mat-chip-option>
     </mat-chip-listbox>
   </mat-card-header>
   <mat-card-content class="pt-2">
-    @if(isAdmin$ | async) {
-      <div class="button-container">
-        <button mat-raised-button (click)="settlement()">Settlement</button>
-      </div>
-    }
+    <div class="button-container">
+      @if(isAdmin$ | async) {
+        <button mat-raised-button (click)="settlement()" [disabled]="settlementDisabled()">Settlement</button>
+      }
+      <button mat-raised-button disabled>Download</button>
+    </div>
 
     <section class="table-container mat-elevation-z8">
       <mat-table [dataSource]="(list$ | async)!">
-        @for (column of displayedColumns; track column) {
+        <!-- Name -->
+        <ng-container matColumnDef="Name" sticky>
+          <mat-header-cell *matHeaderCellDef>Name</mat-header-cell>
+          <mat-cell *matCellDef="let element">
+            {{ element.userId | userName }}
+          </mat-cell>
+        </ng-container>
+
+        @for (column of displayedColumns.slice(1); track column) {
           <ng-container [matColumnDef]="column">
             <mat-header-cell *matHeaderCellDef>{{column}}</mat-header-cell>
             <mat-cell *matCellDef="let element">
-              @if(column == 'Name') {
-                {{ element.userId | userName }}
-              } @else if(column == 'PersonalLeave' || column == 'Overtime') {
+              @if(column == 'PersonalLeave' || column == 'Overtime') {
                 {{ element[column] }}
                 <del class="badge rounded-pill text-bg-light">{{ element['_' + column]  }}</del>
               } @else {
@@ -33,7 +41,7 @@
           </ng-container>
         }
   
-        <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+        <mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></mat-header-row>
         <mat-row *matRowDef="let row; columns: displayedColumns"></mat-row>
       </mat-table>
     </section>

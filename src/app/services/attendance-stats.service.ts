@@ -3,10 +3,10 @@ import {
   doc,
   FieldValue,
   Firestore,
-  getDoc,
   serverTimestamp,
   setDoc,
   Timestamp,
+  docData,
 } from '@angular/fire/firestore';
 import {
   format,
@@ -14,6 +14,7 @@ import {
   parse,
   startOfMonth,
   addMonths,
+  subMonths,
 } from 'date-fns';
 import { combineLatest, concatMap, from, map } from 'rxjs';
 
@@ -32,12 +33,42 @@ export class AttendanceStatsService {
   ) {}
 
   getAttendanceStatsMonthly(yearMonth: string) {
-    return from(getDoc(doc(this.firestore, 'attendanceStats', yearMonth))).pipe(
-      map((doc) =>
-        doc.data()
-          ? new AttendanceStatsModel(doc.data() as AttendanceStats)
-          : null
+    return docData(doc(this.firestore, 'attendanceStats', yearMonth), {
+      idField: 'id',
+    }).pipe(
+      map((data) =>
+        data ? new AttendanceStatsModel(data as AttendanceStats) : null
       )
+    );
+  }
+
+  getAttendanceStatsTemporary() {
+    return combineLatest([
+      this.userService.list$,
+      this.attendanceService.getCurrentMonth,
+    ]).pipe(
+      map(([users, attendances]) => {
+        const data: AttendanceStats = {
+          lastUpdated: serverTimestamp(),
+          stats: users.map((user) => {
+            return {
+              userId: user.uid,
+              attendances: this.attendanceService.typeList.map((type) => {
+                return {
+                  type: type.value,
+                  hours: attendances
+                    .filter((attendance) => attendance['userId'] == user.uid)
+                    .filter((attendance) => attendance['status'] == 'approved')
+                    .filter((attendance) => attendance['type'] == type.value)
+                    .map((attendance) => attendance['hours'])
+                    .reduce((acc, curr) => acc + curr, 0),
+                };
+              }),
+            };
+          }),
+        };
+        return new AttendanceStatsModel(data);
+      })
     );
   }
 
@@ -78,7 +109,7 @@ export class AttendanceStatsService {
 
   getAllMonthsFromYear(year: number) {
     const startDate = new Date(year, 0, 1);
-    const endDate = new Date();
+    const endDate = subMonths(new Date(), 1);
     return eachMonthOfInterval({
       start: startDate,
       end: endDate,

@@ -1,4 +1,4 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, signal, ViewChild } from '@angular/core';
 import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -38,10 +38,11 @@ import { UserService } from '../../services/user.service';
 export class AttendanceStatsComponent {
   displayedColumns: string[];
   list$?: Observable<any[]>;
-  listLastUpdated?: Timestamp;  // TODO: display last updated date
+  listLastUpdated?: Timestamp; // TODO: display last updated date
   @ViewChild(MatChipListbox) chipList?: MatChipListbox;
   quickPickOptions: string[];
   quickPickOption: string;
+  settlementDisabled = signal(false);
   readonly isAdmin$: Observable<boolean>;
 
   constructor(
@@ -77,18 +78,30 @@ export class AttendanceStatsComponent {
   }
 
   quickPickChanged(option: string) {
-    this.clientPreferencesService.setPreference('statQuickPickOption', option);
-    this.list$ = this.attendanceStatsService
-      .getAttendanceStatsMonthly(option)
-      .pipe(
-        map((summary) => {
-          if (!summary) {
-            return [];
-          }
-          this.listLastUpdated = summary.lastUpdated as Timestamp;
+    this.quickPickOption = option;
+    this.clientPreferencesService.setPreference('statQuickPickOption', this.quickPickOption);
+    this.settlementDisabled.set(option == 'CURRENT');
+    
+    if (option != 'CURRENT') {
+      this.list$ = this.attendanceStatsService
+        .getAttendanceStatsMonthly(option)
+        .pipe(
+          map((summary) => {
+            if (!summary) {
+              return [];
+            }
+            this.listLastUpdated = summary.lastUpdated as Timestamp;
+            return summary.stats;
+          })
+        );
+    } else {
+      this.list$ = this.attendanceStatsService
+        .getAttendanceStatsTemporary()
+        .pipe(map((summary) => {
+          this.listLastUpdated = undefined;
           return summary.stats;
-        })
-      );
+        }))
+    }
   }
 
   settlement() {
