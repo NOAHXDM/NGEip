@@ -143,7 +143,7 @@ class AttendanceStatsModel {
   }
 }
 
-class UserAttendanceStatsModel {
+export class UserAttendanceStatsModel {
   userId: string;
   [key: string]: number | string;
 

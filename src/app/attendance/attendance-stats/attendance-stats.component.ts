@@ -1,4 +1,4 @@
-import { Component, signal, ViewChild } from '@angular/core';
+import { Component, inject, signal, ViewChild } from '@angular/core';
 import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -11,10 +11,14 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { Timestamp } from '@angular/fire/firestore';
 
+import { format } from 'date-fns';
 import { map, Observable, take } from 'rxjs';
 
 import { AttendanceService } from '../../services/attendance.service';
-import { AttendanceStatsService } from '../../services/attendance-stats.service';
+import {
+  UserAttendanceStatsModel,
+  AttendanceStatsService,
+} from '../../services/attendance-stats.service';
 import { ClientPreferencesService } from '../../services/client-preferences.service';
 import { SystemConfigService } from '../../services/system-config.service';
 import { UserNamePipe } from '../../pipes/user-name.pipe';
@@ -34,18 +38,20 @@ import { FirestoreTimestampPipe } from '../../pipes/firestore-timestamp.pipe';
     UserNamePipe,
     FirestoreTimestampPipe,
   ],
+  providers: [UserNamePipe],
   templateUrl: './attendance-stats.component.html',
   styleUrl: './attendance-stats.component.scss',
 })
 export class AttendanceStatsComponent {
   displayedColumns: string[];
-  list$?: Observable<any[]>;
-  listLastUpdated?: Timestamp; // TODO: display last updated date
+  list$?: Observable<UserAttendanceStatsModel[]>;
+  listLastUpdated?: Timestamp;
   @ViewChild(MatChipListbox) chipList?: MatChipListbox;
   quickPickOptions: string[];
   quickPickOption: string;
   settlementDisabled = signal(false);
   readonly isAdmin$: Observable<boolean>;
+  readonly userNamePipe = inject(UserNamePipe);
 
   constructor(
     private clientPreferencesService: ClientPreferencesService,
@@ -126,5 +132,43 @@ export class AttendanceStatsComponent {
       verticalPosition: 'top',
       duration: 5000,
     });
+  }
+
+  downloadCsv() {
+    this.list$
+      ?.pipe(
+        take(1),
+        map((data) => {
+          const filename = this.listLastUpdated
+            ? format(this.listLastUpdated.toDate(), 'yyyy_MM_dd_HH_mm_ss') +
+              '.csv'
+            : format(new Date(), 'yyyy_MM_dd_HH_mm_ss') + '.csv';
+          const csvContent = this.convertToCsv(data);
+          const blob = new Blob([csvContent], {
+            type: 'text/csv;charset=utf-8;',
+          });
+          const link = document.createElement('a');
+
+          link.href = URL.createObjectURL(blob);
+          link.download = filename;
+          link.click();
+          URL.revokeObjectURL(link.href);
+        })
+      )
+      .subscribe();
+  }
+
+  convertToCsv(data: UserAttendanceStatsModel[]) {
+    const headers = this.displayedColumns.join(',');
+    const rows = data.map((row) => {
+      return [
+        `"${this.userNamePipe.transform(row.userId)}"`.replace(/"/g, '""'),
+        ...this.attendanceService.typeList.map((type) =>
+          `"${row[type.text]}"`.replace(/"/g, '""')
+        ),
+      ].join(',');
+    });
+
+    return [headers, ...rows].join('\n');
   }
 }

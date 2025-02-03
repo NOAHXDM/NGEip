@@ -14,7 +14,7 @@
       @if (isAdmin$ | async) {
         <button mat-raised-button (click)="settlement()" [disabled]="settlementDisabled()">Settlement</button>
       }
-      <button mat-raised-button disabled>Download</button>
+      <button mat-raised-button (click)="downloadCsv()">Download</button>
       @if (listLastUpdated) {
         <button mat-button disabled>Last updated: {{ listLastUpdated | firestoreTimestamp }}</button>
       }
