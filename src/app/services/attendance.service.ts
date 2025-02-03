@@ -46,6 +46,7 @@ export class AttendanceService {
   readonly getCurrentDay = this._getCurrentDay().pipe(shareReplay(1));
   readonly getCurrentWeek = this._getCurrentWeek().pipe(shareReplay(1));
   readonly getCurrentMonth = this._getCurrentMonth().pipe(shareReplay(1));
+  readonly getPreviousMonth = this._getPreviousMonth().pipe(shareReplay(1));
 
   constructor() {}
 
@@ -211,6 +212,15 @@ export class AttendanceService {
     const startOfNextMonth = new Date(startOfMonth);
     startOfNextMonth.setMonth(startOfMonth.getMonth() + 1);
     return this.search(startOfMonth, startOfNextMonth);
+  }
+
+  private _getPreviousMonth() {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const startOfPreviousMonth = new Date(startOfMonth);
+    startOfPreviousMonth.setMonth(startOfMonth.getMonth() - 1);
+    return this.search(startOfPreviousMonth, startOfMonth);
   }
 
   addAuditTrail(

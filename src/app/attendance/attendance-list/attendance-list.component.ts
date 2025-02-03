@@ -100,19 +100,24 @@ export class AttendanceListComponent implements AfterViewInit {
     // Load the attendance list based on the selected option
     switch (option) {
       case '0':
-        this.attendanceList$ = this.attendanceService
-          .getCurrentDay
-          .pipe(map((data) => this.transformToDataSource(data)));
+        this.attendanceList$ = this.attendanceService.getCurrentDay.pipe(
+          map((data) => this.transformToDataSource(data))
+        );
         break;
       case '1':
-        this.attendanceList$ = this.attendanceService
-          .getCurrentWeek
-          .pipe(map((data) => this.transformToDataSource(data)));
+        this.attendanceList$ = this.attendanceService.getCurrentWeek.pipe(
+          map((data) => this.transformToDataSource(data))
+        );
         break;
       case '2':
-        this.attendanceList$ = this.attendanceService
-          .getCurrentMonth
-          .pipe(map((data) => this.transformToDataSource(data)));
+        this.attendanceList$ = this.attendanceService.getCurrentMonth.pipe(
+          map((data) => this.transformToDataSource(data))
+        );
+        break;
+      case '3':
+        this.attendanceList$ = this.attendanceService.getPreviousMonth.pipe(
+          map((data) => this.transformToDataSource(data))
+        );
         break;
       default:
         break;
