@@ -162,10 +162,8 @@ export class AttendanceStatsComponent {
     const headers = this.displayedColumns.join(',');
     const rows = data.map((row) => {
       return [
-        `"${this.userNamePipe.transform(row.userId)}"`.replace(/"/g, '""'),
-        ...this.attendanceService.typeList.map((type) =>
-          `"${row[type.text]}"`.replace(/"/g, '""')
-        ),
+        `${this.userNamePipe.transform(row.userId)}`,
+        ...this.attendanceService.typeList.map((type) => `${row[type.text]}`),
       ].join(',');
     });
 
