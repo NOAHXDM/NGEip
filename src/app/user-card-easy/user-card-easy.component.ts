@@ -1,12 +1,11 @@
 import { Component, Input } from '@angular/core';
 import { AsyncPipe } from '@angular/common';
-import { Observable } from 'rxjs';
+import { Observable, take } from 'rxjs';
 
 import { User, UserService } from '../services/user.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { UserProfileComponent } from '../user-profile/user-profile.component';
 import { MatIconModule } from '@angular/material/icon';
-import { tap } from 'rxjs';
 
 @Component({
   selector: 'app-user-card-easy',
@@ -24,13 +23,15 @@ export class UserCardEasyComponent {
   }
 
   openUserProfileDialog() {
-    const dialogRef = this._dialog.open(UserProfileComponent, {
-      data: { user: this.user },
-      width: '65vw',
+    this.isAdmin$.pipe(take(1)).subscribe({
+      next: (isAdmin) => {
+        if (isAdmin) {
+          const dialogRef = this._dialog.open(UserProfileComponent, {
+            data: { user: this.user },
+            width: '65vw',
+          });
+        }
+      },
     });
-  }
-
-  ngOnInit(): void {
-    this.userService.currentUser$.pipe(tap((user) => {})).subscribe();
   }
 }
