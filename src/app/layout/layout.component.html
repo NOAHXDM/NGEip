@@ -9,7 +9,7 @@
     @if(isAdmin$ | async) {
     <a mat-button [routerLink]="['/SystemConfig']">System config</a>
     }
-    <a href="#" mat-button>Coming Soon</a>
+    <a href="#" mat-button (click)="openMemberDialog()">Coming Soon</a>
     <a href="#" mat-button>Coming Soon</a>
   </div>
   <span class="avator" [matMenuTriggerFor]="profileMenu"></span>
