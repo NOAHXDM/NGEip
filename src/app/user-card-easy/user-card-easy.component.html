@@ -23,11 +23,6 @@
   <div class="card-footer">
     <div class="work-from-home">{{ user.remoteWorkEligibility }}</div>
 
-    <div class="annual-leave">
-      <div class="local_cafe-layout">
-        <mat-icon>local_cafe</mat-icon>
-      </div>
-      <div class="annual-leave-num">{{ user.remainingLeaveHours }}</div>
-    </div>
+    <mat-icon matBadge="{{ user.remainingLeaveHours }}">local_cafe</mat-icon>
   </div>
 </div>
