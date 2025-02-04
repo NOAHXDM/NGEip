@@ -33,6 +33,18 @@ export const appConfig: ApplicationConfig = {
     ),
     provideAuth(() => getAuth()),
     provideFirestore(() => getFirestore()),
+    provideAuth(() => {
+      const auth = getAuth();
+      connectAuthEmulator(auth, 'http://localhost:9099', {
+        disableWarnings: true,
+      });
+      return auth;
+    }),
+    provideFirestore(() => {
+      const firestore = getFirestore();
+      connectFirestoreEmulator(firestore, 'localhost', 8080);
+      return firestore;
+    }),
     provideAnimationsAsync(),
     {
       provide: APP_INITIALIZER,
