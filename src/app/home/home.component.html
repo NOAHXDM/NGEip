@@ -3,14 +3,14 @@
     <!-- Grid 1 -->
     <app-attendance-list></app-attendance-list>
   </mat-grid-tile>
-  <mat-grid-tile
-    [colspan]="gridTile2colspan"
-    rowspan="3"
-  >
+  <mat-grid-tile [colspan]="gridTile2colspan" rowspan="3">
     <!-- Grid 2 -->
     <section class="card-container">
       @for(user of userList$ | async; track user.uid ) {
-        <app-user-card [user]="user"></app-user-card>
+
+      <!-- <app-user-card class="user-card" [user]="user"></app-user-card> -->
+      <app-user-card-easy [user]="user"></app-user-card-easy>
+
       }
     </section>
   </mat-grid-tile>
