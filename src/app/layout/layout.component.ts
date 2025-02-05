@@ -6,10 +6,8 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { Observable, take } from 'rxjs';
-import { UserProfileComponent } from '../user-profile/user-profile.component';
+
 import { UserService } from '../services/user.service';
-import { User } from '../services/user.service';
-import { MatDialog } from '@angular/material/dialog';
 
 @Component({
   selector: 'app-layout',
@@ -28,12 +26,8 @@ import { MatDialog } from '@angular/material/dialog';
 })
 export class LayoutComponent {
   readonly isAdmin$: Observable<boolean>;
-  user: User | null = null;
-  constructor(
-    private userService: UserService,
-    private _router: Router,
-    private _dialog: MatDialog
-  ) {
+
+  constructor(private userService: UserService, private _router: Router) {
     this.isAdmin$ = this.userService.isAdmin$;
   }
 
@@ -45,18 +39,5 @@ export class LayoutComponent {
         next: () => this._router.navigate(['/Login']),
         error: (error) => {},
       });
-  }
-
-  openMemberDialog() {
-    this.isAdmin$.pipe(take(1)).subscribe({
-      next: (isAdmin) => {
-        if (isAdmin) {
-          const dialogRef = this._dialog.open(UserProfileComponent, {
-            data: { user: this.user },
-            width: '65vw',
-          });
-        }
-      },
-    });
   }
 }

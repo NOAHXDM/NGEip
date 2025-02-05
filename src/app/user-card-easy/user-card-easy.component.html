@@ -22,7 +22,8 @@
 
   <div class="card-footer">
     <div class="work-from-home">{{ user.remoteWorkEligibility }}</div>
-
-    <mat-icon matBadge="{{ user.remainingLeaveHours }}">local_cafe</mat-icon>
+    <div class="local_cafe-layout">
+      <mat-icon matBadge="{{ user.remainingLeaveHours }}">local_cafe</mat-icon>
+    </div>
   </div>
 </div>
