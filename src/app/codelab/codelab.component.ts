@@ -31,12 +31,11 @@ import {
   getDoc,
 } from '@angular/fire/firestore';
 import { Observable, from, take } from 'rxjs';
-import { MembersComponent } from '../members/members.component';
 
 @Component({
   selector: 'app-codelab',
   standalone: true,
-  imports: [ReactiveFormsModule, MatIconModule, MembersComponent],
+  imports: [ReactiveFormsModule, MatIconModule],
   templateUrl: './codelab.component.html',
   styleUrl: './codelab.component.scss',
 })

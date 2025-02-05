@@ -1,9 +1,11 @@
-.card {
+.easy-card {
   width: 100%;
   height: 75px;
   display: flex;
   flex-direction: row;
   margin-bottom: 5px;
+  border: #000 1px solid;
+  border-radius: 11px;
 
   mat-icon {
     min-width: 18px;
@@ -16,15 +18,11 @@
   }
 }
 
-.card-header {
-  padding: 0;
+.easy-card-header {
   width: 20%;
-  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  border-bottom: none;
-  background: none;
   position: relative;
 
   .circle {
@@ -43,19 +41,14 @@
   .name {
     position: absolute;
     bottom: -11%;
-    width: auto;
     color: #000;
     font-weight: bold;
-    text-align: center;
     font-size: 13px;
-    margin: 0px;
   }
 }
 
-.card-body {
-  padding: 0;
+.easy-card-body {
   width: 60%;
-  height: 100%;
   line-height: 1;
   display: flex;
   flex-direction: column;
@@ -96,12 +89,9 @@
   }
 }
 
-.card-footer {
-  background: none;
+.easy-card-footer {
   width: 20%;
-  height: 100%;
   padding: 5px 0px 5px 0px;
-  border-top: none;
 
   .work-from-home {
     height: 18px;
