@@ -6,6 +6,7 @@
   margin-bottom: 5px;
   border: #c4c6d0 1px solid;
   border-radius: 11px;
+  font-size: 14px;
 }
 
 mat-icon {
@@ -16,6 +17,7 @@ mat-icon {
   font-size: 18px;
   color: #98b6d8;
 }
+
 .easy-card-left {
   width: 20%;
   display: flex;
@@ -40,8 +42,6 @@ mat-icon {
     position: absolute;
     bottom: -11%;
     color: #000;
-    font-weight: bold;
-    font-size: 13px;
   }
 }
 
@@ -62,7 +62,6 @@ mat-icon {
   .job-rank,
   .job-title {
     height: 18px;
-    font-size: 14px;
     color: #666;
     display: flex;
     align-items: center;
@@ -92,7 +91,6 @@ mat-icon {
 
   .work-from-home {
     height: 18px;
-    font-size: 14px;
     font-weight: bold;
   }
 
