@@ -8,10 +8,15 @@
     </div>
   </div>
   <div class="easy-card-middle">
-    <div class="email"><mat-icon>email</mat-icon>{{ user.email }}</div>
+    <div class="email">
+      <mat-icon>email</mat-icon>
+      <span>
+        {{ user.email }}
+      </span>
+    </div>
     <div class="phone"><mat-icon>call</mat-icon>{{ user.phone }}</div>
-    <div class="military">
-      <div class="info-military">
+    <div class="job">
+      <div class="info-job">
         <mat-icon>badge</mat-icon>
         <div class="job-title">{{ user.jobTitle }}</div>
         <mat-icon>military_tech</mat-icon>

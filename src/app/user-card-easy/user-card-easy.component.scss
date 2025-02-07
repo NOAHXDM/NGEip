@@ -11,6 +11,7 @@
 
 mat-icon {
   min-width: 18px;
+  width: 18px;
   height: 18px;
   text-align: center;
   margin-right: 5px;
@@ -50,15 +51,11 @@ mat-icon {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
-  padding: 5px 0;
-  overflow-x: auto;
-  &::-webkit-scrollbar {
-    display: none;
-  }
+  padding: 5px 5px;
 
   .email,
   .phone,
-  .military,
+  .job,
   .job-rank,
   .job-title {
     height: 18px;
@@ -66,7 +63,11 @@ mat-icon {
     display: flex;
     align-items: center;
 
-    .info-military {
+    mat-icon {
+      flex-shrink: 0;
+    }
+
+    .info-job {
       display: flex;
 
       mat-icon:last-of-type {
@@ -74,13 +75,19 @@ mat-icon {
       }
 
       .job-title {
-        display: block;
         width: 114px;
         overflow: hidden;
         line-height: 18px;
         white-space: nowrap;
         text-overflow: ellipsis;
       }
+    }
+  }
+  .email {
+    span {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
   }
 }
@@ -98,9 +105,5 @@ mat-icon {
     height: 18px;
     width: 18px;
     margin-top: 26.11px;
-
-    mat-icon {
-      color: #98b6d8;
-    }
   }
 }
