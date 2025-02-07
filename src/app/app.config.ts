@@ -31,8 +31,6 @@ export const appConfig: ApplicationConfig = {
         measurementId: 'G-8GHHDKZNPE',
       })
     ),
-    provideAuth(() => getAuth()),
-    provideFirestore(() => getFirestore()),
     provideAuth(() => {
       const auth = getAuth();
       connectAuthEmulator(auth, 'http://localhost:9099', {
