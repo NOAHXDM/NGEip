@@ -1,5 +1,5 @@
-<div class="card" (click)="openUserProfileDialog()">
-  <div class="card-header">
+<div class="easy-card" (click)="openUserProfileDialog()">
+  <div class="easy-card-left">
     <div class="circle">
       {{ user.name[0] }}
     </div>
@@ -7,11 +7,16 @@
       <p>{{ user!.name }}</p>
     </div>
   </div>
-  <div class="card-body">
-    <div class="email"><mat-icon>email</mat-icon>{{ user.email }}</div>
+  <div class="easy-card-middle">
+    <div class="email">
+      <mat-icon>email</mat-icon>
+      <span>
+        {{ user.email }}
+      </span>
+    </div>
     <div class="phone"><mat-icon>call</mat-icon>{{ user.phone }}</div>
-    <div class="military">
-      <div class="info-military">
+    <div class="job">
+      <div class="info-job">
         <mat-icon>badge</mat-icon>
         <div class="job-title">{{ user.jobTitle }}</div>
         <mat-icon>military_tech</mat-icon>
@@ -20,14 +25,10 @@
     </div>
   </div>
 
-  <div class="card-footer">
+  <div class="easy-card-right">
     <div class="work-from-home">{{ user.remoteWorkEligibility }}</div>
-
-    <div class="annual-leave">
-      <div class="local_cafe-layout">
-        <mat-icon>local_cafe</mat-icon>
-      </div>
-      <div class="annual-leave-num">{{ user.remainingLeaveHours }}</div>
+    <div class="local_cafe-layout">
+      <mat-icon matBadge="{{ user.remainingLeaveHours }}">local_cafe</mat-icon>
     </div>
   </div>
 </div>

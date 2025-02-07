@@ -6,6 +6,7 @@ import { LoginComponent } from './login/login.component';
 import { RegisterComponent } from './register/register.component';
 import { SystemConfigComponent } from './system-config/system-config.component';
 import { UserProfileComponent } from './user-profile/user-profile.component';
+import { UserListComponent } from './user-list/user-list.component';
 
 export const routes: Routes = [
   {
@@ -28,5 +29,9 @@ export const routes: Routes = [
     path: 'CodeLab',
     loadComponent: () =>
       import('./codelab/codelab.component').then((c) => c.CodelabComponent),
+  },
+  {
+    path: 'Users',
+    component: UserListComponent,
   },
 ];
