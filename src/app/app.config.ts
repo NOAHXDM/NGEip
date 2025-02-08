@@ -22,13 +22,13 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideFirebaseApp(() =>
       initializeApp({
-        apiKey: 'AIzaSyAAfL4F-eSuDLeDrgppC-jcNqAqE5dwqKY',
-        authDomain: 'noah-eip.firebaseapp.com',
-        projectId: 'noah-eip',
-        storageBucket: 'noah-eip.firebasestorage.app',
-        messagingSenderId: '596868888265',
-        appId: '1:596868888265:web:521cbfab9471bd2aa0ff18',
-        measurementId: 'G-8GHHDKZNPE',
+        apiKey: 'AIzaSyB_uE1Ij0dNDkxB5cpsMT1qvSWsYfnhF_g',
+        authDomain: 'noahxdm-eip.firebaseapp.com',
+        projectId: 'noahxdm-eip',
+        storageBucket: 'noahxdm-eip.firebasestorage.app',
+        messagingSenderId: '498650578048',
+        appId: '1:498650578048:web:a53ddd4109481f3ee67a65',
+        measurementId: 'G-XXSMLYXYDS',
       })
     ),
     provideAuth(() => {

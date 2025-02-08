@@ -6,7 +6,6 @@ import { Observable } from 'rxjs';
 import { AttendanceListComponent } from '../attendance/attendance-list/attendance-list.component';
 import { AttendanceStatsComponent } from '../attendance/attendance-stats/attendance-stats.component';
 import { User, UserService } from '../services/user.service';
-import { UserCardComponent } from '../user-card/user-card.component';
 import { UserCardEasyComponent } from '../user-card-easy/user-card-easy.component';
 
 @Component({
@@ -17,7 +16,6 @@ import { UserCardEasyComponent } from '../user-card-easy/user-card-easy.componen
     MatGridListModule,
     AttendanceListComponent,
     AttendanceStatsComponent,
-    UserCardComponent,
     UserCardEasyComponent,
   ],
   templateUrl: './home.component.html',
