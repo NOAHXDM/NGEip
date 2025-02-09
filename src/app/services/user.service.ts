@@ -24,6 +24,7 @@ import {
   updateDoc,
   where,
 } from '@angular/fire/firestore';
+import { subYears } from 'date-fns';
 import {
   combineLatest,
   from,
@@ -200,9 +201,12 @@ export class UserService {
   }
 
   leaveTransactionHistory(uid: string) {
+    const oneYearAgo = subYears(new Date(), 1);
+
     return collectionData(
       query(
         collection(this.firestore, 'users', uid, 'leaveTransactionHistory'),
+        where('date', '>=', Timestamp.fromDate(oneYearAgo)),
         orderBy('date', 'desc')
       ),
       { idField: 'id' }
