@@ -15,6 +15,7 @@ import {
 } from '@angular/fire/firestore';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { SystemConfigService } from './services/system-config.service';
+import { LEAVE_POLICY_CONFIG, TAIWAN_POLICY } from './tokens/leave-policy.token';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -52,5 +53,6 @@ export const appConfig: ApplicationConfig = {
       },
       multi: true,
     },
+    { provide: LEAVE_POLICY_CONFIG, useValue: TAIWAN_POLICY }
   ],
 };
