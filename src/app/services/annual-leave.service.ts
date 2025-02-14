@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { differenceInMonths, differenceInDays, addYears } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 
 import { LEAVE_POLICY_CONFIG } from '../tokens/leave-policy.token';
 
@@ -41,12 +41,8 @@ export class AnnualLeaveService {
   }
 
   private calculateYearsOfService(startDate: Date, currentDate: Date): number {
-    const months = differenceInMonths(currentDate, startDate);
-    const days = differenceInDays(
-      currentDate,
-      addYears(startDate, Math.floor(months / 12))
-    );
-    return +(months / 12 + days / 365.25).toFixed(2);
+    const totalDays = differenceInDays(currentDate, startDate);
+    return +(totalDays / 365.25).toFixed(2);
   }
 
   private calculateAnnualLeaveByYears(years: number): number {
