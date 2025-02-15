@@ -1,5 +1,12 @@
 import { AsyncPipe, NgIf, NgTemplateOutlet } from '@angular/common';
-import { Component, Inject, Optional, signal } from '@angular/core';
+import {
+  Component,
+  Inject,
+  Optional,
+  signal,
+  TemplateRef,
+  ViewChild,
+} from '@angular/core';
 import {
   FormControl,
   FormGroup,
@@ -8,7 +15,11 @@ import {
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DATE_LOCALE } from '@angular/material/core';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialog,
+  MatDialogModule,
+} from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -26,8 +37,9 @@ import { Timestamp } from '@angular/fire/firestore';
 
 import { startOfDay } from 'date-fns';
 import { enUS } from 'date-fns/locale';
-import { map, Observable, switchMap, take, tap } from 'rxjs';
+import { concatMap, map, Observable, switchMap, take } from 'rxjs';
 
+import { AnnualLeaveService } from '../services/annual-leave.service';
 import { User, UserService } from '../services/user.service';
 import { UserNamePipe } from '../pipes/user-name.pipe';
 import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
@@ -43,6 +55,7 @@ import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
     FirestoreTimestampPipe,
     ReactiveFormsModule,
     MatButtonModule,
+    MatDialogModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
@@ -104,6 +117,8 @@ export class UserProfileComponent {
     ]),
     uid: new FormControl('', [Validators.required]),
   });
+  @ViewChild('confirmationDialog', { static: true })
+  readonly confirmationDialogTemplate!: TemplateRef<any>;
   readonly remoteWorkEligibilityOptions = ['N/A', 'WFH2', 'WFH4.5'];
   readonly roleOptions = ['user', 'admin'];
   readonly isAdmin$: Observable<boolean>;
@@ -116,6 +131,8 @@ export class UserProfileComponent {
 
   constructor(
     private userService: UserService,
+    private annualLeaveService: AnnualLeaveService,
+    private _dialog: MatDialog,
     private _snackBar: MatSnackBar,
     @Optional() @Inject(MAT_DIALOG_DATA) protected data: any
   ) {
@@ -215,6 +232,57 @@ export class UserProfileComponent {
             'Leave transaction updated successfully.',
             'bottom'
           );
+        },
+      });
+  }
+
+  settlement() {
+    const startDate: Date = this.advancedForm.get('startDate')?.getRawValue();
+    const leaveDaysAndYearsCompleted =
+      this.annualLeaveService.calculateLeaveDaysAndYearsCompleted(startDate);
+    const { yearCompleted, leaveDays } = leaveDaysAndYearsCompleted;
+    if (leaveDays == 0) {
+      this.openSnackBar('No leave days to settle.');
+      return;
+    }
+
+    const reasonIdentity =
+      this.annualLeaveService.reasonIdentity(yearCompleted);
+
+    this.leaveTransactionHistory$
+      .pipe(
+        take(1),
+        concatMap((matTableDataSource) => {
+          const existed = matTableDataSource.data.some(
+            (val) => val.reason == reasonIdentity
+          );
+
+          if (existed)
+            throw new Error(
+              'Do not settle the annual leave balance for this person, as it has already been settled.'
+            );
+
+          const dialogRef = this._dialog.open(this.confirmationDialogTemplate, {
+            data: { yearCompleted, leaveDays },
+          });
+
+          return dialogRef.afterClosed();
+        }),
+        concatMap((manual) => {
+          if (!manual) throw new Error();
+
+          let formValue: any = this.remainingLeaveHoursForm.value;
+          formValue.hours = leaveDays * 8;
+          formValue.reason = reasonIdentity;
+          return this.userService.updateRemainingLeaveHours(formValue);
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.openSnackBar('Leave transaction updated successfully.');
+        },
+        error: (err) => {
+          if (err.message) this.openSnackBar(err.message);
         },
       });
   }
