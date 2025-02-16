@@ -1,8 +1,12 @@
 <!-- Grid 1 -->
 <mat-card appearance="outlined">
   <mat-card-header #cardHeader class="d-flex flex-wrap justify-content-between">
-    <button mat-mini-fab (click)="openNewAttendanceDialog()">
+    <button type="button" mat-mini-fab (click)="openNewAttendanceDialog()">
       <mat-icon>edit</mat-icon>
+    </button>
+    <button type="button" [matBadge]="filterRequesterSet.size" matBadgePosition="before" mat-button (click)="openFilterDialog()">
+      <mat-icon>filter_alt</mat-icon>
+      Requester
     </button>
     <mat-chip-listbox [value]="logsSearchOption">
       <mat-chip-option aria-label="today" value="0">Today</mat-chip-option>

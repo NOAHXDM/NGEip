@@ -1,5 +1,12 @@
 import { AsyncPipe } from '@angular/common';
-import { AfterViewInit, Component, ViewChild, ElementRef } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ViewChild,
+  ElementRef,
+  inject,
+} from '@angular/core';
+import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatCardModule } from '@angular/material/card';
@@ -26,6 +33,7 @@ import { ReasonPriorityPipe } from '../../pipes/reason-priority.pipe';
 import { UserNamePipe } from '../../pipes/user-name.pipe';
 import { AttendanceStatusChangeComponent } from '../attendance-status-change/attendance-status-change.component';
 import { AttendanceHistoryComponent } from '../attendance-history/attendance-history.component';
+import { AttendanceFilterRequesterComponent } from '../attendance-filter-requester/attendance-filter-requester.component';
 import { ClientPreferencesService } from '../../services/client-preferences.service';
 
 @Component({
@@ -33,6 +41,7 @@ import { ClientPreferencesService } from '../../services/client-preferences.serv
   standalone: true,
   imports: [
     AsyncPipe,
+    MatBadgeModule,
     MatButtonModule,
     MatCardModule,
     MatChipsModule,
@@ -49,8 +58,11 @@ import { ClientPreferencesService } from '../../services/client-preferences.serv
   ],
   templateUrl: './attendance-list.component.html',
   styleUrl: './attendance-list.component.scss',
+  providers: [UserNamePipe],
 })
 export class AttendanceListComponent implements AfterViewInit {
+  readonly userNamePipe = inject(UserNamePipe);
+  _attendanceList?: MatTableDataSource<any>;
   attendanceList$?: Observable<MatTableDataSource<any>>;
   displayedColumns: string[] = [
     'status',
@@ -71,6 +83,7 @@ export class AttendanceListComponent implements AfterViewInit {
   logsSearchOption: string;
   @ViewChild('cardHeader', { static: false, read: ElementRef })
   cardHeader!: ElementRef;
+  filterRequesterSet: Set<string>;
 
   constructor(
     private attendanceService: AttendanceService,
@@ -80,6 +93,11 @@ export class AttendanceListComponent implements AfterViewInit {
   ) {
     this.logsSearchOption =
       this.clientPreferencesService.getPreference('logsSearchOption') || '0';
+    this.filterRequesterSet = new Set(
+      JSON.parse(
+        this.clientPreferencesService.getPreference('filterRequesters') || '[]'
+      )
+    );
   }
 
   ngAfterViewInit() {
@@ -134,9 +152,18 @@ export class AttendanceListComponent implements AfterViewInit {
   }
 
   transformToDataSource(data: any[]): MatTableDataSource<any> {
-    const dataSource = new MatTableDataSource(data);
-    dataSource.sort = this.sort!;
-    return dataSource;
+    this._attendanceList = new MatTableDataSource(data);
+    this._attendanceList.sort = this.sort!;
+    this._attendanceList.filterPredicate = (
+      data: AttendanceLog,
+      filter: string
+    ) => {
+      const filters = new Set(JSON.parse(filter));
+      if (filters.size === 0) return true;
+      return filters.has(this.userNamePipe.transform(data.userId));
+    };
+    this.applyFilter();
+    return this._attendanceList;
   }
 
   openNewAttendanceDialog() {
@@ -198,6 +225,25 @@ export class AttendanceListComponent implements AfterViewInit {
     dialogRef.afterClosed().subscribe({
       next: () => {},
     });
+  }
+
+  openFilterDialog() {
+    const dialogRef = this._dialog.open(AttendanceFilterRequesterComponent, {
+      data: { requesters: Array.from(this.filterRequesterSet) },
+      width: '50vw',
+      maxWidth: '400px',
+    });
+
+    dialogRef.afterClosed().subscribe({
+      next: (filterRequesterResult: string[]) => {
+        this.filterRequesterSet = new Set(filterRequesterResult);
+        this.applyFilter();
+      },
+    });
+  }
+
+  applyFilter() {
+    this._attendanceList!.filter = JSON.stringify([...this.filterRequesterSet]);
   }
 
   openSnackBar(message: string) {
