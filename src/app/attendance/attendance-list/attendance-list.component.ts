@@ -1,5 +1,5 @@
 import { AsyncPipe } from '@angular/common';
-import { AfterViewInit, Component, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ViewChild, ElementRef } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatCardModule } from '@angular/material/card';
@@ -69,6 +69,7 @@ export class AttendanceListComponent implements AfterViewInit {
   @ViewChild(MatSort) sort?: MatSort;
   @ViewChild(MatChipListbox) chipList?: MatChipListbox;
   logsSearchOption: string;
+  @ViewChild('cardHeader', { static: false, read: ElementRef }) cardHeader!: ElementRef;
 
   constructor(
     private attendanceService: AttendanceService,
@@ -81,6 +82,11 @@ export class AttendanceListComponent implements AfterViewInit {
   }
 
   ngAfterViewInit() {
+    // Set the position of the header text to absolute
+    // To fab-button and chip-list to be displayed correctly
+    const headerText = this.cardHeader.nativeElement.querySelector('.mat-mdc-card-header-text');
+    headerText.style.position = 'absolute';
+
     this.chipList?.chipSelectionChanges.subscribe({
       next: (change: MatChipSelectionChange) => {
         if (change.selected) {
