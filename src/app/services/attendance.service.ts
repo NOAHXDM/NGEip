@@ -183,6 +183,10 @@ export class AttendanceService {
           and(
             where('endDateTime', '>=', startTimestamp),
             where('endDateTime', '<', endTimestamp)
+          ),
+          and(
+            where('startDateTime', '<=', startTimestamp),
+            where('endDateTime', '>', endTimestamp)
           )
         ),
         orderBy('startDateTime', 'desc')

@@ -7,10 +7,7 @@
     <!-- Grid 2 -->
     <section class="card-container">
       @for(user of userList$ | async; track user.uid ) {
-
-      <!-- <app-user-card class="user-card" [user]="user"></app-user-card> -->
       <app-user-card-easy [user]="user"></app-user-card-easy>
-
       }
     </section>
   </mat-grid-tile>

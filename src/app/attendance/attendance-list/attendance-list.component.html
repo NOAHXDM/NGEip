@@ -1,12 +1,13 @@
-<!-- Floating action button -->
-<div class="fab-button-container">
-  <button mat-mini-fab (click)="openNewAttendanceDialog()">
-    <mat-icon>edit</mat-icon>
-  </button>
-</div>
 <!-- Grid 1 -->
 <mat-card appearance="outlined">
-  <mat-card-header class="d-flex justify-content-end">
+  <mat-card-header #cardHeader class="d-flex flex-wrap justify-content-between">
+    <button type="button" mat-mini-fab (click)="openNewAttendanceDialog()">
+      <mat-icon>edit</mat-icon>
+    </button>
+    <button type="button" [matBadge]="filterRequesterSet.size" matBadgePosition="before" mat-button (click)="openFilterDialog()">
+      <mat-icon>filter_alt</mat-icon>
+      Requester
+    </button>
     <mat-chip-listbox [value]="logsSearchOption">
       <mat-chip-option aria-label="today" value="0">Today</mat-chip-option>
       <mat-chip-option aria-label="this week" value="1">This Week</mat-chip-option>

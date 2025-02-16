@@ -1,0 +1,8 @@
+<h2 mat-dialog-title>Requester filter</h2>
+<mat-dialog-content class="mat-typography">
+  <mat-selection-list>
+    @for (user of list$ | async; track user.uid) {
+    <mat-list-option [value]="user.name">{{ user.name }}</mat-list-option>
+    }
+  </mat-selection-list>
+</mat-dialog-content>
