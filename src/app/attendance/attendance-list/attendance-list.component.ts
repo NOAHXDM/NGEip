@@ -20,7 +20,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { map, Observable } from 'rxjs';
+import { combineLatest, filter, map, Observable, ReplaySubject } from 'rxjs';
 
 import {
   AttendanceLog,
@@ -35,6 +35,7 @@ import { AttendanceStatusChangeComponent } from '../attendance-status-change/att
 import { AttendanceHistoryComponent } from '../attendance-history/attendance-history.component';
 import { AttendanceFilterRequesterComponent } from '../attendance-filter-requester/attendance-filter-requester.component';
 import { ClientPreferencesService } from '../../services/client-preferences.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-attendance-list',
@@ -62,6 +63,8 @@ import { ClientPreferencesService } from '../../services/client-preferences.serv
 })
 export class AttendanceListComponent implements AfterViewInit {
   readonly userNamePipe = inject(UserNamePipe);
+  readonly _filterRequesterSubject = new ReplaySubject<string[]>(1);
+  filterRequesterSet: Set<string>;
   _attendanceList?: MatTableDataSource<any>;
   attendanceList$?: Observable<MatTableDataSource<any>>;
   displayedColumns: string[] = [
@@ -78,12 +81,11 @@ export class AttendanceListComponent implements AfterViewInit {
     'history',
   ];
 
+  @ViewChild('cardHeader', { static: false, read: ElementRef })
+  cardHeader!: ElementRef;
   @ViewChild(MatSort) sort?: MatSort;
   @ViewChild(MatChipListbox) chipList?: MatChipListbox;
   logsSearchOption: string;
-  @ViewChild('cardHeader', { static: false, read: ElementRef })
-  cardHeader!: ElementRef;
-  filterRequesterSet: Set<string>;
 
   constructor(
     private attendanceService: AttendanceService,
@@ -98,6 +100,23 @@ export class AttendanceListComponent implements AfterViewInit {
         this.clientPreferencesService.getPreference('filterRequesters') || '[]'
       )
     );
+
+    combineLatest([
+      this._filterRequesterSubject,
+      this.userNamePipe.latestMapping$,
+    ])
+      .pipe(
+        filter(
+          ([filterValues, latestMapping]) =>
+            !!latestMapping && !!this._attendanceList
+        ),
+        takeUntilDestroyed()
+      )
+      .subscribe({
+        next: ([filterValues]) => {
+          this._attendanceList!.filter = JSON.stringify(filterValues);
+        },
+      });
   }
 
   ngAfterViewInit() {
@@ -162,7 +181,7 @@ export class AttendanceListComponent implements AfterViewInit {
       if (filters.size === 0) return true;
       return filters.has(this.userNamePipe.transform(data.userId));
     };
-    this.applyFilter();
+    this.applyFilter(Array.from(this.filterRequesterSet));
     return this._attendanceList;
   }
 
@@ -235,15 +254,14 @@ export class AttendanceListComponent implements AfterViewInit {
     });
 
     dialogRef.afterClosed().subscribe({
-      next: (filterRequesterResult: string[]) => {
-        this.filterRequesterSet = new Set(filterRequesterResult);
-        this.applyFilter();
-      },
+      next: (filterRequesterResult: string[]) =>
+        this.applyFilter(filterRequesterResult),
     });
   }
 
-  applyFilter() {
-    this._attendanceList!.filter = JSON.stringify([...this.filterRequesterSet]);
+  applyFilter(newFilters: string[]) {
+    this.filterRequesterSet = new Set(newFilters);
+    this._filterRequesterSubject.next(newFilters);
   }
 
   openSnackBar(message: string) {
