@@ -81,6 +81,8 @@ export class CodelabComponent {
   //   .subscribe({
   //     next: (value) => console.log('getDoc', value.data()),
   //   });
+
+  // 練習
   list$: Observable<User[]>;
   userArray: User[] = [];
   constructor(private userService: UserService) {
@@ -91,6 +93,8 @@ export class CodelabComponent {
     this.list$.pipe(take(1)).subscribe({
       next: (A) => {
         this.userArray = A;
+        console.log(A);
+        console.table(A);
       },
     });
   }

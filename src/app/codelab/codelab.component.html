@@ -60,4 +60,10 @@
 <input type="checkbox" [checked]="isChecked" (change)="toggleChecked()" />
 <p>複選框狀態 :{{ isChecked ? "選取" : "未選取" }}</p> -->
 <button (click)="profile()">資料</button>
-{{ userArray }}
+<!-- {{ userArray }} -->
+
+<ul>
+  @for (user of userArray; track user) {
+  <li>{{ user.name }} 、{{ user.email }}、{{ user.jobTitle }}</li>
+  }
+</ul>
