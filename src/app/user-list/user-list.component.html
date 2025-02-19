@@ -1,32 +1,32 @@
-<table mat-table [dataSource]="userArray" class="mat-elevation-z8">
-  <!--- Note that these columns can be defined in any order.
+<!-- <table mat-table [dataSource]="userArray" class="mat-elevation-z8"> -->
+<!--- Note that these columns can be defined in any order.
         The actual rendered columns are set as a property on the row definition" -->
 
-  <!-- Position Column -->
-  <ng-container matColumnDef="name">
+<!-- Position Column -->
+<!-- <ng-container matColumnDef="name">
     <th mat-header-cell *matHeaderCellDef>Name</th>
     <td mat-cell *matCellDef="let element">{{ element.name }}</td>
-  </ng-container>
+  </ng-container> -->
 
-  <!-- Name Column -->
-  <ng-container matColumnDef="email">
+<!-- Name Column -->
+<!-- <ng-container matColumnDef="email">
     <th mat-header-cell *matHeaderCellDef>Email</th>
     <td mat-cell *matCellDef="let element">{{ element.email }}</td>
-  </ng-container>
+  </ng-container> -->
 
-  <!-- Weight Column -->
-  <ng-container matColumnDef="job-title">
+<!-- Weight Column -->
+<!-- <ng-container matColumnDef="job-title">
     <th mat-header-cell *matHeaderCellDef>Job-Title</th>
     <td mat-cell *matCellDef="let element">{{ element.jobTitle }}</td>
-  </ng-container>
+  </ng-container> -->
 
-  <!-- Symbol Column -->
-  <ng-container matColumnDef="job-rank">
+<!-- Symbol Column -->
+<!-- <ng-container matColumnDef="job-rank">
     <th mat-header-cell *matHeaderCellDef>Job-Rank</th>
     <td mat-cell *matCellDef="let element">{{ element.jobRank }}</td>
-  </ng-container>
-  <!-- Weight Column -->
-  <ng-container matColumnDef="wfh">
+  </ng-container> -->
+<!-- Weight Column -->
+<!-- <ng-container matColumnDef="wfh">
     <th mat-header-cell *matHeaderCellDef>WFH</th>
     <td mat-cell *matCellDef="let element">
       {{ element.remoteWorkEligibility }}
@@ -35,10 +35,80 @@
 
   <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
   <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-</table>
+</table> -->
 <!-- <button (click)="profile()">按鈕</button> -->
 <!-- <ul>
   @for (user of userArray ; track user) {
   <li>{{ user.name }} 、{{ user.email }}、{{ user.jobTitle }}</li>
   }
 </ul> -->
+<table
+  mat-table
+  [dataSource]="userArray"
+  multiTemplateDataRows
+  class="mat-elevation-z8"
+>
+  @for (column of columnsToDisplay; track column) {
+  <ng-container matColumnDef="{{ column }}">
+    <th mat-header-cell *matHeaderCellDef>{{ column }}</th>
+    <td mat-cell *matCellDef="let element">{{ element[column] }}</td>
+  </ng-container>
+  }
+  <ng-container matColumnDef="expand">
+    <th mat-header-cell *matHeaderCellDef aria-label="row actions">&nbsp;</th>
+    <td mat-cell *matCellDef="let element">
+      <button
+        mat-icon-button
+        aria-label="expand row"
+        (click)="
+          expandedElement = expandedElement === element ? null : element;
+          $event.stopPropagation()
+        "
+      >
+        @if (expandedElement === element) {
+        <mat-icon>keyboard_arrow_up</mat-icon>
+        } @else {
+        <mat-icon>keyboard_arrow_down</mat-icon>
+        }
+      </button>
+    </td>
+  </ng-container>
+
+  <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+  <ng-container matColumnDef="expandedDetail">
+    <td
+      mat-cell
+      *matCellDef="let element"
+      [attr.colspan]="columnsToDisplayWithExpand.length"
+    >
+      <div
+        class="example-element-detail"
+        [@detailExpand]="element == expandedElement ? 'expanded' : 'collapsed'"
+      >
+        <ul>
+          <div class="example-element-phone">Phone:{{ element.phone }}</div>
+          <div class="example-element-remoteWorkRecommender">
+            背書人:{{ element.remoteWorkRecommender }}
+          </div>
+          <div class="example-element-remainingLeaveHours">
+            特休:{{ element.remainingLeaveHours }}
+          </div>
+        </ul>
+      </div>
+    </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="columnsToDisplayWithExpand"></tr>
+  <tr
+    mat-row
+    *matRowDef="let element; columns: columnsToDisplayWithExpand"
+    class="example-element-row"
+    [class.example-expanded-row]="expandedElement === element"
+    (click)="expandedElement = expandedElement === element ? null : element"
+  ></tr>
+  <tr
+    mat-row
+    *matRowDef="let row; columns: ['expandedDetail']"
+    class="example-detail-row"
+  ></tr>
+</table>
