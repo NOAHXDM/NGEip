@@ -10,7 +10,16 @@ import {
   transition,
   trigger,
 } from '@angular/animations';
-
+import { TitleCasePipe } from '@angular/common';
+export interface PeriodicElement {
+  Name: string;
+  Email: string;
+  jobTitle: string;
+  JobRank: string;
+  remoteWorkEligibility: 'N/A' | 'WFH2' | 'WFH4.5';
+  remoteWorkRecommender: string[];
+  remainingLeaveHours: number;
+}
 /**
  * @title Basic use of `<table mat-table>`
  */
@@ -34,6 +43,19 @@ import {
 export class UserListComponent {
   list$: Observable<User[]>;
   userArray: User[] = [];
+  displayedColumns: string[] = [
+    'name',
+    'email',
+    'jobTitle',
+    'jobRank',
+    'remoteWorkEligibility',
+    'expand',
+  ];
+  dataSource = this.userArray;
+  expandedDetail = ['expandedDetail'];
+  columnsToDisplay = ['name', 'email', 'jobTitle', 'remainingLeaveHours'];
+
+  expandedElement?: PeriodicElement;
   constructor(private userService: UserService) {
     this.list$ = this.userService.list$;
   }
@@ -48,25 +70,4 @@ export class UserListComponent {
       },
     });
   }
-
-  dataSource = this.userArray;
-  columnsToDisplay = [
-    'name',
-    'email',
-    'jobTitle',
-    'jobRank',
-    'remainingLeaveHours',
-  ];
-  columnsToDisplayWithExpand = [...this.columnsToDisplay, 'expand'];
-  expandedElement?: PeriodicElement | null;
-}
-
-export interface PeriodicElement {
-  Name: string;
-  Email: string;
-  jobTitle: string;
-  JobRank: string;
-  remoteWorkEligibility: 'N/A' | 'WFH2' | 'WFH4.5';
-  remoteWorkRecommender: string[];
-  remainingLeaveHours: number;
 }
