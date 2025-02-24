@@ -10,7 +10,7 @@ import {
   transition,
   trigger,
 } from '@angular/animations';
-import { TitleCasePipe } from '@angular/common';
+import { FieldValue, Timestamp } from '@angular/fire/firestore';
 export interface PeriodicElement {
   Name: string;
   Email: string;
@@ -19,9 +19,10 @@ export interface PeriodicElement {
   remoteWorkEligibility: 'N/A' | 'WFH2' | 'WFH4.5';
   remoteWorkRecommender: string[];
   remainingLeaveHours: number;
+  startDate?: Timestamp | FieldValue;
 }
 /**
- * @title Basic use of `<table mat-table>`
+ * @title Basic use of `<table mat-table>`tieef
  */
 @Component({
   selector: 'app-user-list',
@@ -52,9 +53,9 @@ export class UserListComponent {
     'expand',
   ];
   dataSource = this.userArray;
-  expandedDetail = ['expandedDetail'];
-  columnsToDisplay = ['name', 'email', 'jobTitle', 'remainingLeaveHours'];
 
+  columnsToDisplay = ['name', 'email', 'jobTitle', 'remainingLeaveHours'];
+  expandedDetail = ['expandedDetail'];
   expandedElement?: PeriodicElement;
   constructor(private userService: UserService) {
     this.list$ = this.userService.list$;
@@ -67,7 +68,22 @@ export class UserListComponent {
       next: (A) => {
         this.userArray = A;
         console.log(A);
+        A.forEach((B) => {
+          if (B.startDate instanceof Timestamp) {
+            const formattedDate = B.startDate.toDate().toLocaleDateString();
+            console.log(`User: ${B.name}, 入職日: ${formattedDate}`);
+          } else {
+            console.log(`User: ${B.name}, 入職日: N/A`);
+          }
+        });
       },
     });
+  }
+
+  formatDate(startDate: any) {
+    if (startDate instanceof Timestamp) {
+      return startDate.toDate().toLocaleDateString();
+    }
+    return 'N/A';
   }
 }
