@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
 import { User, UserService } from '../services/user.service';
 import { Observable, take } from 'rxjs';
@@ -10,7 +10,10 @@ import {
   transition,
   trigger,
 } from '@angular/animations';
-import { FieldValue, Timestamp } from '@angular/fire/firestore';
+import { Timestamp, Firestore } from '@angular/fire/firestore';
+import { Pipe, PipeTransform } from '@angular/core';
+import { UserNamePipe } from '../pipes/user-name.pipe';
+
 export interface PeriodicElement {
   Name: string;
   Email: string;
@@ -18,8 +21,10 @@ export interface PeriodicElement {
   JobRank: string;
   remoteWorkEligibility: 'N/A' | 'WFH2' | 'WFH4.5';
   remoteWorkRecommender: string[];
+  startDate?: Timestamp;
+  birthday?: Timestamp;
+  uid: string;
   remainingLeaveHours: number;
-  startDate?: Timestamp | FieldValue;
 }
 /**
  * @title Basic use of `<table mat-table>`tieef
@@ -29,7 +34,7 @@ export interface PeriodicElement {
   styleUrl: './user-list.component.scss',
   templateUrl: './user-list.component.html',
   standalone: true,
-  imports: [MatTableModule, MatIconModule],
+  imports: [MatTableModule, MatIconModule, UserNamePipe],
   animations: [
     trigger('detailExpand', [
       state('collapsed,void', style({ height: '0px', minHeight: '0' })),
@@ -44,17 +49,19 @@ export interface PeriodicElement {
 export class UserListComponent {
   list$: Observable<User[]>;
   userArray: User[] = [];
+
   displayedColumns: string[] = [
     'name',
-    'email',
+    'startDate',
     'jobTitle',
     'jobRank',
     'remoteWorkEligibility',
+    'email',
     'expand',
   ];
   dataSource = this.userArray;
-
-  columnsToDisplay = ['name', 'email', 'jobTitle', 'remainingLeaveHours'];
+  readonly firestore: Firestore = inject(Firestore);
+  // columnsToDisplay = ['name', 'email', 'jobTitle', ];
   expandedDetail = ['expandedDetail'];
   expandedElement?: PeriodicElement;
   constructor(private userService: UserService) {
@@ -71,19 +78,25 @@ export class UserListComponent {
         A.forEach((B) => {
           if (B.startDate instanceof Timestamp) {
             const formattedDate = B.startDate.toDate().toLocaleDateString();
-            console.log(`User: ${B.name}, 入職日: ${formattedDate}`);
+            console.log(`使用者: ${B.name}, 入職日: ${formattedDate}`);
           } else {
-            console.log(`User: ${B.name}, 入職日: N/A`);
+            console.log(`使用者: ${B.name}, 入職日: N/A`);
           }
         });
       },
     });
   }
 
-  formatDate(startDate: any) {
+  showStarDate(startDate: any) {
     if (startDate instanceof Timestamp) {
       return startDate.toDate().toLocaleDateString();
     }
     return 'N/A';
+  }
+  showBirthday(birthday: any) {
+    if (birthday instanceof Timestamp) {
+      return birthday.toDate().toLocaleDateString();
+    }
+    return '未輸入';
   }
 }
