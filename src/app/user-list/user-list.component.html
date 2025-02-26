@@ -25,10 +25,20 @@
     <th mat-header-cell *matHeaderCellDef>Job-Rank</th>
     <td mat-cell *matCellDef="let element">{{ element.jobRank }}</td>
   </ng-container>
-  <ng-container matColumnDef="remoteWorkEligibility">
+  <ng-container
+    matColumnDef="remoteWorkEligibility"
+    class="remoteWorkEligibility"
+  >
     <th mat-header-cell *matHeaderCellDef>WFH</th>
     <td mat-cell *matCellDef="let element">
       {{ element.remoteWorkEligibility }}
+      <div class="remoteWorkRecommender-layout">
+        <ng-container *ngFor="let uid of element.remoteWorkRecommender">
+          <mat-chip-set class="remoteWorkRecommender">
+            <mat-chip> {{ uid | userName }} </mat-chip>
+          </mat-chip-set>
+        </ng-container>
+      </div>
     </td>
   </ng-container>
   <ng-container matColumnDef="email">
@@ -71,9 +81,12 @@
           <li class="example-element-detail">
             特休:{{ element.remainingLeaveHours }}
           </li>
-          <li class="example-element-detail">
-            背書人:{{ element.uid | userName }}
-          </li>
+          <!-- <li class="example-element-detail">
+            背書人:
+            <ng-container *ngFor="let uid of element.remoteWorkRecommender">
+              {{ uid | userName }}
+            </ng-container>
+          </li> -->
         </ul>
       </div>
     </td>
@@ -93,3 +106,6 @@
     class="example-detail-row"
   ></tr>
 </table>
+<mat-chip-set>
+  <mat-chip> Dog one </mat-chip>
+</mat-chip-set>

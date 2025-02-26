@@ -11,9 +11,10 @@ import {
   trigger,
 } from '@angular/animations';
 import { Timestamp, Firestore } from '@angular/fire/firestore';
-import { Pipe, PipeTransform } from '@angular/core';
+// import { Pipe, PipeTransform } from '@angular/core';
 import { UserNamePipe } from '../pipes/user-name.pipe';
-
+import { CommonModule } from '@angular/common';
+import { MatChipsModule } from '@angular/material/chips';
 export interface PeriodicElement {
   Name: string;
   Email: string;
@@ -34,7 +35,13 @@ export interface PeriodicElement {
   styleUrl: './user-list.component.scss',
   templateUrl: './user-list.component.html',
   standalone: true,
-  imports: [MatTableModule, MatIconModule, UserNamePipe],
+  imports: [
+    MatTableModule,
+    MatIconModule,
+    UserNamePipe,
+    CommonModule,
+    MatChipsModule,
+  ],
   animations: [
     trigger('detailExpand', [
       state('collapsed,void', style({ height: '0px', minHeight: '0' })),
@@ -60,8 +67,6 @@ export class UserListComponent {
     'expand',
   ];
   dataSource = this.userArray;
-  readonly firestore: Firestore = inject(Firestore);
-  // columnsToDisplay = ['name', 'email', 'jobTitle', ];
   expandedDetail = ['expandedDetail'];
   expandedElement?: PeriodicElement;
   constructor(private userService: UserService) {
@@ -75,6 +80,7 @@ export class UserListComponent {
       next: (A) => {
         this.userArray = A;
         console.log(A);
+
         A.forEach((B) => {
           if (B.startDate instanceof Timestamp) {
             const formattedDate = B.startDate.toDate().toLocaleDateString();

@@ -36,3 +36,14 @@ tr.example-element-row:not(.example-expanded-row):active {
 .example-element-description-attribution {
   opacity: 0.5;
 }
+
+.remoteWorkRecommender-layout {
+  display: flex;
+  flex-direction: row;
+  // font-size: 10px;
+  justify-content: left;
+}
+.remoteWorkRecommender {
+  margin-right: 5px;
+  font-size: 10px;
+}
