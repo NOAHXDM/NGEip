@@ -1,94 +1,63 @@
-<table
-  mat-table
-  [dataSource]="userArray"
-  multiTemplateDataRows
-  class="mat-elevation-z8"
->
+<table mat-table [dataSource]="userArray" class="mat-elevation-z8">
   <ng-container matColumnDef="name">
-    <th mat-header-cell *matHeaderCellDef>Name</th>
+    <th mat-header-cell *matHeaderCellDef>名字</th>
     <td mat-cell *matCellDef="let element">{{ element.name }}</td>
   </ng-container>
 
   <ng-container matColumnDef="startDate">
-    <th mat-header-cell *matHeaderCellDef>StartDate</th>
+    <th mat-header-cell *matHeaderCellDef>入職日</th>
     <td mat-cell *matCellDef="let element">
       {{ showStarDate(element.startDate) }}
     </td>
   </ng-container>
 
   <ng-container matColumnDef="jobTitle">
-    <th mat-header-cell *matHeaderCellDef>Job-Title</th>
+    <th mat-header-cell *matHeaderCellDef>職能</th>
     <td mat-cell *matCellDef="let element">{{ element.jobTitle }}</td>
   </ng-container>
 
   <ng-container matColumnDef="jobRank">
-    <th mat-header-cell *matHeaderCellDef>Job-Rank</th>
+    <th mat-header-cell *matHeaderCellDef>職級</th>
     <td mat-cell *matCellDef="let element">{{ element.jobRank }}</td>
   </ng-container>
-  <ng-container
-    matColumnDef="remoteWorkEligibility"
-    class="remoteWorkEligibility"
-  >
-    <th mat-header-cell *matHeaderCellDef>WFH</th>
+
+  <ng-container matColumnDef="remoteWorkEligibility">
+    <th mat-header-cell *matHeaderCellDef>遠距相關</th>
     <td mat-cell *matCellDef="let element">
-      {{ element.remoteWorkEligibility }}
-      <div class="remoteWorkRecommender-layout">
-        <ng-container *ngFor="let uid of element.remoteWorkRecommender">
-          <mat-chip-set class="remoteWorkRecommender">
-            <mat-chip> {{ uid | userName }} </mat-chip>
-          </mat-chip-set>
-        </ng-container>
-      </div>
-    </td>
-  </ng-container>
-  <ng-container matColumnDef="email">
-    <th mat-header-cell *matHeaderCellDef>Email</th>
-    <td mat-cell *matCellDef="let element">{{ element.email }}</td>
-  </ng-container>
-
-  <ng-container matColumnDef="expand">
-    <th mat-header-cell *matHeaderCellDef aria-label="row actions">&nbsp;</th>
-    <td mat-cell *matCellDef="let row">
-      <button
-        mat-icon-button
-        aria-label="expand row"
-        (click)="
-          expandedElement = expandedElement === row ? null : row;
-          $event.stopPropagation()
-        "
-      >
-        @if (expandedElement === row) {
-        <mat-icon>keyboard_arrow_up</mat-icon>
-        } @else {
-        <mat-icon>keyboard_arrow_down</mat-icon>
-        }
-      </button>
-    </td>
-  </ng-container>
-
-  <ng-container matColumnDef="expandedDetail">
-    <td mat-cell *matCellDef="let element" colspan="6">
-      <div
-        class="example-element-detail"
-        [@detailExpand]="element == expandedElement ? 'expanded' : 'collapsed'"
-      >
-        <ul>
-          <li class="example-element-detail">電話:{{ element.phone }}</li>
-
-          <li class="example-element-detail">
-            生日:{{ showBirthday(element.birthday) }}
-          </li>
-          <li class="example-element-detail">
-            特休:{{ element.remainingLeaveHours }}
-          </li>
-          <!-- <li class="example-element-detail">
-            背書人:
-            <ng-container *ngFor="let uid of element.remoteWorkRecommender">
+      <div class="td-container">
+        <span>{{ element.remoteWorkEligibility }}</span>
+        <div class="remoteWorkRecommender-container">
+          <ng-container *ngFor="let uid of element.remoteWorkRecommender">
+            <mat-chip>
               {{ uid | userName }}
-            </ng-container>
-          </li> -->
-        </ul>
+            </mat-chip>
+          </ng-container>
+        </div>
       </div>
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="remainingLeaveHours">
+    <th mat-header-cell *matHeaderCellDef>特休</th>
+    <td mat-cell *matCellDef="let element">
+      {{ element.remainingLeaveHours }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="content">
+    <th mat-header-cell *matHeaderCellDef>資訊</th>
+    <td mat-cell *matCellDef="let element">
+      <div class="content-column">
+        <span>{{ element.email }}</span>
+        <span>{{ element.phone }}</span>
+      </div>
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="birthday">
+    <th mat-header-cell *matHeaderCellDef>生日</th>
+    <td mat-cell *matCellDef="let element">
+      {{ showBirthday(element.birthday) }}
     </td>
   </ng-container>
 
@@ -97,15 +66,5 @@
     mat-row
     *matRowDef="let row; columns: displayedColumns"
     class="example-element-row"
-    [class.example-expanded-row]="expandedElement === row"
-    (click)="expandedElement = expandedElement === row ? null : row"
-  ></tr>
-  <tr
-    mat-row
-    *matRowDef="let row; columns: expandedDetail"
-    class="example-detail-row"
   ></tr>
 </table>
-<mat-chip-set>
-  <mat-chip> Dog one </mat-chip>
-</mat-chip-set>

@@ -21,15 +21,12 @@ export interface PeriodicElement {
   jobTitle: string;
   JobRank: string;
   remoteWorkEligibility: 'N/A' | 'WFH2' | 'WFH4.5';
-  remoteWorkRecommender: string[];
+  remoteWorkRecommender: string[] /*背書人*/;
   startDate?: Timestamp;
   birthday?: Timestamp;
   uid: string;
   remainingLeaveHours: number;
 }
-/**
- * @title Basic use of `<table mat-table>`tieef
- */
 @Component({
   selector: 'app-user-list',
   styleUrl: './user-list.component.scss',
@@ -42,16 +39,6 @@ export interface PeriodicElement {
     CommonModule,
     MatChipsModule,
   ],
-  animations: [
-    trigger('detailExpand', [
-      state('collapsed,void', style({ height: '0px', minHeight: '0' })),
-      state('expanded', style({ height: '*' })),
-      transition(
-        'expanded <=> collapsed',
-        animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')
-      ),
-    ]),
-  ],
 })
 export class UserListComponent {
   list$: Observable<User[]>;
@@ -63,12 +50,11 @@ export class UserListComponent {
     'jobTitle',
     'jobRank',
     'remoteWorkEligibility',
-    'email',
-    'expand',
+    'remainingLeaveHours',
+    'content',
+    'birthday',
   ];
-  dataSource = this.userArray;
-  expandedDetail = ['expandedDetail'];
-  expandedElement?: PeriodicElement;
+
   constructor(private userService: UserService) {
     this.list$ = this.userService.list$;
   }
@@ -80,15 +66,6 @@ export class UserListComponent {
       next: (A) => {
         this.userArray = A;
         console.log(A);
-
-        A.forEach((B) => {
-          if (B.startDate instanceof Timestamp) {
-            const formattedDate = B.startDate.toDate().toLocaleDateString();
-            console.log(`使用者: ${B.name}, 入職日: ${formattedDate}`);
-          } else {
-            console.log(`使用者: ${B.name}, 入職日: N/A`);
-          }
-        });
       },
     });
   }
