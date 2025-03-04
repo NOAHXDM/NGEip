@@ -166,6 +166,7 @@ export class UserService {
       jobTitle: user.jobTitle,
       role: user.role,
       startDate: user.startDate,
+      quitDate: user.quitDate,
     };
     return from(updateDoc(docRef, data));
   }
@@ -236,6 +237,8 @@ export interface User {
   remoteWorkRecommender: string[];
   role: 'admin' | 'user';
   startDate?: Timestamp | FieldValue; // 到職日
+  quitDate?: Timestamp | FieldValue; // 離職日
+
   uid?: string;
 }
 

@@ -1,7 +1,7 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, HostListener, OnInit } from '@angular/core';
 import { MatGridListModule } from '@angular/material/grid-list';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 
 import { AttendanceListComponent } from '../attendance/attendance-list/attendance-list.component';
 import { AttendanceStatsComponent } from '../attendance/attendance-stats/attendance-stats.component';
@@ -27,7 +27,10 @@ export class HomeComponent implements OnInit {
   readonly userList$: Observable<User[]>;
 
   constructor(private userService: UserService) {
-    this.userList$ = this.userService.list$;
+    // this.userList$ = this.userService.list$;
+    this.userList$ = this.userService.list$.pipe(
+      map((users) => users.filter((user) => !user.quitDate))
+    );
   }
   ngOnInit() {
     this.updateGridTileColspan(window.innerWidth);

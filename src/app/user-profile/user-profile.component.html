@@ -131,6 +131,28 @@
         matSuffix
       ></mtx-datetimepicker-toggle>
     </mat-form-field>
+
+    <!-- Quit Date -->
+    <mat-form-field appearance="outline">
+      <mat-label>Quit Date</mat-label>
+      <mtx-datetimepicker
+        #quitDatePicker
+        type="date"
+        mode="auto"
+        multiYearSelector="month"
+      >
+      </mtx-datetimepicker>
+      <input
+        [mtxDatetimepicker]="quitDatePicker"
+        formControlName="quitDate"
+        matInput
+      />
+      <mtx-datetimepicker-toggle
+        [for]="quitDatePicker"
+        matSuffix
+      ></mtx-datetimepicker-toggle>
+    </mat-form-field>
+
     <button type="submit" mat-flat-button [disabled]="advancedForm.invalid">
       Update
     </button>

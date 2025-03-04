@@ -106,6 +106,7 @@ export class UserProfileComponent {
     jobTitle: new FormControl(''),
     role: new FormControl('user'),
     startDate: new FormControl(''),
+    quitDate: new FormControl(''),
     uid: new FormControl('', [Validators.required]),
   });
   remainingLeaveHoursForm = new FormGroup({
@@ -154,6 +155,10 @@ export class UserProfileComponent {
           editUser.startDate = (editUser.startDate as Timestamp).toDate();
         }
 
+        if (editUser.quitDate) {
+          editUser.quitDate = (editUser.quitDate as Timestamp).toDate();
+        }
+
         this.profileForm.patchValue(editUser);
         this.advancedForm.patchValue(editUser);
         // Update remainingLeaveHours
@@ -197,6 +202,10 @@ export class UserProfileComponent {
     const data: any = this.advancedForm.value;
     if (data.startDate) {
       data.startDate = Timestamp.fromDate(startOfDay(data.startDate));
+    }
+    if (data.quitDate) {
+      data.quitDate = Timestamp.fromDate(startOfDay(data.quitDate));
+      console.log(data.quitDate);
     }
 
     this.userService

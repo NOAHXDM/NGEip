@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
 import { User, UserService } from '../services/user.service';
-import { Observable, take } from 'rxjs';
+import { Observable, take, timestamp } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import {
   animate,
@@ -24,6 +24,7 @@ export interface PeriodicElement {
   remoteWorkRecommender: string[] /*背書人*/;
   startDate?: Timestamp;
   birthday?: Timestamp;
+  quitDate?: Timestamp;
   uid: string;
   remainingLeaveHours: number;
 }
@@ -53,6 +54,7 @@ export class UserListComponent {
     'remainingLeaveHours',
     'content',
     'birthday',
+    'quitDate',
   ];
 
   constructor(private userService: UserService) {
@@ -81,5 +83,12 @@ export class UserListComponent {
       return birthday.toDate().toLocaleDateString();
     }
     return '未輸入';
+  }
+
+  showQuitDate(quitDate: any) {
+    if (quitDate instanceof Timestamp) {
+      return quitDate.toDate().toLocaleDateString();
+    }
+    return '在職中';
   }
 }
