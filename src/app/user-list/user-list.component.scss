@@ -1,3 +1,19 @@
+.mat-mdc-header-cell,
+.mat-mdc-cell {
+  min-width: 100px;
+  box-sizing: border-box;
+}
+
+.mat-column-startDate,
+.mat-column-birthday,
+.mat-column-exitDate {
+  min-width: 140px;
+}
+
+.mat-mdc-cell.mat-column-remoteWorkEligibility {
+  height: 110px;
+}
+
 tr.example-element-row:not(.example-expanded-row):hover {
   background: whitesmoke;
 }
