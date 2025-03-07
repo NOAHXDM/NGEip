@@ -27,9 +27,8 @@ export class HomeComponent implements OnInit {
   readonly userList$: Observable<User[]>;
 
   constructor(private userService: UserService) {
-    // this.userList$ = this.userService.list$;
     this.userList$ = this.userService.list$.pipe(
-      map((users) => users.filter((user) => !user.quitDate))
+      map((users) => users.filter((user) => !user.exitDate))
     );
   }
   ngOnInit() {

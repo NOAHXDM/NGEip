@@ -166,9 +166,30 @@ export class UserService {
       jobTitle: user.jobTitle,
       role: user.role,
       startDate: user.startDate,
-      quitDate: user.quitDate,
+      exitDate: user.exitDate,
     };
-    return from(updateDoc(docRef, data));
+    if (!data.exitDate) {
+      return from(updateDoc(docRef, data));
+    }
+
+    return from(
+      runTransaction(this.firestore, async (transaction) => {
+        // Check license
+        const systemConfigDoc = await transaction.get(
+          doc(this.firestore, 'systemConfig', 'license')
+        );
+        const systemConfig = systemConfigDoc.data() as License;
+
+        // Update user
+        transaction.update(docRef, data);
+
+        // Update license
+        transaction.update(doc(this.firestore, 'systemConfig', 'license'), {
+          currentUsers: systemConfig.currentUsers - 1,
+          lastUpdated: serverTimestamp(),
+        });
+      })
+    );
   }
 
   updateRemainingLeaveHours(data: LeaveTransaction) {
@@ -237,7 +258,7 @@ export interface User {
   remoteWorkRecommender: string[];
   role: 'admin' | 'user';
   startDate?: Timestamp | FieldValue; // 到職日
-  quitDate?: Timestamp | FieldValue; // 離職日
+  exitDate?: Timestamp | FieldValue; // 離職日
 
   uid?: string;
 }

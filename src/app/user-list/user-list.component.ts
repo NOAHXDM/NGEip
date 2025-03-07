@@ -1,18 +1,11 @@
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
 import { User, UserService } from '../services/user.service';
-import { Observable, take, timestamp } from 'rxjs';
+import { Observable, take } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
-import {
-  animate,
-  state,
-  style,
-  transition,
-  trigger,
-} from '@angular/animations';
-import { Timestamp, Firestore } from '@angular/fire/firestore';
-// import { Pipe, PipeTransform } from '@angular/core';
+import { Timestamp } from '@angular/fire/firestore';
 import { UserNamePipe } from '../pipes/user-name.pipe';
+import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
 import { CommonModule } from '@angular/common';
 import { MatChipsModule } from '@angular/material/chips';
 export interface PeriodicElement {
@@ -24,7 +17,7 @@ export interface PeriodicElement {
   remoteWorkRecommender: string[] /*背書人*/;
   startDate?: Timestamp;
   birthday?: Timestamp;
-  quitDate?: Timestamp;
+  exitDate?: Timestamp;
   uid: string;
   remainingLeaveHours: number;
 }
@@ -37,6 +30,7 @@ export interface PeriodicElement {
     MatTableModule,
     MatIconModule,
     UserNamePipe,
+    FirestoreTimestampPipe,
     CommonModule,
     MatChipsModule,
   ],
@@ -52,9 +46,9 @@ export class UserListComponent {
     'jobRank',
     'remoteWorkEligibility',
     'remainingLeaveHours',
-    'content',
+    'contactInfo',
     'birthday',
-    'quitDate',
+    'exitDate',
   ];
 
   constructor(private userService: UserService) {
@@ -65,9 +59,9 @@ export class UserListComponent {
   }
   profile() {
     this.list$.pipe(take(1)).subscribe({
-      next: (A) => {
-        this.userArray = A;
-        console.log(A);
+      next: (userList) => {
+        this.userArray = userList;
+        console.log(userList);
       },
     });
   }
@@ -85,9 +79,9 @@ export class UserListComponent {
     return '未輸入';
   }
 
-  showQuitDate(quitDate: any) {
-    if (quitDate instanceof Timestamp) {
-      return quitDate.toDate().toLocaleDateString();
+  showQuitDate(exitDate: any) {
+    if (exitDate instanceof Timestamp) {
+      return exitDate.toDate().toLocaleDateString();
     }
     return '在職中';
   }

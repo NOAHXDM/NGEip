@@ -111,7 +111,7 @@
         }
       </mat-select>
     </mat-form-field>
-    <!-- Birthday -->
+    <!-- Start Date -->
     <mat-form-field appearance="outline">
       <mat-label>Start Date</mat-label>
       <mtx-datetimepicker
@@ -131,24 +131,23 @@
         matSuffix
       ></mtx-datetimepicker-toggle>
     </mat-form-field>
-
-    <!-- Quit Date -->
+    <!-- Exit Date -->
     <mat-form-field appearance="outline">
-      <mat-label>Quit Date</mat-label>
+      <mat-label>Exit Date</mat-label>
       <mtx-datetimepicker
-        #quitDatePicker
+        #exitDatePicker
         type="date"
         mode="auto"
         multiYearSelector="month"
       >
       </mtx-datetimepicker>
       <input
-        [mtxDatetimepicker]="quitDatePicker"
-        formControlName="quitDate"
+        [mtxDatetimepicker]="exitDatePicker"
+        formControlName="exitDate"
         matInput
       />
       <mtx-datetimepicker-toggle
-        [for]="quitDatePicker"
+        [for]="exitDatePicker"
         matSuffix
       ></mtx-datetimepicker-toggle>
     </mat-form-field>
