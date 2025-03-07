@@ -12,9 +12,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { take } from 'rxjs';
 
-import { SystemConfigService } from '../services/system-config.service';
+import {
+  License,
+  SystemConfigService,
+} from '../services/system-config.service';
 import { UserService } from '../services/user.service';
 
 @Component({
@@ -41,17 +45,21 @@ export class RegisterComponent {
     name: new FormControl('', [Validators.required]),
   });
   passwordVisible = signal(false);
+  license?: License;
 
   constructor(
     private systemConfigService: SystemConfigService,
     private userService: UserService,
     private _snackBar: MatSnackBar,
     private _router: Router
-  ) {}
+  ) {
+    this.systemConfigService.license$.pipe(takeUntilDestroyed()).subscribe({
+      next: (license) => (this.license = license),
+    });
+  }
 
   register() {
-    const { license } = this.systemConfigService;
-    if (!license) {
+    if (!this.license) {
       this.openSnackBar(
         'Your license has not been activated yet. Please activate it to continue.'
       );
@@ -79,7 +87,7 @@ export class RegisterComponent {
   }
 
   passwordVisibleToggle(event: MouseEvent) {
-    this.passwordVisible.update(value => !value);
+    this.passwordVisible.update((value) => !value);
     event.stopPropagation();
   }
 }

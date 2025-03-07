@@ -12,7 +12,7 @@ import { MatTableModule } from '@angular/material/table';
 import { Timestamp } from '@angular/fire/firestore';
 
 import { format } from 'date-fns';
-import { map, Observable, take } from 'rxjs';
+import { map, Observable, Subscription, take, tap } from 'rxjs';
 
 import { AttendanceService } from '../../services/attendance.service';
 import {
@@ -47,8 +47,9 @@ export class AttendanceStatsComponent {
   list$?: Observable<UserAttendanceStatsModel[]>;
   listLastUpdated?: Timestamp;
   @ViewChild(MatChipListbox) chipList?: MatChipListbox;
-  quickPickOptions: string[];
-  quickPickOption: string;
+  quickPickOptions$: Observable<string[]>;
+  quickPickOption?: string | null;
+  chipListInitialized?: Subscription;
   settlementDisabled = signal(false);
   readonly isAdmin$: Observable<boolean>;
   readonly userNamePipe = inject(UserNamePipe);
@@ -66,23 +67,31 @@ export class AttendanceStatsComponent {
       'Name',
       ...this.attendanceService.typeList.map((item) => item.text),
     ];
-    this.quickPickOptions = this.attendanceStatsService.getAllMonthsFromYear(
-      this.systemConfigService.license?.initialSettlementYear ||
-        new Date().getFullYear()
+    this.quickPickOptions$ = this.systemConfigService.license$.pipe(
+      map((license) =>
+        this.attendanceStatsService.getAllMonthsFromYear(
+          license.initialSettlementYear || new Date().getFullYear()
+        )
+      ),
+      tap(
+        (options) => (this.quickPickOption = this.quickPickOption || options[0])
+      )
     );
-    this.quickPickOption =
-      this.clientPreferencesService.getPreference('statQuickPickOption') ||
-      this.quickPickOptions[0];
+    this.quickPickOption = this.clientPreferencesService.getPreference(
+      'statQuickPickOption'
+    );
   }
 
-  ngAfterViewInit() {
-    this.chipList?.chipSelectionChanges.subscribe({
-      next: (change: MatChipSelectionChange) => {
-        if (change.selected) {
-          this.quickPickChanged(change.source.value);
-        }
-      },
-    });
+  ngAfterViewChecked() {
+    if (this.chipList && !this.chipListInitialized) {
+      this.chipListInitialized = this.chipList.chipSelectionChanges.subscribe({
+        next: (change: MatChipSelectionChange) => {
+          if (change.selected) {
+            this.quickPickChanged(change.source.value);
+          }
+        },
+      });
+    }
   }
 
   quickPickChanged(option: string) {
@@ -118,6 +127,10 @@ export class AttendanceStatsComponent {
   }
 
   settlement() {
+    if (!this.quickPickOption) {
+      return this.openSnackBar('Please select a month.');
+    }
+
     this.attendanceStatsService
       .updateAttendanceStatsMonthly(this.quickPickOption)
       .pipe(take(1))
