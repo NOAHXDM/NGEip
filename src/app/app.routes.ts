@@ -17,6 +17,7 @@ export const routes: Routes = [
       { path: '', component: HomeComponent },
       { path: 'MyProfile', component: UserProfileComponent },
       { path: 'SystemConfig', component: SystemConfigComponent },
+      { path: 'Users', component: UserListComponent },
     ],
   },
   { path: 'Login', component: LoginComponent, canActivate: [noAuthGuard] },
@@ -29,9 +30,5 @@ export const routes: Routes = [
     path: 'CodeLab',
     loadComponent: () =>
       import('./codelab/codelab.component').then((c) => c.CodelabComponent),
-  },
-  {
-    path: 'Users',
-    component: UserListComponent,
   },
 ];

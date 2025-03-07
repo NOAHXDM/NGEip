@@ -1,6 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
 import { FirebaseError } from '@angular/fire/app';
-import { MatIconModule } from '@angular/material/icon';
 import {
   Auth,
   authState,
@@ -35,7 +34,7 @@ import { Observable, from, take } from 'rxjs';
 @Component({
   selector: 'app-codelab',
   standalone: true,
-  imports: [ReactiveFormsModule, MatIconModule],
+  imports: [ReactiveFormsModule],
   templateUrl: './codelab.component.html',
   styleUrl: './codelab.component.scss',
 })
@@ -159,15 +158,5 @@ export class CodelabComponent {
           console.warn('Error:', error);
         },
       });
-  }
-  content = '建立代辦事項';
-  state: 'none' | 'doing' | 'finish' = 'none';
-  onSetState(state: 'none' | 'doing' | 'finish'): void {
-    this.state = state;
-  }
-
-  isChecked: boolean = false;
-  toggleChecked() {
-    this.isChecked = !this.isChecked;
   }
 }
