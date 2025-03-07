@@ -1,12 +1,15 @@
 import { Component, inject } from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
+import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { AsyncPipe } from '@angular/common';
 
 import { UserNamePipe } from '../pipes/user-name.pipe';
 import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
-import {  UserService } from '../services/user.service';
+import { User, UserService } from '../services/user.service';
+import { UserProfileComponent } from '../user-profile/user-profile.component';
 
 @Component({
   selector: 'app-user-list',
@@ -16,7 +19,9 @@ import {  UserService } from '../services/user.service';
   imports: [
     AsyncPipe,
     FirestoreTimestampPipe,
+    MatButtonModule,
     MatChipsModule,
+    MatDialogModule,
     MatIconModule,
     MatTableModule,
     UserNamePipe,
@@ -33,9 +38,19 @@ export class UserListComponent {
     'contactInfo',
     'birthday',
     'exitDate',
+    'actions',
   ];
   userService = inject(UserService);
+  _dialog = inject(MatDialog);
   list$ = this.userService.list$;
-  
+  isAdmin$ = this.userService.isAdmin$;
+
   constructor() {}
+
+  openUserProfileDialog(user: User) {
+    const dialogRef = this._dialog.open(UserProfileComponent, {
+      data: { user },
+      width: '65vw',
+    });
+  }
 }

@@ -28,12 +28,11 @@
       <div>
         <mat-chip-set>
           @for (uid of element.remoteWorkRecommender; track uid) {
-            <mat-chip>
-              {{ uid | userName }}
-            </mat-chip>
-            }
+          <mat-chip>
+            {{ uid | userName }}
+          </mat-chip>
+          }
         </mat-chip-set>
-        
       </div>
     </td>
   </ng-container>
@@ -64,6 +63,17 @@
     <th mat-header-cell *matHeaderCellDef>Exit Date</th>
     <td mat-cell *matCellDef="let element">
       {{ element.exitDate | firestoreTimestamp : "yyyy-MM-dd" }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="actions">
+    <th mat-header-cell *matHeaderCellDef>Actions</th>
+    <td mat-cell *matCellDef="let element">
+      @if(isAdmin$ | async) {
+      <button type="button" mat-icon-button (click)="openUserProfileDialog(element)">
+        <mat-icon>edit</mat-icon>
+      </button>
+      }
     </td>
   </ng-container>
 
