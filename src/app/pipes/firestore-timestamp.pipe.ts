@@ -7,14 +7,10 @@ import { format } from 'date-fns';
   standalone: true,
 })
 export class FirestoreTimestampPipe implements PipeTransform {
-  transform(value: Timestamp, date: boolean = false): string {
+  transform(value: Timestamp, formatStr: string='yyyy-MM-dd EEE HH:mm:ss'): string {
     if (!value) {
       return '-';
     }
-    if (date) {
-      return format(value.toDate(), 'yyyy-MM-dd');
-    }
-
-    return format(value.toDate(), 'yyyy-MM-dd EEE HH:mm:ss');
+    return format(value.toDate(), formatStr);
   }
 }

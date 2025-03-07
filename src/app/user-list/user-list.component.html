@@ -7,7 +7,7 @@
   <ng-container matColumnDef="startDate">
     <th mat-header-cell *matHeaderCellDef>Start Date</th>
     <td mat-cell *matCellDef="let element">
-      {{ element.startDate | firestoreTimestamp : true }}
+      {{ element.startDate | firestoreTimestamp : 'yyyy-MM-dd' }}
     </td>
   </ng-container>
 
@@ -57,13 +57,13 @@
   <ng-container matColumnDef="birthday">
     <th mat-header-cell *matHeaderCellDef>Birthday</th>
     <td mat-cell *matCellDef="let element">
-      {{ element.birthday | firestoreTimestamp : true }}
+      {{ element.birthday | firestoreTimestamp : 'yyyy-MM-dd' }}
     </td>
   </ng-container>
   <ng-container matColumnDef="exitDate">
     <th mat-header-cell *matHeaderCellDef>Exit Date</th>
     <td mat-cell *matCellDef="let element">
-      {{ element.exitDate | firestoreTimestamp : true }}
+      {{ element.exitDate | firestoreTimestamp : 'yyyy-MM-dd' }}
     </td>
   </ng-container>
   <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
