@@ -1,29 +1,86 @@
-<!-- <app-layout></app-layout> -->
+<table mat-table [dataSource]="(list$ | async)!" class="mat-elevation-z8">
+  <ng-container matColumnDef="name">
+    <th mat-header-cell *matHeaderCellDef>Name</th>
+    <td mat-cell *matCellDef="let element">{{ element.name }}</td>
+  </ng-container>
 
-<div class="member-container">
-  <h2>成員列表</h2>
-  <table class="member-table">
-    <thead>
-      <tr>
-        <th>Avatar</th>
-        <th>Name</th>
-        <th>Email</th>
-        <th>Job Title</th>
-        <th>Job Rank</th>
-        <th>WFH</th>
-        <th>Email</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>{{ user.birthday }}</td>
-        <td>{{ user.birthday }}</td>
-        <td>{{ user.birthday }}</td>
-        <td>{{ user.birthday }}</td>
-        <td>{{ user.birthday }}</td>
-        <td>{{ user.birthday }}</td>
-        <td>{{ user.birthday }}</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+  <ng-container matColumnDef="startDate">
+    <th mat-header-cell *matHeaderCellDef>Start Date</th>
+    <td mat-cell *matCellDef="let element">
+      {{ element.startDate | firestoreTimestamp : "yyyy-MM-dd" }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="jobTitle">
+    <th mat-header-cell *matHeaderCellDef>Job Title</th>
+    <td mat-cell *matCellDef="let element">{{ element.jobTitle }}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="jobRank">
+    <th mat-header-cell *matHeaderCellDef>Job Rank</th>
+    <td mat-cell *matCellDef="let element">{{ element.jobRank }}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="remoteWorkEligibility">
+    <th mat-header-cell *matHeaderCellDef>Remote Work Eligibility</th>
+    <td mat-cell *matCellDef="let element">
+      <div class="py-1">{{ element.remoteWorkEligibility }}</div>
+      <div>
+        <mat-chip-set>
+          @for (uid of element.remoteWorkRecommender; track uid) {
+          <mat-chip>
+            {{ uid | userName }}
+          </mat-chip>
+          }
+        </mat-chip-set>
+      </div>
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="remainingLeaveHours">
+    <th mat-header-cell *matHeaderCellDef>Remaining Leave Hours</th>
+    <td mat-cell *matCellDef="let element">
+      {{ element.remainingLeaveHours }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="contactInfo">
+    <th mat-header-cell *matHeaderCellDef>Contact Info</th>
+    <td mat-cell *matCellDef="let element">
+      <div>{{ element.email }}</div>
+      <div>{{ element.phone }}</div>
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="birthday">
+    <th mat-header-cell *matHeaderCellDef>Birthday</th>
+    <td mat-cell *matCellDef="let element">
+      {{ element.birthday | firestoreTimestamp : "yyyy-MM-dd" }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="exitDate">
+    <th mat-header-cell *matHeaderCellDef>Exit Date</th>
+    <td mat-cell *matCellDef="let element">
+      {{ element.exitDate | firestoreTimestamp : "yyyy-MM-dd" }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="actions">
+    <th mat-header-cell *matHeaderCellDef>Actions</th>
+    <td mat-cell *matCellDef="let element">
+      @if(isAdmin$ | async) {
+      <button type="button" mat-icon-button (click)="openUserProfileDialog(element)">
+        <mat-icon>edit</mat-icon>
+      </button>
+      }
+    </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  <tr
+    mat-row
+    *matRowDef="let row; columns: displayedColumns"
+    class="example-element-row"
+  ></tr>
+</table>
