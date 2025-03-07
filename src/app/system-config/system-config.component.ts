@@ -14,6 +14,7 @@ import {
   MatSnackBar,
   MatSnackBarVerticalPosition,
 } from '@angular/material/snack-bar';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { take } from 'rxjs';
 
@@ -42,7 +43,11 @@ export class SystemConfigComponent {
     private systemConfigService: SystemConfigService,
     private _snackBar: MatSnackBar
   ) {
-    this.configForm.patchValue(this.systemConfigService.license as any);
+    this.systemConfigService.license$.pipe(takeUntilDestroyed()).subscribe({
+      next: (license) => {
+        this.configForm.patchValue(license as any);
+      },
+    });
     this.configForm.get('currentUsers')?.disable();
     this.configForm.get('lastUpdated')?.disable();
   }

@@ -4,18 +4,19 @@ import {
   Firestore,
   Timestamp,
   doc,
+  docData,
   runTransaction,
   serverTimestamp,
   setDoc,
 } from '@angular/fire/firestore';
-import { catchError, from, of } from 'rxjs';
+import { catchError, from, Observable, of } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
 })
 export class SystemConfigService {
   firestore: Firestore = inject(Firestore);
-  license: License | undefined;
+  license$ = docData(doc(this.firestore, 'systemConfig', 'license')) as Observable<License>;
   constructor() {}
 
   createLicenseIfNotExists() {
@@ -26,18 +27,17 @@ export class SystemConfigService {
         const systemConfigDoc = await transaction.get(systemConfigRef);
         // If the document does not exist, create it
         if (systemConfigDoc.exists()) {
-          this.license = systemConfigDoc.data() as License;
           throw new Error('License already exists');
         }
 
         // Initialize the license
-        this.license = {
+        const license = {
           maxUsers: 10,
           currentUsers: 0,
           lastUpdated: serverTimestamp(),
           initialSettlementYear: new Date().getFullYear(),
         };
-        transaction.set(systemConfigRef, this.license);
+        transaction.set(systemConfigRef, license);
       })
     ).pipe(catchError((error) => of()));
   }
