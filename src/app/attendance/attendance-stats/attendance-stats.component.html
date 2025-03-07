@@ -1,13 +1,17 @@
 <mat-card appearance="outlined">
   <mat-card-header class="d-flex justify-content-end">
+    @if(quickPickOptions$ | async; as quickPickOptions) {
     <mat-chip-listbox [value]="quickPickOption">
       @for(selection of quickPickOptions; track selection) {
-      <mat-chip-option [aria-label]="selection" [value]="selection" selected>{{
+      <mat-chip-option [aria-label]="selection" [value]="selection">{{
         selection
       }}</mat-chip-option>
       }
-      <mat-chip-option aria-label="current" value="CURRENT">Current</mat-chip-option>
+      <mat-chip-option aria-label="current" value="CURRENT"
+        >Current</mat-chip-option
+      >
     </mat-chip-listbox>
+    }
   </mat-card-header>
   <mat-card-content class="pt-2">
     <div class="button-container">
@@ -31,19 +35,19 @@
         </ng-container>
 
         @for (column of displayedColumns.slice(1); track column) {
-          <ng-container [matColumnDef]="column">
+        <ng-container [matColumnDef]="column">
             <mat-header-cell *matHeaderCellDef>{{column}}</mat-header-cell>
-            <mat-cell *matCellDef="let element">
-              @if(column == 'PersonalLeave' || column == 'Overtime') {
-                {{ element[column] }}
+          <mat-cell *matCellDef="let element">
+            @if(column == 'PersonalLeave' || column == 'Overtime') {
+            {{ element[column] }}
                 <del class="badge rounded-pill text-bg-light">{{ element['_' + column]  }}</del>
-              } @else {
-                {{ element[column] }}
-              }
-            </mat-cell>
-          </ng-container>
+            } @else {
+            {{ element[column] }}
+            }
+          </mat-cell>
+        </ng-container>
         }
-  
+
         <mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></mat-header-row>
         <mat-row *matRowDef="let row; columns: displayedColumns"></mat-row>
       </mat-table>
