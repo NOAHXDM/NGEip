@@ -1,36 +1,3 @@
-table {
-  width: 100%;
-}
-
-.td-container {
-  padding: 3px 0px;
-  display: flex;
-  flex-direction: column;
-}
-
-.td-container span {
-  display: flex;
-  line-height: 32px;
-  height: 32px;
-}
-.remoteWorkRecommender-container {
-  display: flex;
-  gap: 4px;
-}
-.mat-chip {
-  font-size: 10px;
-}
-
-.content-column {
-  display: flex;
-  flex-direction: column;
-}
-
-.example {
-  display: flex;
-  justify-content: center;
-}
-
 tr.example-element-row:not(.example-expanded-row):hover {
   background: whitesmoke;
 }
