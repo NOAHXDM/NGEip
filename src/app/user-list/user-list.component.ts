@@ -8,6 +8,7 @@ import { UserNamePipe } from '../pipes/user-name.pipe';
 import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
 import { CommonModule } from '@angular/common';
 import { MatChipsModule } from '@angular/material/chips';
+
 export interface PeriodicElement {
   Name: string;
   Email: string;
