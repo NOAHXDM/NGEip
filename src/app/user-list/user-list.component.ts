@@ -38,7 +38,10 @@ export interface PeriodicElement {
 })
 export class UserListComponent {
   list$: Observable<User[]>;
-  userArray: User[] = [];
+  constructor(private userService: UserService) {
+    this.list$ = this.userService.list$;
+  }
+  ngOnInit() {}
 
   displayedColumns: string[] = [
     'name',
@@ -51,39 +54,4 @@ export class UserListComponent {
     'birthday',
     'exitDate',
   ];
-
-  constructor(private userService: UserService) {
-    this.list$ = this.userService.list$;
-  }
-  ngOnInit() {
-    this.profile();
-  }
-  profile() {
-    this.list$.pipe(take(1)).subscribe({
-      next: (userList) => {
-        this.userArray = userList;
-        console.log(userList);
-      },
-    });
-  }
-
-  showStarDate(startDate: any) {
-    if (startDate instanceof Timestamp) {
-      return startDate.toDate().toLocaleDateString();
-    }
-    return 'N/A';
-  }
-  showBirthday(birthday: any) {
-    if (birthday instanceof Timestamp) {
-      return birthday.toDate().toLocaleDateString();
-    }
-    return '未輸入';
-  }
-
-  showQuitDate(exitDate: any) {
-    if (exitDate instanceof Timestamp) {
-      return exitDate.toDate().toLocaleDateString();
-    }
-    return '在職中';
-  }
 }
