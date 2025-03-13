@@ -2,6 +2,7 @@
 .mat-mdc-cell {
   min-width: 100px;
   box-sizing: border-box;
+  white-space: nowrap;
 }
 
 .mat-column-startDate,
@@ -16,4 +17,8 @@
 
 tr.example-element-row:not(.example-expanded-row):hover {
   background: whitesmoke;
+}
+.table-container {
+  overflow: scroll;
+  height: 680px;
 }
