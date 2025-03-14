@@ -15,8 +15,8 @@ import {
   MatSnackBarVerticalPosition,
 } from '@angular/material/snack-bar';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
 import { take } from 'rxjs';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 @Component({
   selector: 'app-system-config',
@@ -27,6 +27,8 @@ import { take } from 'rxjs';
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatButtonModule,
+    MatSlideToggleModule,
   ],
   templateUrl: './system-config.component.html',
   styleUrl: './system-config.component.scss',
@@ -62,7 +64,7 @@ export class SystemConfigComponent {
         next: () => this.openSnackBar('License updated successfully'),
       });
   }
-
+  isChecked = true;
   openSnackBar(
     message: string,
     verticalPosition: MatSnackBarVerticalPosition = 'top'

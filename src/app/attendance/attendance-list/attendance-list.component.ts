@@ -36,7 +36,11 @@ import { AttendanceHistoryComponent } from '../attendance-history/attendance-his
 import { AttendanceFilterRequesterComponent } from '../attendance-filter-requester/attendance-filter-requester.component';
 import { ClientPreferencesService } from '../../services/client-preferences.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { ChangeDetectionStrategy } from '@angular/core';
+import { provideNativeDateAdapter } from '@angular/material/core';
 @Component({
   selector: 'app-attendance-list',
   standalone: true,
@@ -56,10 +60,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     FirestoreTimestampPipe,
     ReasonPriorityPipe,
     UserNamePipe,
+    MatSlideToggleModule,
+    MatFormFieldModule,
+    MatDatepickerModule,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './attendance-list.component.html',
   styleUrl: './attendance-list.component.scss',
-  providers: [UserNamePipe],
+  providers: [UserNamePipe, provideNativeDateAdapter()],
 })
 export class AttendanceListComponent implements AfterViewInit {
   readonly userNamePipe = inject(UserNamePipe);

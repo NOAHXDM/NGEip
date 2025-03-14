@@ -25,7 +25,20 @@
       <mat-chip-option aria-label="this month" value="3"
         >Prev Month</mat-chip-option
       >
-      <mat-chip-option disabled>Custom Range</mat-chip-option>
+      <!-- <mat-chip-option disabled>Custom Range</mat-chip-option> -->
+      <!-- <mat-chip-option aria-label="custom range">Custom Range</mat-chip-option> -->
+
+      <!-- 時間篩選 -->
+      <mat-chip-option disabled>
+        <div style="display: flex; align-items: center; width: 195px">
+          <mat-date-range-input [rangePicker]="picker">
+            <input matStartDate placeholder="Start date" />
+            <input matEndDate placeholder="End date" />
+          </mat-date-range-input>
+          <mat-datepicker-toggle [for]="picker"></mat-datepicker-toggle>
+          <mat-date-range-picker #picker></mat-date-range-picker>
+        </div>
+      </mat-chip-option>
     </mat-chip-listbox>
   </mat-card-header>
   <mat-card-content class="pt-2">
