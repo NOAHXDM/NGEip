@@ -28,7 +28,9 @@
       <mat-hint>Enter the year</mat-hint>
     </mat-form-field>
 
-    <mat-slide-toggle>Custom Range</mat-slide-toggle>
+    <mat-slide-toggle formControlName="customRange"
+      >Custom Range</mat-slide-toggle
+    >
     <button type="submit" mat-flat-button [disabled]="configForm.invalid">
       Update
     </button>

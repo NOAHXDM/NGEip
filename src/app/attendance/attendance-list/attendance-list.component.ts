@@ -41,6 +41,10 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { ChangeDetectionStrategy } from '@angular/core';
 import { provideNativeDateAdapter } from '@angular/material/core';
+import {
+  License,
+  SystemConfigService,
+} from '../../services/system-config.service';
 @Component({
   selector: 'app-attendance-list',
   standalone: true,
@@ -72,6 +76,7 @@ import { provideNativeDateAdapter } from '@angular/material/core';
 export class AttendanceListComponent implements AfterViewInit {
   readonly userNamePipe = inject(UserNamePipe);
   readonly _filterRequesterSubject = new ReplaySubject<string[]>(1);
+  license$: Observable<License>;
   filterRequesterSet: Set<string>;
   _attendanceList?: MatTableDataSource<any>;
   attendanceList$?: Observable<MatTableDataSource<any>>;
@@ -88,7 +93,6 @@ export class AttendanceListComponent implements AfterViewInit {
     'callout',
     'history',
   ];
-
   @ViewChild('cardHeader', { static: false, read: ElementRef })
   cardHeader!: ElementRef;
   @ViewChild(MatSort) sort?: MatSort;
@@ -99,7 +103,8 @@ export class AttendanceListComponent implements AfterViewInit {
     private attendanceService: AttendanceService,
     private clientPreferencesService: ClientPreferencesService,
     private _dialog: MatDialog,
-    private _snackBar: MatSnackBar
+    private _snackBar: MatSnackBar,
+    public systemConfigService: SystemConfigService
   ) {
     this.logsSearchOption =
       this.clientPreferencesService.getPreference('logsSearchOption') || '0';
@@ -108,7 +113,7 @@ export class AttendanceListComponent implements AfterViewInit {
         this.clientPreferencesService.getPreference('filterRequesters') || '[]'
       )
     );
-
+    this.license$ = this.systemConfigService.license$;
     combineLatest([
       this._filterRequesterSubject,
       this.userNamePipe.latestMapping$,

@@ -29,7 +29,7 @@
       <!-- <mat-chip-option aria-label="custom range">Custom Range</mat-chip-option> -->
 
       <!-- 時間篩選 -->
-      <mat-chip-option disabled>
+      <mat-chip-option [disabled]="!(license$ | async)?.customRange">
         <div style="display: flex; align-items: center; width: 195px">
           <mat-date-range-input [rangePicker]="picker">
             <input matStartDate placeholder="Start date" />
