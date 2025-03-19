@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { MatTableModule } from '@angular/material/table';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
@@ -10,6 +10,9 @@ import { UserNamePipe } from '../pipes/user-name.pipe';
 import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
 import { User, UserService } from '../services/user.service';
 import { UserProfileComponent } from '../user-profile/user-profile.component';
+import { MatSort, MatSortModule } from '@angular/material/sort';
+import { ViewChild } from '@angular/core';
+import { Observable, take } from 'rxjs';
 
 @Component({
   selector: 'app-user-list',
@@ -25,6 +28,7 @@ import { UserProfileComponent } from '../user-profile/user-profile.component';
     MatIconModule,
     MatTableModule,
     UserNamePipe,
+    MatSortModule,
   ],
 })
 export class UserListComponent {
@@ -44,8 +48,34 @@ export class UserListComponent {
   _dialog = inject(MatDialog);
   list$ = this.userService.list$;
   isAdmin$ = this.userService.isAdmin$;
+  userArray: User[] = [];
+  dataSource: MatTableDataSource<User> = new MatTableDataSource();
+  @ViewChild(MatSort) sort?: MatSort;
 
-  constructor() {}
+  constructor() {
+    this.list$ = this.userService.list$;
+    console.log(this.sort);
+  }
+
+  ngAfterViewInit() {
+    console.log(this.sort);
+    if (this.sort) {
+      this.dataSource.sort = this.sort;
+    }
+  }
+
+  ngOnInit() {
+    this.profile();
+  }
+
+  profile() {
+    this.list$.pipe(take(1)).subscribe({
+      next: (userList) => {
+        this.userArray = userList;
+        this.dataSource.data = this.userArray;
+      },
+    });
+  }
 
   openUserProfileDialog(user: User) {
     const dialogRef = this._dialog.open(UserProfileComponent, {

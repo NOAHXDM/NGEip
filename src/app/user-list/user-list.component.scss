@@ -20,5 +20,5 @@ tr.example-element-row:not(.example-expanded-row):hover {
 }
 .table-container {
   overflow: scroll;
-  height: 680px;
+  height: calc(100vh - 113px);
 }

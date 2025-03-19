@@ -22,14 +22,12 @@
       <mat-chip-option aria-label="this month" value="2"
         >This Month</mat-chip-option
       >
-      <mat-chip-option aria-label="this month" value="3"
+      <mat-chip-option aria-label="prev month" value="3"
         >Prev Month</mat-chip-option
       >
-      <!-- <mat-chip-option disabled>Custom Range</mat-chip-option> -->
-      <!-- <mat-chip-option aria-label="custom range">Custom Range</mat-chip-option> -->
 
       <!-- 時間篩選 -->
-      <mat-chip-option [disabled]="!(license$ | async)?.customRange">
+      <mat-chip-option [disabled]="!(license$ | async)?.customRange" value="4">
         <div style="display: flex; align-items: center; width: 195px">
           <mat-date-range-input [rangePicker]="picker">
             <input matStartDate placeholder="Start date" />
