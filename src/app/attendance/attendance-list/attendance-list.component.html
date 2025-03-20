@@ -4,16 +4,38 @@
     <button type="button" mat-mini-fab (click)="openNewAttendanceDialog()">
       <mat-icon>edit</mat-icon>
     </button>
-    <button type="button" [matBadge]="filterRequesterSet.size" matBadgePosition="before" mat-button (click)="openFilterDialog()">
+    <button
+      type="button"
+      [matBadge]="filterRequesterSet.size"
+      matBadgePosition="before"
+      mat-button
+      (click)="openFilterDialog()"
+    >
       <mat-icon>filter_alt</mat-icon>
       Requester
     </button>
     <mat-chip-listbox [value]="logsSearchOption">
       <mat-chip-option aria-label="today" value="0">Today</mat-chip-option>
-      <mat-chip-option aria-label="this week" value="1">This Week</mat-chip-option>
-      <mat-chip-option aria-label="this month" value="2">This Month</mat-chip-option>
-      <mat-chip-option aria-label="this month" value="3">Prev Month</mat-chip-option>
-      <mat-chip-option disabled>Custom Range</mat-chip-option>
+      <mat-chip-option aria-label="this week" value="1"
+        >This Week</mat-chip-option
+      >
+      <mat-chip-option aria-label="this month" value="2"
+        >This Month</mat-chip-option
+      >
+      <mat-chip-option aria-label="prev month" value="3"
+        >Prev Month</mat-chip-option
+      >
+      <!-- 時間篩選 -->
+      <mat-chip-option [disabled]="!(license$ | async)?.customRange" value="4">
+        <div style="display: flex; align-items: center; width: 195px">
+          <mat-date-range-input [rangePicker]="picker">
+            <input matStartDate placeholder="Start date" />
+            <input matEndDate placeholder="End date" />
+          </mat-date-range-input>
+          <mat-datepicker-toggle [for]="picker"></mat-datepicker-toggle>
+          <mat-date-range-picker #picker></mat-date-range-picker>
+        </div>
+      </mat-chip-option>
     </mat-chip-listbox>
   </mat-card-header>
   <mat-card-content class="pt-2">
@@ -29,39 +51,47 @@
               [matMenuTriggerData]="{ data: element }"
               [title]="element.status"
             >
-              @switch (element.status) { 
-                @case ('pending') { <mat-icon [style.color]="'gray'">pending_actions</mat-icon> }
-                @case ('approved') { <mat-icon [style.color]="'green'">recommend</mat-icon> }
-                @case ('rejected') { <mat-icon [style.color]="'red'">cancel</mat-icon> }
-                @default { <mat-icon>help</mat-icon> }
-              }
+              @switch (element.status) { @case ('pending') {
+              <mat-icon [style.color]="'gray'">pending_actions</mat-icon> }
+              @case ('approved') {
+              <mat-icon [style.color]="'green'">recommend</mat-icon> } @case
+              ('rejected') { <mat-icon [style.color]="'red'">cancel</mat-icon> }
+              @default { <mat-icon>help</mat-icon> } }
             </button>
           </mat-cell>
         </ng-container>
         <!-- UserId -->
         <ng-container matColumnDef="userId">
-          <mat-header-cell *matHeaderCellDef mat-sort-header>Requester</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef mat-sort-header
+            >Requester</mat-header-cell
+          >
           <mat-cell *matCellDef="let element">{{
             element.userId | userName
           }}</mat-cell>
         </ng-container>
         <!-- Type -->
         <ng-container matColumnDef="type">
-          <mat-header-cell *matHeaderCellDef mat-sort-header>Type</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef mat-sort-header
+            >Type</mat-header-cell
+          >
           <mat-cell *matCellDef="let element">{{
             element.type | attendanceType
           }}</mat-cell>
         </ng-container>
         <!-- Start DateTime -->
         <ng-container matColumnDef="startDateTime">
-          <mat-header-cell *matHeaderCellDef mat-sort-header>Start DateTime</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef mat-sort-header
+            >Start DateTime</mat-header-cell
+          >
           <mat-cell *matCellDef="let element">
             {{ element.startDateTime | firestoreTimestamp }}
           </mat-cell>
         </ng-container>
         <!-- End DateTime -->
         <ng-container matColumnDef="endDateTime">
-          <mat-header-cell *matHeaderCellDef mat-sort-header>End DateTime</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef mat-sort-header
+            >End DateTime</mat-header-cell
+          >
           <mat-cell *matCellDef="let element">
             {{ element.endDateTime | firestoreTimestamp }}
           </mat-cell>
@@ -101,7 +131,10 @@
         <ng-container matColumnDef="history">
           <mat-header-cell *matHeaderCellDef>History</mat-header-cell>
           <mat-cell *matCellDef="let element">
-            <button mat-icon-button (click)="openAttendanceHistoryDialog(element)">
+            <button
+              mat-icon-button
+              (click)="openAttendanceHistoryDialog(element)"
+            >
               <mat-icon>history</mat-icon>
             </button>
           </mat-cell>
@@ -120,23 +153,32 @@
 <mat-menu #statusMenu>
   <ng-template matMenuContent let-data="data">
     @if (data.status == 'pending') {
-      <button mat-menu-item (click)="openAttendanceStatusChangeDialog(data, 'approved')">
-        <mat-icon [style.color]="'green'">recommend</mat-icon>
-        <span>Approved</span>
-      </button>
-      <button mat-menu-item (click)="openAttendanceStatusChangeDialog(data, 'rejected')">
-        <mat-icon [style.color]="'red'">cancel</mat-icon>
-        <span>Rejected</span>
-      </button>
-      <button mat-menu-item (click)="openEditAttendanceDialog(data)">
-        <mat-icon [style.color]="'gray'">edit_square</mat-icon>
-        <span>Edit</span>
-      </button>
+    <button
+      mat-menu-item
+      (click)="openAttendanceStatusChangeDialog(data, 'approved')"
+    >
+      <mat-icon [style.color]="'green'">recommend</mat-icon>
+      <span>Approved</span>
+    </button>
+    <button
+      mat-menu-item
+      (click)="openAttendanceStatusChangeDialog(data, 'rejected')"
+    >
+      <mat-icon [style.color]="'red'">cancel</mat-icon>
+      <span>Rejected</span>
+    </button>
+    <button mat-menu-item (click)="openEditAttendanceDialog(data)">
+      <mat-icon [style.color]="'gray'">edit_square</mat-icon>
+      <span>Edit</span>
+    </button>
     } @else {
-      <button mat-menu-item (click)="openAttendanceStatusChangeDialog(data, 'pending')">
-        <mat-icon [style.color]="'gray'">pending_actions</mat-icon>
-        <span>Pending</span>
-      </button>
+    <button
+      mat-menu-item
+      (click)="openAttendanceStatusChangeDialog(data, 'pending')"
+    >
+      <mat-icon [style.color]="'gray'">pending_actions</mat-icon>
+      <span>Pending</span>
+    </button>
     }
   </ng-template>
 </mat-menu>

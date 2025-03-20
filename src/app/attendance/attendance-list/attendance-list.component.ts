@@ -36,7 +36,15 @@ import { AttendanceHistoryComponent } from '../attendance-history/attendance-his
 import { AttendanceFilterRequesterComponent } from '../attendance-filter-requester/attendance-filter-requester.component';
 import { ClientPreferencesService } from '../../services/client-preferences.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { ChangeDetectionStrategy } from '@angular/core';
+import { provideNativeDateAdapter } from '@angular/material/core';
+import {
+  License,
+  SystemConfigService,
+} from '../../services/system-config.service';
 @Component({
   selector: 'app-attendance-list',
   standalone: true,
@@ -56,14 +64,19 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     FirestoreTimestampPipe,
     ReasonPriorityPipe,
     UserNamePipe,
+    MatSlideToggleModule,
+    MatFormFieldModule,
+    MatDatepickerModule,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './attendance-list.component.html',
   styleUrl: './attendance-list.component.scss',
-  providers: [UserNamePipe],
+  providers: [UserNamePipe, provideNativeDateAdapter()],
 })
 export class AttendanceListComponent implements AfterViewInit {
   readonly userNamePipe = inject(UserNamePipe);
   readonly _filterRequesterSubject = new ReplaySubject<string[]>(1);
+  license$: Observable<License>;
   filterRequesterSet: Set<string>;
   _attendanceList?: MatTableDataSource<any>;
   attendanceList$?: Observable<MatTableDataSource<any>>;
@@ -80,7 +93,6 @@ export class AttendanceListComponent implements AfterViewInit {
     'callout',
     'history',
   ];
-
   @ViewChild('cardHeader', { static: false, read: ElementRef })
   cardHeader!: ElementRef;
   @ViewChild(MatSort) sort?: MatSort;
@@ -91,7 +103,8 @@ export class AttendanceListComponent implements AfterViewInit {
     private attendanceService: AttendanceService,
     private clientPreferencesService: ClientPreferencesService,
     private _dialog: MatDialog,
-    private _snackBar: MatSnackBar
+    private _snackBar: MatSnackBar,
+    public systemConfigService: SystemConfigService
   ) {
     this.logsSearchOption =
       this.clientPreferencesService.getPreference('logsSearchOption') || '0';
@@ -100,7 +113,7 @@ export class AttendanceListComponent implements AfterViewInit {
         this.clientPreferencesService.getPreference('filterRequesters') || '[]'
       )
     );
-
+    this.license$ = this.systemConfigService.license$;
     combineLatest([
       this._filterRequesterSubject,
       this.userNamePipe.latestMapping$,
@@ -162,6 +175,11 @@ export class AttendanceListComponent implements AfterViewInit {
         break;
       case '3':
         this.attendanceList$ = this.attendanceService.getPreviousMonth.pipe(
+          map((data) => this.transformToDataSource(data))
+        );
+        break;
+      case '4':
+        this.attendanceList$ = this.attendanceService.getCurrentMonth.pipe(
           map((data) => this.transformToDataSource(data))
         );
         break;

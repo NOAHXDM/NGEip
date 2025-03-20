@@ -16,7 +16,9 @@ import { catchError, from, Observable, of } from 'rxjs';
 })
 export class SystemConfigService {
   firestore: Firestore = inject(Firestore);
-  license$ = docData(doc(this.firestore, 'systemConfig', 'license')) as Observable<License>;
+  license$ = docData(
+    doc(this.firestore, 'systemConfig', 'license')
+  ) as Observable<License>;
   constructor() {}
 
   createLicenseIfNotExists() {
@@ -42,12 +44,16 @@ export class SystemConfigService {
     ).pipe(catchError((error) => of()));
   }
 
-  updateLicense(maxUsers: number, initialSettlementYear: number) {
+  updateLicense(
+    maxUsers: number,
+    initialSettlementYear: number,
+    customRange: boolean
+  ) {
     const systemConfigRef = doc(this.firestore, 'systemConfig', 'license');
     return from(
       setDoc(
         systemConfigRef,
-        { maxUsers, initialSettlementYear },
+        { maxUsers, initialSettlementYear, customRange },
         { merge: true }
       )
     );
@@ -59,4 +65,5 @@ export interface License {
   currentUsers: number;
   lastUpdated: Timestamp | FieldValue;
   initialSettlementYear: number;
+  customRange: boolean;
 }
