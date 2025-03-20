@@ -12,7 +12,7 @@ import { User, UserService } from '../services/user.service';
 import { UserProfileComponent } from '../user-profile/user-profile.component';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { ViewChild } from '@angular/core';
-import { Observable, take } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-user-list',
@@ -48,32 +48,20 @@ export class UserListComponent {
   _dialog = inject(MatDialog);
   list$ = this.userService.list$;
   isAdmin$ = this.userService.isAdmin$;
-  userArray: User[] = [];
   dataSource = new MatTableDataSource();
   @ViewChild(MatSort) sort?: MatSort;
 
   constructor() {
     this.list$ = this.userService.list$;
+    this.list$.pipe(takeUntilDestroyed()).subscribe({
+      next: (userList) => (this.dataSource.data = userList),
+    });
   }
 
   ngAfterViewInit() {
-    console.log(this.sort);
     if (this.sort) {
       this.dataSource.sort = this.sort;
     }
-  }
-
-  ngOnInit() {
-    this.profile();
-  }
-
-  profile() {
-    this.list$.pipe(take(1)).subscribe({
-      next: (userList) => {
-        this.userArray = userList;
-        this.dataSource.data = this.userArray;
-      },
-    });
   }
 
   openUserProfileDialog(user: User) {
