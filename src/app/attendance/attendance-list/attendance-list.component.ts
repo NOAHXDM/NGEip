@@ -178,6 +178,11 @@ export class AttendanceListComponent implements AfterViewInit {
           map((data) => this.transformToDataSource(data))
         );
         break;
+      case '4':
+        this.attendanceList$ = this.attendanceService.getCurrentMonth.pipe(
+          map((data) => this.transformToDataSource(data))
+        );
+        break;
       default:
         break;
     }
