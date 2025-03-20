@@ -49,12 +49,11 @@ export class UserListComponent {
   list$ = this.userService.list$;
   isAdmin$ = this.userService.isAdmin$;
   userArray: User[] = [];
-  dataSource: MatTableDataSource<User> = new MatTableDataSource();
+  dataSource = new MatTableDataSource();
   @ViewChild(MatSort) sort?: MatSort;
 
   constructor() {
     this.list$ = this.userService.list$;
-    console.log(this.sort);
   }
 
   ngAfterViewInit() {
