@@ -27,7 +27,7 @@
       >
       <!-- 時間篩選 -->
 
-      <mat-chip-option [disabled]="!(license$ | async)?.customRange">
+      <mat-chip-option [disabled]="!(license$ | async)?.customRange" value="4">
         <div style="display: flex; align-items: center; width: 195px">
           <mat-date-range-input [rangePicker]="picker" #dateRangeInput>
             <input matStartDate placeholder="Start date" matStartDate />
@@ -38,6 +38,7 @@
           <mat-date-range-picker
             #picker
             (closed)="pickerOnClosed()"
+            [disabled]="!isCustomRangeSelected"
           ></mat-date-range-picker>
         </div>
       </mat-chip-option>

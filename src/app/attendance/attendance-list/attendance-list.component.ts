@@ -147,10 +147,8 @@ export class AttendanceListComponent implements AfterViewInit {
       });
   }
   @ViewChild('dateRangeInput') dateRangeInput!: MatDateRangeInput<Date>;
-  @ViewChild('picker')
-  picker!: MatDateRangePicker<any>;
-  //日期篩選
 
+  //日期篩選
   pickerOnClosed() {
     console.log('close');
     if (!this.dateRangeInput.value?.end || !this.dateRangeInput.value.start) {
@@ -190,7 +188,7 @@ export class AttendanceListComponent implements AfterViewInit {
       },
     });
   }
-
+  isCustomRangeSelected = false;
   dateRangeChange(option: string) {
     // Save the selected option to the client preferences
     this.logsSearchOption = option;
@@ -204,27 +202,32 @@ export class AttendanceListComponent implements AfterViewInit {
         this.attendanceList$ = this.attendanceService.getCurrentDay.pipe(
           map((data) => this.transformToDataSource(data))
         );
+        this.isCustomRangeSelected = false;
         break;
       case '1':
         this.attendanceList$ = this.attendanceService.getCurrentWeek.pipe(
           map((data) => this.transformToDataSource(data))
         );
+        this.isCustomRangeSelected = false;
         break;
       case '2':
         this.attendanceList$ = this.attendanceService.getCurrentMonth.pipe(
           map((data) => this.transformToDataSource(data))
         );
+        this.isCustomRangeSelected = false;
+
         break;
       case '3':
         this.attendanceList$ = this.attendanceService.getPreviousMonth.pipe(
           map((data) => this.transformToDataSource(data))
         );
+        this.isCustomRangeSelected = false;
+
         break;
-      // case '4':
-      //   this.attendanceList$ = this.attendanceService
-      //     .getTimeFilter(this.data[0], this.data[1])
-      //     .pipe(map((data) => this.transformToDataSource(data)));
-      //   break;
+      case '4':
+        this.isCustomRangeSelected = true;
+
+        break;
       default:
         break;
     }
