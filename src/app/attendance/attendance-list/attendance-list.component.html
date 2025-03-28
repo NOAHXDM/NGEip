@@ -26,14 +26,19 @@
         >Prev Month</mat-chip-option
       >
       <!-- 時間篩選 -->
-      <mat-chip-option [disabled]="!(license$ | async)?.customRange" value="4">
+
+      <mat-chip-option [disabled]="!(license$ | async)?.customRange">
         <div style="display: flex; align-items: center; width: 195px">
-          <mat-date-range-input [rangePicker]="picker">
-            <input matStartDate placeholder="Start date" />
-            <input matEndDate placeholder="End date" />
+          <mat-date-range-input [rangePicker]="picker" #dateRangeInput>
+            <input matStartDate placeholder="Start date" matStartDate />
+            <input matEndDate placeholder="End date" matEndDate />
           </mat-date-range-input>
           <mat-datepicker-toggle [for]="picker"></mat-datepicker-toggle>
-          <mat-date-range-picker #picker></mat-date-range-picker>
+
+          <mat-date-range-picker
+            #picker
+            (closed)="pickerOnClosed()"
+          ></mat-date-range-picker>
         </div>
       </mat-chip-option>
     </mat-chip-listbox>
@@ -182,3 +187,4 @@
     }
   </ng-template>
 </mat-menu>
+VFYHMN

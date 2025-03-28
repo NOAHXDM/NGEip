@@ -20,7 +20,15 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { combineLatest, filter, map, Observable, ReplaySubject } from 'rxjs';
+import {
+  combineLatest,
+  filter,
+  map,
+  Observable,
+  ReplaySubject,
+  switchMap,
+  tap,
+} from 'rxjs';
 
 import {
   AttendanceLog,
@@ -37,7 +45,11 @@ import { AttendanceFilterRequesterComponent } from '../attendance-filter-request
 import { ClientPreferencesService } from '../../services/client-preferences.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatDatepickerModule } from '@angular/material/datepicker';
+import {
+  MatDatepickerModule,
+  MatDateRangeInput,
+  MatDateRangePicker,
+} from '@angular/material/datepicker';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { ChangeDetectionStrategy } from '@angular/core';
 import { provideNativeDateAdapter } from '@angular/material/core';
@@ -45,6 +57,7 @@ import {
   License,
   SystemConfigService,
 } from '../../services/system-config.service';
+import { FormControl, FormGroup } from '@angular/forms';
 @Component({
   selector: 'app-attendance-list',
   standalone: true,
@@ -76,6 +89,7 @@ import {
 export class AttendanceListComponent implements AfterViewInit {
   readonly userNamePipe = inject(UserNamePipe);
   readonly _filterRequesterSubject = new ReplaySubject<string[]>(1);
+
   license$: Observable<License>;
   filterRequesterSet: Set<string>;
   _attendanceList?: MatTableDataSource<any>;
@@ -93,12 +107,13 @@ export class AttendanceListComponent implements AfterViewInit {
     'callout',
     'history',
   ];
+
+  data: any;
   @ViewChild('cardHeader', { static: false, read: ElementRef })
   cardHeader!: ElementRef;
   @ViewChild(MatSort) sort?: MatSort;
   @ViewChild(MatChipListbox) chipList?: MatChipListbox;
   logsSearchOption: string;
-
   constructor(
     private attendanceService: AttendanceService,
     private clientPreferencesService: ClientPreferencesService,
@@ -130,6 +145,33 @@ export class AttendanceListComponent implements AfterViewInit {
           this._attendanceList!.filter = JSON.stringify(filterValues);
         },
       });
+  }
+  @ViewChild('dateRangeInput') dateRangeInput!: MatDateRangeInput<Date>;
+  @ViewChild('picker')
+  picker!: MatDateRangePicker<any>;
+  //日期篩選
+
+  pickerOnClosed() {
+    console.log('close');
+    if (!this.dateRangeInput.value?.end || !this.dateRangeInput.value.start) {
+      return;
+    }
+    const endDate = this.dateRangeInput.value.end;
+    const startDate = this.dateRangeInput.value.start;
+
+    if (this.dateRangeInput.value?.start && this.dateRangeInput.value?.end) {
+      console.log('我要進行日期篩選', startDate, endDate);
+    }
+    this.data = [startDate, endDate];
+    // return this.data;
+
+    this.attendanceList$ = this.attendanceService
+      .getTimeFilter(startDate, endDate)
+      .pipe(
+        map((data) => {
+          return this.transformToDataSource(data);
+        })
+      );
   }
 
   ngAfterViewInit() {
@@ -178,11 +220,11 @@ export class AttendanceListComponent implements AfterViewInit {
           map((data) => this.transformToDataSource(data))
         );
         break;
-      case '4':
-        this.attendanceList$ = this.attendanceService.getCurrentMonth.pipe(
-          map((data) => this.transformToDataSource(data))
-        );
-        break;
+      // case '4':
+      //   this.attendanceList$ = this.attendanceService
+      //     .getTimeFilter(this.data[0], this.data[1])
+      //     .pipe(map((data) => this.transformToDataSource(data)));
+      //   break;
       default:
         break;
     }

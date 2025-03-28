@@ -18,7 +18,15 @@
 tr.example-element-row:not(.example-expanded-row):hover {
   background: whitesmoke;
 }
+
+.mat-mdc-table-sticky-border-elem-top {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.mat-mdc-table-sticky-border-elem-left {
+  border-right: 1px solid #e0e0e0;
+}
 .table-container {
   overflow: scroll;
-  height: calc(100vh - 113px);
+  height: calc(100vh - 153px);
 }

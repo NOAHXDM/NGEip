@@ -48,8 +48,6 @@ export class AttendanceService {
   readonly getCurrentMonth = this._getCurrentMonth().pipe(shareReplay(1));
   readonly getPreviousMonth = this._getPreviousMonth().pipe(shareReplay(1));
 
-  constructor() {}
-
   create(formValue: any) {
     const data = {
       ...formValue,
@@ -168,6 +166,8 @@ export class AttendanceService {
   }
 
   search(startDateTime: Date, endDateTime: Date) {
+    console.log(startDateTime);
+    console.log(endDateTime);
     const startTimestamp = Timestamp.fromDate(startDateTime);
     const endTimestamp = Timestamp.fromDate(endDateTime);
 
@@ -203,12 +203,12 @@ export class AttendanceService {
   }
 
   private _getCurrentWeek() {
+    console.log('_getCurrentWeek');
     const today = new Date();
     const weekStart = startOfWeek(today, { weekStartsOn: 1 });
     const weekEnd = startOfDay(addDays(weekStart, 7));
     return this.search(weekStart, weekEnd);
   }
-
   private _getCurrentMonth() {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
@@ -227,6 +227,17 @@ export class AttendanceService {
     return this.search(startOfPreviousMonth, startOfMonth);
   }
 
+  //時間篩選
+  getTimeFilter(startDateTime: Date, endDateTime: Date) {
+    const startFilterTime = new Date(startDateTime);
+    startFilterTime.setHours(0, 0, 0, 0);
+
+    const endFilterTime = new Date(endDateTime);
+    endFilterTime.setDate(endFilterTime.getDate() + 1);
+    endFilterTime.setHours(0, 0, 0, 0);
+
+    return this.search(startFilterTime, endFilterTime);
+  }
   addAuditTrail(
     docRef: DocumentReference,
     auditTrail: AttendanceLogAuditTrail
