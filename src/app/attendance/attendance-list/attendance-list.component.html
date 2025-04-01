@@ -25,6 +25,7 @@
       <mat-chip-option aria-label="prev month" value="3"
         >Prev Month</mat-chip-option
       >
+
       <!-- 時間篩選 -->
 
       <mat-chip-option [disabled]="!(license$ | async)?.customRange" value="4">
@@ -38,7 +39,7 @@
           <mat-date-range-picker
             #picker
             (closed)="pickerOnClosed()"
-            [disabled]="!isCustomRangeSelected"
+            [disabled]="isCustomRangeSelected"
           ></mat-date-range-picker>
         </div>
       </mat-chip-option>

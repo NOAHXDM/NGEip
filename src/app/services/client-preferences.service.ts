@@ -14,6 +14,9 @@ export class ClientPreferencesService {
   }
 
   setPreference(key: keyof Preferences, value: any) {
+    if (value === '4') {
+      return;
+    }
     const preferences = this.getPreferences();
     preferences[key] = value;
     localStorage.setItem(this.storageKey, JSON.stringify(preferences));
