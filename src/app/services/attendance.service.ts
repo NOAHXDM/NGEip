@@ -48,8 +48,6 @@ export class AttendanceService {
   readonly getCurrentMonth = this._getCurrentMonth().pipe(shareReplay(1));
   readonly getPreviousMonth = this._getPreviousMonth().pipe(shareReplay(1));
 
-  constructor() {}
-
   create(formValue: any) {
     const data = {
       ...formValue,
@@ -225,6 +223,16 @@ export class AttendanceService {
     const startOfPreviousMonth = new Date(startOfMonth);
     startOfPreviousMonth.setMonth(startOfMonth.getMonth() - 1);
     return this.search(startOfPreviousMonth, startOfMonth);
+  }
+
+  getTimeFilter(startDateTime: Date, endDateTime: Date) {
+    const startFilterTime = new Date(startDateTime);
+    startFilterTime.setHours(0, 0, 0, 0);
+
+    const endFilterTime = new Date(endDateTime);
+    endFilterTime.setDate(endFilterTime.getDate() + 1);
+    endFilterTime.setHours(0, 0, 0, 0);
+    return this.search(startFilterTime, endFilterTime);
   }
 
   addAuditTrail(

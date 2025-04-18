@@ -5,6 +5,7 @@ import {
   ViewChild,
   ElementRef,
   inject,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,7 +21,14 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import {
+  MatDatepickerModule,
+  MatDateRangeInput,
+} from '@angular/material/datepicker';
 import { combineLatest, filter, map, Observable, ReplaySubject } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { provideNativeDateAdapter } from '@angular/material/core';
 
 import {
   AttendanceLog,
@@ -35,8 +43,10 @@ import { AttendanceStatusChangeComponent } from '../attendance-status-change/att
 import { AttendanceHistoryComponent } from '../attendance-history/attendance-history.component';
 import { AttendanceFilterRequesterComponent } from '../attendance-filter-requester/attendance-filter-requester.component';
 import { ClientPreferencesService } from '../../services/client-preferences.service';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
+import {
+  License,
+  SystemConfigService,
+} from '../../services/system-config.service';
 @Component({
   selector: 'app-attendance-list',
   standalone: true,
@@ -56,14 +66,19 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     FirestoreTimestampPipe,
     ReasonPriorityPipe,
     UserNamePipe,
+    MatFormFieldModule,
+    MatDatepickerModule,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './attendance-list.component.html',
   styleUrl: './attendance-list.component.scss',
-  providers: [UserNamePipe],
+  providers: [UserNamePipe, provideNativeDateAdapter()],
 })
 export class AttendanceListComponent implements AfterViewInit {
   readonly userNamePipe = inject(UserNamePipe);
   readonly _filterRequesterSubject = new ReplaySubject<string[]>(1);
+
+  license$: Observable<License>;
   filterRequesterSet: Set<string>;
   _attendanceList?: MatTableDataSource<any>;
   attendanceList$?: Observable<MatTableDataSource<any>>;
@@ -86,12 +101,14 @@ export class AttendanceListComponent implements AfterViewInit {
   @ViewChild(MatSort) sort?: MatSort;
   @ViewChild(MatChipListbox) chipList?: MatChipListbox;
   logsSearchOption: string;
+  @ViewChild('dateRangeInput') dateRangeInput!: MatDateRangeInput<Date>;
 
   constructor(
     private attendanceService: AttendanceService,
     private clientPreferencesService: ClientPreferencesService,
     private _dialog: MatDialog,
-    private _snackBar: MatSnackBar
+    private _snackBar: MatSnackBar,
+    public systemConfigService: SystemConfigService
   ) {
     this.logsSearchOption =
       this.clientPreferencesService.getPreference('logsSearchOption') || '0';
@@ -100,7 +117,7 @@ export class AttendanceListComponent implements AfterViewInit {
         this.clientPreferencesService.getPreference('filterRequesters') || '[]'
       )
     );
-
+    this.license$ = this.systemConfigService.license$;
     combineLatest([
       this._filterRequesterSubject,
       this.userNamePipe.latestMapping$,
@@ -119,6 +136,22 @@ export class AttendanceListComponent implements AfterViewInit {
       });
   }
 
+  pickerOnClosed() {
+    if (!this.dateRangeInput.value?.end || !this.dateRangeInput.value.start) {
+      return;
+    }
+    const endDate = this.dateRangeInput.value.end;
+    const startDate = this.dateRangeInput.value.start;
+
+    this.attendanceList$ = this.attendanceService
+      .getTimeFilter(startDate, endDate)
+      .pipe(
+        map((data) => {
+          return this.transformToDataSource(data);
+        })
+      );
+  }
+
   ngAfterViewInit() {
     // Set the position of the header text to absolute
     // To fab-button and chip-list to be displayed correctly
@@ -135,14 +168,16 @@ export class AttendanceListComponent implements AfterViewInit {
       },
     });
   }
-
   dateRangeChange(option: string) {
     // Save the selected option to the client preferences
     this.logsSearchOption = option;
-    this.clientPreferencesService.setPreference(
-      'logsSearchOption',
-      this.logsSearchOption
-    );
+    if (this.logsSearchOption != '4') {
+      this.clientPreferencesService.setPreference(
+        'logsSearchOption',
+        this.logsSearchOption
+      );
+    }
+
     // Load the attendance list based on the selected option
     switch (option) {
       case '0':
@@ -165,6 +200,9 @@ export class AttendanceListComponent implements AfterViewInit {
           map((data) => this.transformToDataSource(data))
         );
         break;
+      case '4':
+        break;
+
       default:
         break;
     }
