@@ -20,15 +20,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import {
-  combineLatest,
-  filter,
-  map,
-  Observable,
-  ReplaySubject,
-  switchMap,
-  tap,
-} from 'rxjs';
+import { combineLatest, filter, map, Observable, ReplaySubject } from 'rxjs';
 
 import {
   AttendanceLog,
@@ -44,11 +36,9 @@ import { AttendanceHistoryComponent } from '../attendance-history/attendance-his
 import { AttendanceFilterRequesterComponent } from '../attendance-filter-requester/attendance-filter-requester.component';
 import { ClientPreferencesService } from '../../services/client-preferences.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import {
   MatDatepickerModule,
   MatDateRangeInput,
-  MatDateRangePicker,
 } from '@angular/material/datepicker';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { ChangeDetectionStrategy } from '@angular/core';
@@ -57,7 +47,6 @@ import {
   License,
   SystemConfigService,
 } from '../../services/system-config.service';
-import { FormControl, FormGroup } from '@angular/forms';
 @Component({
   selector: 'app-attendance-list',
   standalone: true,
@@ -77,7 +66,6 @@ import { FormControl, FormGroup } from '@angular/forms';
     FirestoreTimestampPipe,
     ReasonPriorityPipe,
     UserNamePipe,
-    MatSlideToggleModule,
     MatFormFieldModule,
     MatDatepickerModule,
   ],
@@ -108,12 +96,13 @@ export class AttendanceListComponent implements AfterViewInit {
     'history',
   ];
 
-  data: any;
   @ViewChild('cardHeader', { static: false, read: ElementRef })
   cardHeader!: ElementRef;
   @ViewChild(MatSort) sort?: MatSort;
   @ViewChild(MatChipListbox) chipList?: MatChipListbox;
   logsSearchOption: string;
+  @ViewChild('dateRangeInput') dateRangeInput!: MatDateRangeInput<Date>;
+
   constructor(
     private attendanceService: AttendanceService,
     private clientPreferencesService: ClientPreferencesService,
@@ -146,23 +135,13 @@ export class AttendanceListComponent implements AfterViewInit {
         },
       });
   }
-  @ViewChild('dateRangeInput') dateRangeInput!: MatDateRangeInput<Date>;
 
-  //日期篩選
   pickerOnClosed() {
-    console.log('close');
-
     if (!this.dateRangeInput.value?.end || !this.dateRangeInput.value.start) {
       return;
     }
     const endDate = this.dateRangeInput.value.end;
     const startDate = this.dateRangeInput.value.start;
-
-    if (this.dateRangeInput.value?.start && this.dateRangeInput.value?.end) {
-      console.log('我要進行日期篩選', startDate, endDate);
-    }
-    this.data = [startDate, endDate];
-    // return this.data;
 
     this.attendanceList$ = this.attendanceService
       .getTimeFilter(startDate, endDate)
@@ -189,45 +168,39 @@ export class AttendanceListComponent implements AfterViewInit {
       },
     });
   }
-  isCustomRangeSelected = true;
   dateRangeChange(option: string) {
     // Save the selected option to the client preferences
     this.logsSearchOption = option;
-    this.clientPreferencesService.setPreference(
-      'logsSearchOption',
-      this.logsSearchOption
-    );
+    if (this.logsSearchOption != '4') {
+      this.clientPreferencesService.setPreference(
+        'logsSearchOption',
+        this.logsSearchOption
+      );
+    }
+
     // Load the attendance list based on the selected option
     switch (option) {
       case '0':
         this.attendanceList$ = this.attendanceService.getCurrentDay.pipe(
           map((data) => this.transformToDataSource(data))
         );
-        this.isCustomRangeSelected = true;
         break;
       case '1':
         this.attendanceList$ = this.attendanceService.getCurrentWeek.pipe(
           map((data) => this.transformToDataSource(data))
         );
-        this.isCustomRangeSelected = true;
         break;
       case '2':
         this.attendanceList$ = this.attendanceService.getCurrentMonth.pipe(
           map((data) => this.transformToDataSource(data))
         );
-        this.isCustomRangeSelected = true;
-
         break;
       case '3':
         this.attendanceList$ = this.attendanceService.getPreviousMonth.pipe(
           map((data) => this.transformToDataSource(data))
         );
-        this.isCustomRangeSelected = true;
-
         break;
       case '4':
-        this.isCustomRangeSelected = false;
-
         break;
 
       default:

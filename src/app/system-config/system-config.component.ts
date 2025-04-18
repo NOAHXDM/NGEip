@@ -14,9 +14,9 @@ import {
   MatSnackBar,
   MatSnackBarVerticalPosition,
 } from '@angular/material/snack-bar';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { take } from 'rxjs';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 @Component({
   selector: 'app-system-config',
@@ -27,7 +27,6 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
-    MatButtonModule,
     MatSlideToggleModule,
   ],
   templateUrl: './system-config.component.html',
@@ -39,7 +38,7 @@ export class SystemConfigComponent {
     maxUsers: new FormControl(1, [Validators.required, Validators.min(1)]),
     lastUpdated: new FormControl(''),
     initialSettlementYear: new FormControl(0, [Validators.required]),
-    customRange: new FormControl(),
+    timeFilterRange: new FormControl(),
   });
 
   constructor(
@@ -56,11 +55,11 @@ export class SystemConfigComponent {
   }
 
   updateLicense() {
-    const { maxUsers, initialSettlementYear, customRange } =
+    const { maxUsers, initialSettlementYear, timeFilterRange } =
       this.configForm.value;
 
     this.systemConfigService
-      .updateLicense(maxUsers!, initialSettlementYear!, customRange!)
+      .updateLicense(maxUsers!, initialSettlementYear!, timeFilterRange!)
       .pipe(take(1))
       .subscribe({
         next: () => this.openSnackBar('License updated successfully'),

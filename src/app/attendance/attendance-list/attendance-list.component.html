@@ -25,10 +25,8 @@
       <mat-chip-option aria-label="prev month" value="3"
         >Prev Month</mat-chip-option
       >
-
-      <!-- 時間篩選 -->
-
-      <mat-chip-option [disabled]="!(license$ | async)?.customRange" value="4">
+      @if((license$ | async)?.timeFilterRange){
+      <mat-chip-option value="4">
         <div style="display: flex; align-items: center; width: 195px">
           <mat-date-range-input [rangePicker]="picker" #dateRangeInput>
             <input matStartDate placeholder="Start date" matStartDate />
@@ -39,10 +37,9 @@
           <mat-date-range-picker
             #picker
             (closed)="pickerOnClosed()"
-            [disabled]="isCustomRangeSelected"
           ></mat-date-range-picker>
-        </div>
-      </mat-chip-option>
+        </div> </mat-chip-option
+      >}
     </mat-chip-listbox>
   </mat-card-header>
   <mat-card-content class="pt-2">
@@ -189,4 +186,3 @@
     }
   </ng-template>
 </mat-menu>
-VFYHMN

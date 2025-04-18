@@ -38,6 +38,7 @@ export class SystemConfigService {
           currentUsers: 0,
           lastUpdated: serverTimestamp(),
           initialSettlementYear: new Date().getFullYear(),
+          timeFilterRange: false,
         };
         transaction.set(systemConfigRef, license);
       })
@@ -47,13 +48,13 @@ export class SystemConfigService {
   updateLicense(
     maxUsers: number,
     initialSettlementYear: number,
-    customRange: boolean
+    timeFilterRange: boolean
   ) {
     const systemConfigRef = doc(this.firestore, 'systemConfig', 'license');
     return from(
       setDoc(
         systemConfigRef,
-        { maxUsers, initialSettlementYear, customRange },
+        { maxUsers, initialSettlementYear, timeFilterRange },
         { merge: true }
       )
     );
@@ -65,5 +66,5 @@ export interface License {
   currentUsers: number;
   lastUpdated: Timestamp | FieldValue;
   initialSettlementYear: number;
-  customRange: boolean;
+  timeFilterRange: boolean;
 }
