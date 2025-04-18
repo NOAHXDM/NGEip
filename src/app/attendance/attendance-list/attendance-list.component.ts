@@ -5,6 +5,7 @@ import {
   ViewChild,
   ElementRef,
   inject,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,7 +21,14 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import {
+  MatDatepickerModule,
+  MatDateRangeInput,
+} from '@angular/material/datepicker';
 import { combineLatest, filter, map, Observable, ReplaySubject } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { provideNativeDateAdapter } from '@angular/material/core';
 
 import {
   AttendanceLog,
@@ -35,14 +43,6 @@ import { AttendanceStatusChangeComponent } from '../attendance-status-change/att
 import { AttendanceHistoryComponent } from '../attendance-history/attendance-history.component';
 import { AttendanceFilterRequesterComponent } from '../attendance-filter-requester/attendance-filter-requester.component';
 import { ClientPreferencesService } from '../../services/client-preferences.service';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {
-  MatDatepickerModule,
-  MatDateRangeInput,
-} from '@angular/material/datepicker';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { ChangeDetectionStrategy } from '@angular/core';
-import { provideNativeDateAdapter } from '@angular/material/core';
 import {
   License,
   SystemConfigService,
