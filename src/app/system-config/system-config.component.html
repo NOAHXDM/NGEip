@@ -1,5 +1,10 @@
 <div class="container d-flex justify-content-center align-items-center py-2">
-  <form class="d-flex flex-column gap-3" [formGroup]="configForm" (ngSubmit)="updateLicense()" novalidate>
+  <form
+    class="d-flex flex-column gap-3"
+    [formGroup]="configForm"
+    (ngSubmit)="updateLicense()"
+    novalidate
+  >
     <h3 class="pt-3 text-center">System config</h3>
     <!-- Current users -->
     <mat-form-field appearance="outline">
@@ -22,6 +27,12 @@
       <mat-icon matSuffix>123</mat-icon>
       <mat-hint>Enter the year</mat-hint>
     </mat-form-field>
-    <button type="submit" mat-flat-button [disabled]="configForm.invalid">Update</button>
+
+    <mat-slide-toggle formControlName="timeFilterRange"
+      >Time Filter Range</mat-slide-toggle
+    >
+    <button type="submit" mat-flat-button [disabled]="configForm.invalid">
+      Update
+    </button>
   </form>
 </div>
