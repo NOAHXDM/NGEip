@@ -98,7 +98,7 @@ Enterprise Information Portal (EIP) is a comprehensive enterprise management sys
 - [Bootstrap](https://getbootstrap.com/) - CSS framework
 - [Date-fns](https://date-fns.org/) - Date utility library
 
-<P></p>
+<p></p>
 
 ## Getting Started
 
