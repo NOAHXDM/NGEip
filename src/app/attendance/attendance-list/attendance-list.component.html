@@ -14,6 +14,7 @@
       <mat-icon>filter_alt</mat-icon>
       Requester
     </button>
+
     <mat-chip-listbox [value]="logsSearchOption">
       <mat-chip-option aria-label="today" value="0">Today</mat-chip-option>
       <mat-chip-option aria-label="this week" value="1"
@@ -28,15 +29,32 @@
       @if((license$ | async)?.timeFilterRange){
       <mat-chip-option value="4">
         <div style="display: flex; align-items: center; width: 195px">
-          <mat-date-range-input [rangePicker]="picker" #dateRangeInput>
-            <input matStartDate placeholder="Start date" matStartDate />
-            <input matEndDate placeholder="End date" matEndDate />
+          <mat-date-range-input
+            [formGroup]="formGroup"
+            [rangePicker]="picker"
+            #dateRangeInput
+            [min]="minDate"
+            [max]="maxDate"
+          >
+            <input
+              matStartDate
+              placeholder="Start date"
+              matStartDate
+              formControlName="start"
+            />
+            <input
+              matEndDate
+              placeholder="End date"
+              matEndDate
+              formControlName="end"
+            />
           </mat-date-range-input>
           <mat-datepicker-toggle [for]="picker"></mat-datepicker-toggle>
 
           <mat-date-range-picker
             #picker
             (closed)="pickerOnClosed()"
+            [disabled]="isQuickSearch"
           ></mat-date-range-picker>
         </div> </mat-chip-option
       >}

@@ -47,6 +47,8 @@ import {
   License,
   SystemConfigService,
 } from '../../services/system-config.service';
+import { add, sub } from 'date-fns';
+import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 @Component({
   selector: 'app-attendance-list',
   standalone: true,
@@ -68,6 +70,7 @@ import {
     UserNamePipe,
     MatFormFieldModule,
     MatDatepickerModule,
+    ReactiveFormsModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './attendance-list.component.html',
@@ -102,14 +105,26 @@ export class AttendanceListComponent implements AfterViewInit {
   @ViewChild(MatChipListbox) chipList?: MatChipListbox;
   logsSearchOption: string;
   @ViewChild('dateRangeInput') dateRangeInput!: MatDateRangeInput<Date>;
+  minDate: Date;
+  maxDate: Date;
+  formGroup: FormGroup;
+  isQuickSearch = false;
 
   constructor(
     private attendanceService: AttendanceService,
     private clientPreferencesService: ClientPreferencesService,
     private _dialog: MatDialog,
     private _snackBar: MatSnackBar,
-    public systemConfigService: SystemConfigService
+    public systemConfigService: SystemConfigService,
+    private formBuilder: FormBuilder
   ) {
+    this.minDate = sub(new Date(), { months: 2 });
+    this.maxDate = add(new Date(), { months: 2 });
+    this.formGroup = this.formBuilder.group({
+      start: [null],
+      end: [null],
+    });
+
     this.logsSearchOption =
       this.clientPreferencesService.getPreference('logsSearchOption') || '0';
     this.filterRequesterSet = new Set(
@@ -168,6 +183,10 @@ export class AttendanceListComponent implements AfterViewInit {
       },
     });
   }
+  clearDateRange() {
+    this.formGroup.patchValue({ start: null, end: null });
+  }
+
   dateRangeChange(option: string) {
     // Save the selected option to the client preferences
     this.logsSearchOption = option;
@@ -176,6 +195,8 @@ export class AttendanceListComponent implements AfterViewInit {
         'logsSearchOption',
         this.logsSearchOption
       );
+      this.clearDateRange();
+      this.isQuickSearch = true;
     }
 
     // Load the attendance list based on the selected option
@@ -201,6 +222,7 @@ export class AttendanceListComponent implements AfterViewInit {
         );
         break;
       case '4':
+        this.isQuickSearch = false;
         break;
 
       default:
