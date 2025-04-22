@@ -177,9 +177,12 @@ export class AttendanceListComponent implements AfterViewInit {
 
     this.chipList?.chipSelectionChanges.subscribe({
       next: (change: MatChipSelectionChange) => {
-        if (change.selected && change.source.value === '4') {
+        if (change.selected) {
           this.dateRangeChange(change.source.value);
-          this.picker.open();
+
+          if (change.source.value === '4') {
+            this.picker.open();
+          }
         }
       },
     });
