@@ -108,7 +108,7 @@ export class AttendanceListComponent implements AfterViewInit {
   minDate: Date;
   maxDate: Date;
   formGroup: FormGroup;
-  isQuickSearch = false;
+  @ViewChild('picker') picker: any;
 
   constructor(
     private attendanceService: AttendanceService,
@@ -177,8 +177,9 @@ export class AttendanceListComponent implements AfterViewInit {
 
     this.chipList?.chipSelectionChanges.subscribe({
       next: (change: MatChipSelectionChange) => {
-        if (change.selected) {
+        if (change.selected && change.source.value === '4') {
           this.dateRangeChange(change.source.value);
+          this.picker.open();
         }
       },
     });
@@ -221,7 +222,6 @@ export class AttendanceListComponent implements AfterViewInit {
         );
         break;
       case '4':
-        this.isQuickSearch = false;
         break;
 
       default:
