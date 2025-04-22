@@ -196,7 +196,6 @@ export class AttendanceListComponent implements AfterViewInit {
         this.logsSearchOption
       );
       this.clearDateRange();
-      this.isQuickSearch = true;
     }
 
     // Load the attendance list based on the selected option

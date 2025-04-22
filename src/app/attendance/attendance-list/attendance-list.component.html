@@ -27,8 +27,8 @@
         >Prev Month</mat-chip-option
       >
       @if((license$ | async)?.timeFilterRange){
-      <mat-chip-option value="4">
-        <div style="display: flex; align-items: center; width: 195px">
+      <mat-chip-option value="4" (click)="picker.open()">
+        <div style="display: flex; align-items: center; width: 150px">
           <mat-date-range-input
             [formGroup]="formGroup"
             [rangePicker]="picker"
@@ -49,15 +49,13 @@
               formControlName="end"
             />
           </mat-date-range-input>
-          <mat-datepicker-toggle [for]="picker"></mat-datepicker-toggle>
 
-          <mat-date-range-picker
-            #picker
-            (closed)="pickerOnClosed()"
-            [disabled]="isQuickSearch"
-          ></mat-date-range-picker>
-        </div> </mat-chip-option
-      >}
+          <mat-date-range-picker #picker (closed)="pickerOnClosed()">
+          </mat-date-range-picker>
+        </div>
+      </mat-chip-option>
+
+      }
     </mat-chip-listbox>
   </mat-card-header>
   <mat-card-content class="pt-2">
