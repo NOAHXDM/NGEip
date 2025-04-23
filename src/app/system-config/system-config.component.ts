@@ -44,9 +44,9 @@ export class SystemConfigComponent {
     maxUsers: new FormControl(1, [Validators.required, Validators.min(1)]),
     lastUpdated: new FormControl(''),
     initialSettlementYear: new FormControl(0, [Validators.required]),
-    timeFilterRange: new FormControl(),
+    timeFilterRange: new FormControl(false),
     overtimePriorityReplacedByLeave: new FormArray(
-      this.reasonPriorityList.map(() => new FormControl(true))
+      this.reasonPriorityList.map(() => new FormControl(false))
     ),
   });
 
