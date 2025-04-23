@@ -5,7 +5,6 @@ import {
   ViewChild,
   ElementRef,
   inject,
-  ChangeDetectionStrategy,
 } from '@angular/core';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
@@ -69,7 +68,6 @@ import {
     MatFormFieldModule,
     MatDatepickerModule,
   ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './attendance-list.component.html',
   styleUrl: './attendance-list.component.scss',
   providers: [UserNamePipe, provideNativeDateAdapter()],
