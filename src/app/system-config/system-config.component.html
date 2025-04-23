@@ -31,6 +31,18 @@
     <mat-slide-toggle formControlName="timeFilterRange"
       >Time Filter Range</mat-slide-toggle
     >
+
+    <section formArrayName="overtimePriorityReplacedByLeave">
+      <h6>Overtime priority replaced by leave</h6>
+      @for (reasonPriority of reasonPriorityList; track reasonPriority.value) {
+      <p>
+        <mat-checkbox [formControlName]="$index">{{
+          reasonPriority.text
+        }}</mat-checkbox>
+      </p>
+      }
+    </section>
+
     <button type="submit" mat-flat-button [disabled]="configForm.invalid">
       Update
     </button>

@@ -1,12 +1,13 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import {
+  FormArray,
   FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { SystemConfigService } from '../services/system-config.service';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -18,27 +19,35 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { take } from 'rxjs';
 
+import { AttendanceService } from '../services/attendance.service';
+import { SystemConfigService } from '../services/system-config.service';
 @Component({
   selector: 'app-system-config',
   standalone: true,
   imports: [
-    ReactiveFormsModule,
     MatButtonModule,
+    MatCheckboxModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
     MatSlideToggleModule,
+    ReactiveFormsModule,
   ],
   templateUrl: './system-config.component.html',
   styleUrl: './system-config.component.scss',
 })
 export class SystemConfigComponent {
+  readonly attendanceService = inject(AttendanceService);
+  readonly reasonPriorityList = this.attendanceService.reasonPriorityList;
   configForm = new FormGroup({
     currentUsers: new FormControl(0, [Validators.min(0)]),
     maxUsers: new FormControl(1, [Validators.required, Validators.min(1)]),
     lastUpdated: new FormControl(''),
     initialSettlementYear: new FormControl(0, [Validators.required]),
-    timeFilterRange: new FormControl(),
+    timeFilterRange: new FormControl(false),
+    overtimePriorityReplacedByLeave: new FormArray(
+      this.reasonPriorityList.map(() => new FormControl(false))
+    ),
   });
 
   constructor(
@@ -47,7 +56,16 @@ export class SystemConfigComponent {
   ) {
     this.systemConfigService.license$.pipe(takeUntilDestroyed()).subscribe({
       next: (license) => {
-        this.configForm.patchValue(license as any);
+        const model = {
+          ...license,
+          overtimePriorityReplacedByLeave: this.reasonPriorityList.map(
+            (reasonPriority) =>
+              license.overtimePriorityReplacedByLeave.includes(
+                reasonPriority.value
+              )
+          ),
+        };
+        this.configForm.patchValue(model as any);
       },
     });
     this.configForm.get('currentUsers')?.disable();
@@ -58,8 +76,24 @@ export class SystemConfigComponent {
     const { maxUsers, initialSettlementYear, timeFilterRange } =
       this.configForm.value;
 
+    const overtimePriorityReplacedByLeave =
+      this.configForm.value.overtimePriorityReplacedByLeave
+        ?.map((checked, idx) => {
+          if (checked) {
+            return this.reasonPriorityList[idx].value;
+          }
+
+          return undefined;
+        })
+        .filter((checked) => checked !== undefined);
+
     this.systemConfigService
-      .updateLicense(maxUsers!, initialSettlementYear!, timeFilterRange!)
+      .updateLicense(
+        maxUsers!,
+        initialSettlementYear!,
+        timeFilterRange!,
+        overtimePriorityReplacedByLeave!
+      )
       .pipe(take(1))
       .subscribe({
         next: () => this.openSnackBar('License updated successfully'),
