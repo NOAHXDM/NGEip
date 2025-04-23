@@ -39,6 +39,7 @@ export class SystemConfigService {
           lastUpdated: serverTimestamp(),
           initialSettlementYear: new Date().getFullYear(),
           timeFilterRange: false,
+          overtimePriorityReplacedByLeave: [],
         };
         transaction.set(systemConfigRef, license);
       })
@@ -48,13 +49,14 @@ export class SystemConfigService {
   updateLicense(
     maxUsers: number,
     initialSettlementYear: number,
-    timeFilterRange: boolean
+    timeFilterRange: boolean,
+    overtimePriorityReplacedByLeave: number[]
   ) {
     const systemConfigRef = doc(this.firestore, 'systemConfig', 'license');
     return from(
       setDoc(
         systemConfigRef,
-        { maxUsers, initialSettlementYear, timeFilterRange },
+        { maxUsers, initialSettlementYear, timeFilterRange, overtimePriorityReplacedByLeave },
         { merge: true }
       )
     );
@@ -67,4 +69,5 @@ export interface License {
   lastUpdated: Timestamp | FieldValue;
   initialSettlementYear: number;
   timeFilterRange: boolean;
+  overtimePriorityReplacedByLeave: number[];
 }
