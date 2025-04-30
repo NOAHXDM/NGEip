@@ -6,6 +6,7 @@ import {
   ElementRef,
   inject,
 } from '@angular/core';
+import { ReactiveFormsModule, FormGroup, FormControl } from '@angular/forms';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -28,6 +29,7 @@ import { combineLatest, filter, map, Observable, ReplaySubject } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { provideNativeDateAdapter } from '@angular/material/core';
+import { add, sub } from 'date-fns';
 
 import {
   AttendanceLog,
@@ -46,8 +48,6 @@ import {
   License,
   SystemConfigService,
 } from '../../services/system-config.service';
-import { add, sub } from 'date-fns';
-import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 @Component({
   selector: 'app-attendance-list',
   standalone: true,
@@ -103,26 +103,22 @@ export class AttendanceListComponent implements AfterViewInit {
   @ViewChild(MatChipListbox) chipList?: MatChipListbox;
   logsSearchOption: string;
   @ViewChild('dateRangeInput') dateRangeInput!: MatDateRangeInput<Date>;
-  minDate: Date;
-  maxDate: Date;
-  formGroup: FormGroup;
+  minDate: Date = sub(new Date(), { months: 2 });
+  maxDate: Date = add(new Date(), { months: 2 });
+  formGroup = new FormGroup({
+    start: new FormControl(null),
+    end: new FormControl(null),
+  });
   @ViewChild('picker') picker: any;
+  customDateRange = '4';
 
   constructor(
     private attendanceService: AttendanceService,
     private clientPreferencesService: ClientPreferencesService,
     private _dialog: MatDialog,
     private _snackBar: MatSnackBar,
-    public systemConfigService: SystemConfigService,
-    private formBuilder: FormBuilder
+    public systemConfigService: SystemConfigService
   ) {
-    this.minDate = sub(new Date(), { months: 2 });
-    this.maxDate = add(new Date(), { months: 2 });
-    this.formGroup = this.formBuilder.group({
-      start: [null],
-      end: [null],
-    });
-
     this.logsSearchOption =
       this.clientPreferencesService.getPreference('logsSearchOption') || '0';
     this.filterRequesterSet = new Set(
@@ -192,7 +188,9 @@ export class AttendanceListComponent implements AfterViewInit {
   dateRangeChange(option: string) {
     // Save the selected option to the client preferences
     this.logsSearchOption = option;
-    if (this.logsSearchOption != '4') {
+    if (this.logsSearchOption == this.customDateRange) {
+      this.picker.open();
+    } else {
       this.clientPreferencesService.setPreference(
         'logsSearchOption',
         this.logsSearchOption
