@@ -6,6 +6,7 @@ import {
   ElementRef,
   inject,
 } from '@angular/core';
+import { ReactiveFormsModule, FormGroup, FormControl } from '@angular/forms';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -28,6 +29,7 @@ import { combineLatest, filter, map, Observable, ReplaySubject } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { provideNativeDateAdapter } from '@angular/material/core';
+import { add, sub } from 'date-fns';
 
 import {
   AttendanceLog,
@@ -67,6 +69,7 @@ import {
     UserNamePipe,
     MatFormFieldModule,
     MatDatepickerModule,
+    ReactiveFormsModule,
   ],
   templateUrl: './attendance-list.component.html',
   styleUrl: './attendance-list.component.scss',
@@ -100,6 +103,14 @@ export class AttendanceListComponent implements AfterViewInit {
   @ViewChild(MatChipListbox) chipList?: MatChipListbox;
   logsSearchOption: string;
   @ViewChild('dateRangeInput') dateRangeInput!: MatDateRangeInput<Date>;
+  minDate: Date = sub(new Date(), { months: 2 });
+  maxDate: Date = add(new Date(), { months: 2 });
+  formGroup = new FormGroup({
+    start: new FormControl(null),
+    end: new FormControl(null),
+  });
+  @ViewChild('picker') picker: any;
+  customDateRange = '4';
 
   constructor(
     private attendanceService: AttendanceService,
@@ -166,14 +177,21 @@ export class AttendanceListComponent implements AfterViewInit {
       },
     });
   }
+  clearDateRange() {
+    this.formGroup.patchValue({ start: null, end: null });
+  }
+
   dateRangeChange(option: string) {
     // Save the selected option to the client preferences
     this.logsSearchOption = option;
-    if (this.logsSearchOption != '4') {
+    if (this.logsSearchOption == this.customDateRange) {
+      this.picker.open();
+    } else {
       this.clientPreferencesService.setPreference(
         'logsSearchOption',
         this.logsSearchOption
       );
+      this.clearDateRange();
     }
 
     // Load the attendance list based on the selected option
