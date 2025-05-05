@@ -108,6 +108,7 @@ Enterprise Information Portal (EIP) is a comprehensive enterprise management sys
 - npm (v9 or later)
 - Angular CLI (v18 or later)
 - Firebase account
+- Firebase CLI (`npm install -g firebase-tools`)
 
 ### Installation
 
@@ -155,6 +156,91 @@ npm install
 
 ```bash
 ng serve
+```
+
+### Deployment
+
+1. Build the project for production
+
+```bash
+ng build --configuration production
+```
+
+This will generate a production build in the `dist/` directory.
+
+2. Initialize Firebase (only needed once)
+
+```bash
+firebase login
+firebase init hosting
+```
+
+Options to select:
+
+- Choose "Use an existing project"
+- Select your Firebase project (e.g., noah-eip)
+- Set "public directory" to `dist/NGEip` (or your actual build output directory)
+- Configure as a single-page app: Yes
+- Don't overwrite index.html: No
+
+3. Deploy to Firebase Hosting
+
+```bash
+firebase deploy --only hosting --project noah-eip
+```
+
+(Or use your configured alias in .firebaserc, e.g., --project beta)
+
+Your application will be available at `https://your-project-id.web.app`
+
+### Environment Configuration
+
+For different environments (development, staging, production), create the following files:
+
+1. `src/environments/environment.ts` (development)
+
+```typescript
+export const environment = {
+  production: false,
+  firebase: {
+    // Your development Firebase config
+  },
+};
+```
+
+2. `src/environments/environment.prod.ts` (production)
+
+```typescript
+export const environment = {
+  production: true,
+  firebase: {
+    // Your production Firebase config
+  },
+};
+```
+
+3. `src/environments/environment.staging.ts` (staging)
+
+```typescript
+export const environment = {
+  production: false,
+  firebase: {
+    // Your staging Firebase config
+  },
+};
+```
+
+To build for different environments:
+
+```bash
+# Development
+ng build
+
+# Production
+ng build --configuration production
+
+# Staging
+ng build --configuration staging
 ```
 
 ## Contributing
