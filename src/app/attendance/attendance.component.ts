@@ -34,6 +34,7 @@ import {
   SelectOption,
 } from '../services/attendance.service';
 import { UserService, User } from '../services/user.service';
+import { TimezoneService } from '../services/timezone.service';
 
 @Component({
   selector: 'app-attendance',
@@ -106,6 +107,7 @@ export class AttendanceComponent implements OnInit {
     private dialogRef: MatDialogRef<AttendanceComponent>,
     private attendanceService: AttendanceService,
     private userService: UserService,
+    private timezoneService: TimezoneService,
     @Inject(MAT_DIALOG_DATA)
     protected data: { title: string; attendance?: AttendanceLog }
   ) {
@@ -145,10 +147,8 @@ export class AttendanceComponent implements OnInit {
       // Set attendance data to the form
       const value: any = {
         ...this.data.attendance,
-        startDateTime: (
-          this.data.attendance.startDateTime as Timestamp
-        ).toDate(),
-        endDateTime: (this.data.attendance.endDateTime as Timestamp).toDate(),
+        startDateTime: this.timezoneService.convertDateByClientTimezone(this.data.attendance.startDateTime as Timestamp),
+        endDateTime: this.timezoneService.convertDateByClientTimezone(this.data.attendance.endDateTime as Timestamp),
       };
       this.attendanceForm.patchValue(value);
     } else {

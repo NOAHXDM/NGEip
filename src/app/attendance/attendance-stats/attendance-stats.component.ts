@@ -23,6 +23,7 @@ import { ClientPreferencesService } from '../../services/client-preferences.serv
 import { SystemConfigService } from '../../services/system-config.service';
 import { UserNamePipe } from '../../pipes/user-name.pipe';
 import { UserService } from '../../services/user.service';
+import { TimezoneService } from '../../services/timezone.service';
 import { FirestoreTimestampPipe } from '../../pipes/firestore-timestamp.pipe';
 
 @Component({
@@ -60,6 +61,7 @@ export class AttendanceStatsComponent {
     private attendanceStatsService: AttendanceStatsService,
     private userService: UserService,
     private systemConfigService: SystemConfigService,
+    private timezoneService: TimezoneService,
     private _snackBar: MatSnackBar
   ) {
     this.isAdmin$ = this.userService.isAdmin$;
@@ -153,8 +155,12 @@ export class AttendanceStatsComponent {
         take(1),
         map((data) => {
           const filename = this.listLastUpdated
-            ? format(this.listLastUpdated.toDate(), 'yyyy_MM_dd_HH_mm_ss') +
-              '.csv'
+            ? format(
+                this.timezoneService.convertDateByClientTimezone(
+                  this.listLastUpdated
+                ),
+                'yyyy_MM_dd_HH_mm_ss'
+              ) + '.csv'
             : format(new Date(), 'yyyy_MM_dd_HH_mm_ss') + '.csv';
           const csvContent = this.convertToCsv(data);
           const blob = new Blob([csvContent], {
