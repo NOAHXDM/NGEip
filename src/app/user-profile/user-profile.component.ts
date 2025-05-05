@@ -43,6 +43,7 @@ import { AnnualLeaveService } from '../services/annual-leave.service';
 import { User, UserService } from '../services/user.service';
 import { UserNamePipe } from '../pipes/user-name.pipe';
 import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
+import { TimezoneService } from '../services/timezone.service';
 
 @Component({
   selector: 'app-user-profile',
@@ -133,6 +134,7 @@ export class UserProfileComponent {
   constructor(
     private userService: UserService,
     private annualLeaveService: AnnualLeaveService,
+    private timezoneService: TimezoneService,
     private _dialog: MatDialog,
     private _snackBar: MatSnackBar,
     @Optional() @Inject(MAT_DIALOG_DATA) protected data: any
@@ -148,15 +150,15 @@ export class UserProfileComponent {
           : { ...users.find((user) => user.uid == this.data.user.uid) };
 
         if (editUser.birthday) {
-          editUser.birthday = (editUser.birthday as Timestamp).toDate();
+          editUser.birthday = this.timezoneService.convertDateByClientTimezone(editUser.birthday as Timestamp);
         }
 
         if (editUser.startDate) {
-          editUser.startDate = (editUser.startDate as Timestamp).toDate();
+          editUser.startDate = this.timezoneService.convertDateByClientTimezone(editUser.startDate as Timestamp);
         }
 
         if (editUser.exitDate) {
-          editUser.exitDate = (editUser.exitDate as Timestamp).toDate();
+          editUser.exitDate = this.timezoneService.convertDateByClientTimezone(editUser.exitDate as Timestamp);
         }
 
         this.profileForm.patchValue(editUser);
@@ -187,7 +189,7 @@ export class UserProfileComponent {
   normalFieldsUpdate() {
     const data: any = this.profileForm.value;
     if (data.birthday) {
-      data.birthday = Timestamp.fromDate(startOfDay(data.birthday));
+      data.birthday = this.timezoneService.convertTimestampByClientTimezone(startOfDay(data.birthday));
     }
 
     this.userService
@@ -201,10 +203,10 @@ export class UserProfileComponent {
   advancedFieldsUpdate() {
     const data: any = this.advancedForm.value;
     if (data.startDate) {
-      data.startDate = Timestamp.fromDate(startOfDay(data.startDate));
+      data.startDate = this.timezoneService.convertTimestampByClientTimezone(startOfDay(data.startDate));
     }
     if (data.exitDate) {
-      data.exitDate = Timestamp.fromDate(startOfDay(data.exitDate));
+      data.exitDate = this.timezoneService.convertTimestampByClientTimezone(startOfDay(data.exitDate));
     }
 
     this.userService

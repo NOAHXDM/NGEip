@@ -21,12 +21,14 @@ import { startOfWeek, addDays, startOfDay } from 'date-fns';
 import { from, Observable, of, shareReplay, switchMap } from 'rxjs';
 
 import { User } from './user.service';
+import { TimezoneService } from './timezone.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AttendanceService {
   readonly firestore: Firestore = inject(Firestore);
+  readonly timezoneService = inject(TimezoneService);
   readonly typeList = Object.keys(AttendanceType)
     .filter((key) => isNaN(Number(key)))
     .map((key) => {
@@ -51,8 +53,8 @@ export class AttendanceService {
   create(formValue: any) {
     const data = {
       ...formValue,
-      startDateTime: Timestamp.fromDate(formValue.startDateTime),
-      endDateTime: Timestamp.fromDate(formValue.endDateTime),
+      startDateTime: this.timezoneService.convertTimestampByClientTimezone(formValue.startDateTime),
+      endDateTime: this.timezoneService.convertTimestampByClientTimezone(formValue.endDateTime),
     };
 
     const auditTrail: AttendanceLogAuditTrail = {
@@ -69,8 +71,8 @@ export class AttendanceService {
   update(formValue: any, originValue: any): Observable<any> {
     const data = {
       ...formValue,
-      startDateTime: Timestamp.fromDate(formValue.startDateTime),
-      endDateTime: Timestamp.fromDate(formValue.endDateTime),
+      startDateTime: this.timezoneService.convertTimestampByClientTimezone(formValue.startDateTime),
+      endDateTime: this.timezoneService.convertTimestampByClientTimezone(formValue.endDateTime),
     };
     const diff = this.diff(data, originValue);
     if (!diff) {
@@ -166,8 +168,8 @@ export class AttendanceService {
   }
 
   search(startDateTime: Date, endDateTime: Date) {
-    const startTimestamp = Timestamp.fromDate(startDateTime);
-    const endTimestamp = Timestamp.fromDate(endDateTime);
+    const startTimestamp = this.timezoneService.convertTimestampByClientTimezone(startDateTime);
+    const endTimestamp = this.timezoneService.convertTimestampByClientTimezone(endDateTime);
 
     const collectRef = collection(this.firestore, 'attendanceLogs');
     return collectionData(
