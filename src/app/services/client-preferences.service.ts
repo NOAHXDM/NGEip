@@ -8,9 +8,9 @@ export class ClientPreferencesService {
 
   constructor() {}
 
-  getPreference(key: keyof Preferences) {
+  getPreference(key: keyof Preferences): any {
     const preferences = this.getPreferences();
-    return preferences ? preferences[key] : null;
+    return preferences[key];
   }
 
   setPreference(key: keyof Preferences, value: any) {
@@ -39,4 +39,5 @@ interface Preferences {
   logsSearchOption?: string;
   statQuickPickOption?: string;
   filterRequesters?: string;
+  clientTimezone?: string;
 }
