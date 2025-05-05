@@ -35,6 +35,7 @@ import {
 } from 'rxjs';
 
 import { License } from './system-config.service';
+import { TimezoneService } from './timezone.service';
 
 @Injectable({
   providedIn: 'root',
@@ -74,6 +75,7 @@ export class UserService {
   readonly isAdmin$ = this.currentUser$.pipe(
     map((user) => user.role == 'admin')
   );
+  readonly timezoneService = inject(TimezoneService);
 
   constructor() {}
 
@@ -228,7 +230,11 @@ export class UserService {
     return collectionData(
       query(
         collection(this.firestore, 'users', uid, 'leaveTransactionHistory'),
-        where('date', '>=', Timestamp.fromDate(oneYearAgo)),
+        where(
+          'date',
+          '>=',
+          this.timezoneService.convertTimestampByClientTimezone(oneYearAgo)
+        ),
         orderBy('date', 'desc')
       ),
       { idField: 'id' }

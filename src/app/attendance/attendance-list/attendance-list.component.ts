@@ -105,7 +105,7 @@ export class AttendanceListComponent implements AfterViewInit {
   @ViewChild('dateRangeInput') dateRangeInput!: MatDateRangeInput<Date>;
   minDate: Date = sub(new Date(), { months: 2 });
   maxDate: Date = add(new Date(), { months: 2 });
-  formGroup = new FormGroup({
+  dateRangeForm = new FormGroup({
     start: new FormControl(null),
     end: new FormControl(null),
   });
@@ -173,16 +173,13 @@ export class AttendanceListComponent implements AfterViewInit {
       next: (change: MatChipSelectionChange) => {
         if (change.selected) {
           this.dateRangeChange(change.source.value);
-
-          if (change.source.value === '4') {
-            this.picker.open();
-          }
         }
       },
     });
   }
+
   clearDateRange() {
-    this.formGroup.patchValue({ start: null, end: null });
+    this.dateRangeForm.patchValue({ start: null, end: null });
   }
 
   dateRangeChange(option: string) {
