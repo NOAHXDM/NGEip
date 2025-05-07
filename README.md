@@ -114,133 +114,93 @@ Enterprise Information Portal (EIP) is a comprehensive enterprise management sys
 
 1. Clone the repository
 
-```bash
-git clone https://github.com/NOAHXDM/NGEip.git
-cd NGEip
-```
-
 2. Install dependencies
 
 ```bash
-npm install
+ npm install
 ```
 
-3. Configure Firebase
-
-   - Create a new Firebase project
-   - Enable **Authentication** and **Firestore**
-   - Add your Firebase configuration to the project:
-
-     - Go to **Firebase Console** > **Project Settings**
-     - Scroll down to **Your apps** > **Firebase SDK snippet**
-     - Copy the configuration object
-     - Open your `app.config.ts` file
-     - Replace the `firebase` field with your configuration, like this:
-
-     ```ts
-     // app.config.ts
-     export const appConfig = {
-       production: false,
-       firebase: {
-         apiKey: "your-api-key",
-         authDomain: "your-project.firebaseapp.com",
-         projectId: "your-project-id",
-         storageBucket: "your-project.appspot.com",
-         messagingSenderId: "your-messaging-sender-id",
-         appId: "your-app-id",
-       },
-     };
-     ```
-
-4. Start the development server
+3. Start the development server
 
 ```bash
 ng serve
 ```
 
-### Deployment
+## Firebase Website Deployment Guide
 
-1. Build the project for production
+### 1. **Create a Firebase Project**
+
+- Go to the [Firebase Console](https://console.firebase.google.com/), click "Add project," and follow the instructions to complete the setup.
+
+### 2. **Add Firebase to Your Web App**
+
+- In the Firebase Console, add a new "Web App" and obtain the initialization code.
+
+### 3. **Paste the Firebase Initialization Code**
+
+- Insert the provided Firebase code into your project.
+
+### 4. **Install Firebase CLI**
 
 ```bash
-ng build --configuration production
+npm install -g firebase-tools
 ```
 
-This will generate a production build in the `dist/` directory.
+### 5. **Configure `.firebaserc`**
 
-2. Initialize Firebase (only needed once)
+Make sure there is a `.firebaserc` file in the root directory of your project, and set your Firebase project ID:
 
-```bash
+```
+{
+  "projects": {
+    "default": "your-project-id"
+  }
+}
+```
+
+### 6. Enable Firebase Permissions
+
+- Here are the steps to enable **Authentication**, **Hosting**, and **Firestore Database**:
+
+#### Enable **Authentication**
+
+- Go to the Firebase Console and select your project.
+- In the left-hand menu, choose **Authentication** and click **Get Started**.
+- Set up the sign-in methods, such as Email, Google, Facebook, etc., and enable the required sign-in methods.
+
+#### Enable **Hosting**
+
+- In the Firebase Console, select **Hosting** and click **Get Started**.
+- Set the directory for your web deployment, selecting the `build/` or `dist/` folder, depending on the frontend framework you're using.
+- Once enabled, run `firebase deploy` to deploy your website to Firebase Hosting.
+
+#### Enable **Firestore Database**
+
+- In the Firebase Console, select **Firestore Database** and click **Get Started**.
+- Set the options for your database, choosing either **Test mode** or **Production mode**, depending on your needs.
+
+### 7. **Log in to Firebase**
+
+Use the following command to log in to your Firebase account and authorize Firebase CLI permissions:
+
+```
 firebase login
-firebase init hosting
 ```
 
-Options to select:
+### 8. **Create a Production Build**
 
-- Choose "Use an existing project"
-- Select your Firebase project (e.g., noah-eip)
-- Set "public directory" to `dist/NGEip` (or your actual build output directory)
-- Configure as a single-page app: Yes
-- Don't overwrite index.html: No
+Depending on your frontend framework (such as React, Vue, Angular, etc.), run the following command to generate the static files:
 
-3. Deploy to Firebase Hosting
-
-```bash
-firebase deploy --only hosting --project noah-eip
+```
+npm run build
 ```
 
-(Or use your configured alias in .firebaserc, e.g., --project beta)
+### 9. **Deploy to Firebase Hosting**
 
-Your application will be available at `https://your-project-id.web.app`
+Run the following command to deploy your website to Firebase:
 
-### Environment Configuration
-
-For different environments (development, staging, production), create the following files:
-
-1. `src/environments/environment.ts` (development)
-
-```typescript
-export const environment = {
-  production: false,
-  firebase: {
-    // Your development Firebase config
-  },
-};
 ```
-
-2. `src/environments/environment.prod.ts` (production)
-
-```typescript
-export const environment = {
-  production: true,
-  firebase: {
-    // Your production Firebase config
-  },
-};
-```
-
-3. `src/environments/environment.staging.ts` (staging)
-
-```typescript
-export const environment = {
-  production: false,
-  firebase: {
-    // Your staging Firebase config
-  },
-};
-```
-
-To build for different environments:
-
-```bash
-# Development
-ng build
-
-# Production
-ng build --configuration production
-
-# Staging
-ng build --configuration staging
+firebase deploy
 ```
 
 ## Contributing
