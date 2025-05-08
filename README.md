@@ -114,13 +114,20 @@ Enterprise Information Portal (EIP) is a comprehensive enterprise management sys
 
 1. Clone the repository
 
+```
+git clone https://github.com/your-username/your-repository.git
+cd your-repository
+```
+
 2. Install dependencies
 
 ```bash
  npm install
 ```
 
-3. Start the development server
+### Running the Development Server
+
+Start the development server
 
 ```bash
 ng serve
