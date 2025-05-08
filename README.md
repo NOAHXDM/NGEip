@@ -115,8 +115,8 @@ Enterprise Information Portal (EIP) is a comprehensive enterprise management sys
 1. Clone the repository
 
 ```
-git clone https://github.com/your-username/your-repository.git
-cd your-repository
+git clone https://github.com/NOAHXDM/NGEip.git
+cd NGEip
 ```
 
 2. Install dependencies
