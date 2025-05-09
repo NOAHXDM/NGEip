@@ -147,6 +147,21 @@ ng serve
 
 - Insert the provided Firebase code into your project.
 
+```
+// app.config.ts
+export const appConfig = {
+  production: false,
+  firebase: {
+    apiKey: "your-api-key",
+    authDomain: "your-project.firebaseapp.com",
+    projectId: "your-project-id",
+    storageBucket: "your-project.appspot.com",
+    messagingSenderId: "your-messaging-sender-id",
+    appId: "your-app-id",
+  },
+};
+```
+
 ### 4. **Install Firebase CLI**
 
 ```bash
