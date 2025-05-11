@@ -1,6 +1,5 @@
 {
   "projects": {
-    "default": "noahxdm-eip",
-    "beta": "noah-eip"
+    "default": "noahxdm-eip"
   }
 }
