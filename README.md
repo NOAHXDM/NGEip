@@ -119,11 +119,15 @@ git clone https://github.com/NOAHXDM/NGEip.git
 cd NGEip
 ```
 
+![步驟1](./steps.gif/步驟1-clone加速.gif)
+
 2. Install dependencies
 
 ```bash
  npm install
 ```
+
+![步驟2](./steps.gif/步驟2-npm%20install.gif)
 
 ### Running the Development Server
 
@@ -162,6 +166,8 @@ export const appConfig = {
 };
 ```
 
+![步驟3](./steps.gif/步驟3-新創立firebase改SDK.gif)
+
 ### 4. **Install Firebase CLI**
 
 ```bash
@@ -180,6 +186,8 @@ Make sure there is a `.firebaserc` file in the root directory of your project, a
 }
 ```
 
+![步驟4](./steps.gif/步驟4-改ID.gif)
+
 ### 6. Enable Firebase Permissions
 
 - Here are the steps to enable **Authentication**, **Hosting**, and **Firestore Database**:
@@ -190,16 +198,18 @@ Make sure there is a `.firebaserc` file in the root directory of your project, a
 - In the left-hand menu, choose **Authentication** and click **Get Started**.
 - Set up the sign-in methods, such as Email, Google, Facebook, etc., and enable the required sign-in methods.
 
+#### Enable **Firestore Database**
+
+- In the Firebase Console, select **Firestore Database** and click **Get Started**.
+- Set the options for your database, choosing either **Test mode** or **Production mode**, depending on your needs.
+  ![步驟5](./steps.gif/步驟5-開通權限.gif)
+
 #### Enable **Hosting**
 
 - In the Firebase Console, select **Hosting** and click **Get Started**.
 - Set the directory for your web deployment, selecting the `build/` or `dist/` folder, depending on the frontend framework you're using.
 - Once enabled, run `firebase deploy` to deploy your website to Firebase Hosting.
-
-#### Enable **Firestore Database**
-
-- In the Firebase Console, select **Firestore Database** and click **Get Started**.
-- Set the options for your database, choosing either **Test mode** or **Production mode**, depending on your needs.
+  ![步驟6](./steps.gif/步驟6-開通hosting權限.gif)
 
 ### 7. **Log in to Firebase**
 
@@ -224,6 +234,8 @@ Run the following command to deploy your website to Firebase:
 ```
 firebase deploy
 ```
+
+![步驟7](./steps.gif/步驟7-部屬完成.gif)
 
 ## Contributing
 
