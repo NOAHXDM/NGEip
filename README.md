@@ -44,11 +44,6 @@ Enterprise Information Portal (EIP) is a comprehensive enterprise management sys
   - Leave transaction history
   - Leave settlement functionality
 
-- **Remote Work Management**
-
-  - Remote work eligibility settings
-  - Remote work recommender system
-
 - **System Configuration**
 
   - License management
@@ -58,34 +53,6 @@ Enterprise Information Portal (EIP) is a comprehensive enterprise management sys
 - **Data Export**
 
   - Attendance statistics export (CSV format)
-
-## Usage
-
-1. **User Registration**
-
-   - Navigate to the registration page
-   - Fill in the required information
-   - Submit the form
-
-2. **Attendance Management**
-
-   - Log in to the system
-   - Navigate to the attendance section
-   - Create new attendance records
-   - Track attendance status
-
-3. **Leave Management**
-
-   - Access the leave management section
-   - View leave balance
-   - Request leave
-   - Track leave history
-
-4. **System Administration**
-   - Log in as an administrator
-   - Access system configuration
-   - Manage users and permissions
-   - Configure leave policies
 
 ## Built With
 
