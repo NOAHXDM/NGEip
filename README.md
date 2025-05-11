@@ -112,29 +112,29 @@ Enterprise Information Portal (EIP) is a comprehensive enterprise management sys
 
 ### Installation
 
-1. Clone the repository
+Clone the repository
 
 ```
 git clone https://github.com/NOAHXDM/NGEip.git
 cd NGEip
 ```
 
-![步驟1](./steps.gif/步驟1-clone.gif)
+![Repository clone](./docs/repository_clone.gif)
 
-2. Install dependencies
+Install dependencies
 
 ```bash
  npm install
 ```
 
-![步驟2](./steps.gif/步驟2-npm-install.gif)
+![npm install](./docs/npm_install.gif)
 
 ### Running the Development Server
 
 Start the development server
 
 ```bash
-ng serve
+npm start
 ```
 
 ## Firebase Website Deployment Guide
@@ -166,7 +166,7 @@ export const appConfig = {
 };
 ```
 
-![步驟3](./steps.gif/步驟3-新創立firebase改SDK.gif)
+![Create a new firebase project](./steps.gif/create_firebase_project.gif)
 
 ### 4. **Install Firebase CLI**
 
@@ -186,7 +186,7 @@ Make sure there is a `.firebaserc` file in the root directory of your project, a
 }
 ```
 
-![步驟4](./steps.gif/步驟4-改ID.gif)
+![Modify .firebaserc](./steps.gif/firebase_init.gif)
 
 ### 6. Enable Firebase Permissions
 
@@ -202,14 +202,14 @@ Make sure there is a `.firebaserc` file in the root directory of your project, a
 
 - In the Firebase Console, select **Firestore Database** and click **Get Started**.
 - Set the options for your database, choosing either **Test mode** or **Production mode**, depending on your needs.
-  ![步驟5](./steps.gif/步驟5-開通權限.gif)
+  ![Enable firebase service](./steps.gif/enable_firebase_service.gif)
 
 #### Enable **Hosting**
 
 - In the Firebase Console, select **Hosting** and click **Get Started**.
 - Set the directory for your web deployment, selecting the `build/` or `dist/` folder, depending on the frontend framework you're using.
 - Once enabled, run `firebase deploy` to deploy your website to Firebase Hosting.
-  ![步驟6](./steps.gif/步驟6-開通hosting權限.gif)
+  ![Enable hosting](./steps.gif/enable_hosting.gif)
 
 ### 7. **Log in to Firebase**
 
@@ -235,7 +235,7 @@ Run the following command to deploy your website to Firebase:
 firebase deploy
 ```
 
-![步驟7](./steps.gif/步驟7-部屬完成.gif)
+![firebase deploy](./steps.gif/firebase_deploy.gif)
 
 ## Contributing
 
