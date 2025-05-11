@@ -119,7 +119,7 @@ git clone https://github.com/NOAHXDM/NGEip.git
 cd NGEip
 ```
 
-![步驟1](./steps.gif/步驟1-clone加速.gif)
+![步驟1](./steps.gif/步驟1-clone.gif)
 
 2. Install dependencies
 
@@ -127,7 +127,7 @@ cd NGEip
  npm install
 ```
 
-![步驟2](./steps.gif/步驟2-npm%20install.gif)
+![步驟2](./steps.gif/步驟2-npm-install.gif)
 
 ### Running the Development Server
 
