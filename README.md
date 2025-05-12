@@ -44,11 +44,6 @@ Enterprise Information Portal (EIP) is a comprehensive enterprise management sys
   - Leave transaction history
   - Leave settlement functionality
 
-- **Remote Work Management**
-
-  - Remote work eligibility settings
-  - Remote work recommender system
-
 - **System Configuration**
 
   - License management
@@ -58,34 +53,6 @@ Enterprise Information Portal (EIP) is a comprehensive enterprise management sys
 - **Data Export**
 
   - Attendance statistics export (CSV format)
-
-## Usage
-
-1. **User Registration**
-
-   - Navigate to the registration page
-   - Fill in the required information
-   - Submit the form
-
-2. **Attendance Management**
-
-   - Log in to the system
-   - Navigate to the attendance section
-   - Create new attendance records
-   - Track attendance status
-
-3. **Leave Management**
-
-   - Access the leave management section
-   - View leave balance
-   - Request leave
-   - Track leave history
-
-4. **System Administration**
-   - Log in as an administrator
-   - Access system configuration
-   - Manage users and permissions
-   - Configure leave policies
 
 ## Built With
 
@@ -108,54 +75,134 @@ Enterprise Information Portal (EIP) is a comprehensive enterprise management sys
 - npm (v9 or later)
 - Angular CLI (v18 or later)
 - Firebase account
+- Firebase CLI (`npm install -g firebase-tools`)
 
 ### Installation
 
-1. Clone the repository
+Clone the repository
 
-```bash
+```
 git clone https://github.com/NOAHXDM/NGEip.git
 cd NGEip
 ```
 
-2. Install dependencies
+![Repository clone](./docs/repository_clone.gif)
+
+Install dependencies
 
 ```bash
-npm install
+ npm install
 ```
 
-3. Configure Firebase
+![npm install](./docs/npm_install.gif)
 
-   - Create a new Firebase project
-   - Enable **Authentication** and **Firestore**
-   - Add your Firebase configuration to the project:
+### Running the Development Server
 
-     - Go to **Firebase Console** > **Project Settings**
-     - Scroll down to **Your apps** > **Firebase SDK snippet**
-     - Copy the configuration object
-     - Open your `app.config.ts` file
-     - Replace the `firebase` field with your configuration, like this:
-
-     ```ts
-     // app.config.ts
-     export const appConfig = {
-       production: false,
-       firebase: {
-         apiKey: "your-api-key",
-         authDomain: "your-project.firebaseapp.com",
-         projectId: "your-project-id",
-         storageBucket: "your-project.appspot.com",
-         messagingSenderId: "your-messaging-sender-id",
-         appId: "your-app-id",
-       },
-     };
-     ```
-
-4. Start the development server
+Start the development server
 
 ```bash
-ng serve
+npm start
 ```
+
+## Firebase Website Deployment Guide
+
+### 1. **Create a Firebase Project**
+
+- Go to the [Firebase Console](https://console.firebase.google.com/), click "Add project," and follow the instructions to complete the setup.
+
+### 2. **Add Firebase to Your Web App**
+
+- In the Firebase Console, add a new "Web App" and obtain the initialization code.
+
+### 3. **Paste the Firebase Initialization Code**
+
+- Insert the provided Firebase code into your project.
+
+```
+// app.config.ts
+export const appConfig = {
+  production: false,
+  firebase: {
+    apiKey: "your-api-key",
+    authDomain: "your-project.firebaseapp.com",
+    projectId: "your-project-id",
+    storageBucket: "your-project.appspot.com",
+    messagingSenderId: "your-messaging-sender-id",
+    appId: "your-app-id",
+  },
+};
+```
+
+![Create a new firebase project](./docs/create_firebase_project.gif)
+
+### 4. **Install Firebase CLI**
+
+```bash
+npm install -g firebase-tools
+```
+
+### 5. **Configure `.firebaserc`**
+
+Make sure there is a `.firebaserc` file in the root directory of your project, and set your Firebase project ID:
+
+```
+{
+  "projects": {
+    "default": "your-project-id"
+  }
+}
+```
+
+![Modify .firebaserc](./docs/firebase_init.gif)
+
+### 6. Enable Firebase Permissions
+
+- Here are the steps to enable **Authentication**, **Hosting**, and **Firestore Database**:
+
+#### Enable **Authentication**
+
+- Go to the Firebase Console and select your project.
+- In the left-hand menu, choose **Authentication** and click **Get Started**.
+- Set up the sign-in methods, such as Email, Google, Facebook, etc., and enable the required sign-in methods.
+
+#### Enable **Firestore Database**
+
+- In the Firebase Console, select **Firestore Database** and click **Get Started**.
+- Set the options for your database, choosing either **Test mode** or **Production mode**, depending on your needs.
+  ![Enable firebase service](./docs/enable_firebase_service.gif)
+
+#### Enable **Hosting**
+
+- In the Firebase Console, select **Hosting** and click **Get Started**.
+- Set the directory for your web deployment, selecting the `build/` or `dist/` folder, depending on the frontend framework you're using.
+- Once enabled, run `firebase deploy` to deploy your website to Firebase Hosting.
+  ![Enable hosting](./docs/enable_hosting.gif)
+
+### 7. **Log in to Firebase**
+
+Use the following command to log in to your Firebase account and authorize Firebase CLI permissions:
+
+```
+firebase login
+```
+
+### 8. **Create a Production Build**
+
+Depending on your frontend framework (such as React, Vue, Angular, etc.), run the following command to generate the static files:
+
+```
+npm run build
+```
+
+### 9. **Deploy to Firebase Hosting**
+
+Run the following command to deploy your website to Firebase:
+
+```
+firebase deploy
+```
+
+![firebase deploy](./docs/firebase_deploy.gif)
 
 ## Contributing
 
