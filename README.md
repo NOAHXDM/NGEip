@@ -133,7 +133,7 @@ export const appConfig = {
 };
 ```
 
-![Create a new firebase project](./steps.gif/create_firebase_project.gif)
+![Create a new firebase project](./docs/create_firebase_project.gif)
 
 ### 4. **Install Firebase CLI**
 
@@ -153,7 +153,7 @@ Make sure there is a `.firebaserc` file in the root directory of your project, a
 }
 ```
 
-![Modify .firebaserc](./steps.gif/firebase_init.gif)
+![Modify .firebaserc](./docs/firebase_init.gif)
 
 ### 6. Enable Firebase Permissions
 
@@ -169,14 +169,14 @@ Make sure there is a `.firebaserc` file in the root directory of your project, a
 
 - In the Firebase Console, select **Firestore Database** and click **Get Started**.
 - Set the options for your database, choosing either **Test mode** or **Production mode**, depending on your needs.
-  ![Enable firebase service](./steps.gif/enable_firebase_service.gif)
+  ![Enable firebase service](./docs/enable_firebase_service.gif)
 
 #### Enable **Hosting**
 
 - In the Firebase Console, select **Hosting** and click **Get Started**.
 - Set the directory for your web deployment, selecting the `build/` or `dist/` folder, depending on the frontend framework you're using.
 - Once enabled, run `firebase deploy` to deploy your website to Firebase Hosting.
-  ![Enable hosting](./steps.gif/enable_hosting.gif)
+  ![Enable hosting](./docs/enable_hosting.gif)
 
 ### 7. **Log in to Firebase**
 
@@ -202,7 +202,7 @@ Run the following command to deploy your website to Firebase:
 firebase deploy
 ```
 
-![firebase deploy](./steps.gif/firebase_deploy.gif)
+![firebase deploy](./docs/firebase_deploy.gif)
 
 ## Contributing
 
