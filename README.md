@@ -86,15 +86,11 @@ git clone https://github.com/NOAHXDM/NGEip.git
 cd NGEip
 ```
 
-![Repository clone](./docs/repository_clone.gif)
-
 Install dependencies
 
 ```bash
  npm install
 ```
-
-![npm install](./docs/npm_install.gif)
 
 ### Running the Development Server
 
@@ -176,7 +172,6 @@ Make sure there is a `.firebaserc` file in the root directory of your project, a
 - In the Firebase Console, select **Hosting** and click **Get Started**.
 - Set the directory for your web deployment, selecting the `build/` or `dist/` folder, depending on the frontend framework you're using.
 - Once enabled, run `firebase deploy` to deploy your website to Firebase Hosting.
-  ![Enable hosting](./docs/enable_hosting.gif)
 
 ### 7. **Log in to Firebase**
 
