@@ -16,7 +16,7 @@
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
-[![Ask DeepWiki](deepwiki-shield)](deepwiki-url)
+[![Ask DeepWiki][deepwiki-shield]][deepwiki-url]
 
 ## Overview
 
