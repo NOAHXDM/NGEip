@@ -16,6 +16,7 @@
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
+[![Ask DeepWiki](deepwiki-shield)](deepwiki-url)
 
 ## Overview
 
@@ -245,3 +246,5 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 [Angular-url]: https://angular.dev
 [Firebase.com]: https://img.shields.io/badge/firebase-ffca28?style=for-the-badge&logo=firebase&logoColor=black
 [Firebase-url]: https://firebase.google.com/
+[deepwiki-shield]: https://deepwiki.com/badge.svg
+[deepwiki-url]: https://deepwiki.com/NOAHXDM/NGEip
