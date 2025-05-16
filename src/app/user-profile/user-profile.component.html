@@ -22,6 +22,27 @@
     novalidate
   >
     <h3 class="pt-3 text-center">{{ title }}</h3>
+    <!-- photo-Upload -->
+    <div class="avatar-circle">
+      <!-- 如果有圖片，顯示圖片 -->
+      <img
+        *ngIf="profileImageUrl; else initials"
+        [src]="profileImageUrl"
+        class="avatar-img"
+        alt="User avatar"
+      />
+
+      <!-- 如果沒圖片，顯示名字第一個字母 -->
+      <ng-template #initials>
+        <div *ngIf="userList$ | async as users">
+          {{ users[0].name[0] }}
+        </div>
+      </ng-template>
+    </div>
+    <button mat-icon-button (click)="openWidget()">
+      <mat-icon>cloud_upload</mat-icon>
+    </button>
+
     <!-- Name -->
     <mat-form-field appearance="outline">
       <mat-label>Name</mat-label>

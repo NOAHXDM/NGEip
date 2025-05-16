@@ -44,7 +44,7 @@ import { User, UserService } from '../services/user.service';
 import { UserNamePipe } from '../pipes/user-name.pipe';
 import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
 import { TimezoneService } from '../services/timezone.service';
-
+declare var cloudinary: any;
 @Component({
   selector: 'app-user-profile',
   standalone: true,
@@ -97,7 +97,7 @@ export class UserProfileComponent {
     birthday: new FormControl(''),
     name: new FormControl('', [Validators.required]),
     phone: new FormControl(''),
-    // photo: new FormControl(''),
+    photo: new FormControl(''),
     remoteWorkEligibility: new FormControl('N/A'),
     remoteWorkRecommender: new FormControl<string[]>([]),
     uid: new FormControl('', [Validators.required]),
@@ -130,6 +130,7 @@ export class UserProfileComponent {
   displayedColumns: string[] = ['date', 'hours', 'reason', 'actionBy'];
   myProfileMode = true;
   title = 'My Profile';
+  // profilePhotoUrl: string | null = null;
 
   constructor(
     private userService: UserService,
@@ -150,15 +151,21 @@ export class UserProfileComponent {
           : { ...users.find((user) => user.uid == this.data.user.uid) };
 
         if (editUser.birthday) {
-          editUser.birthday = this.timezoneService.convertDateByClientTimezone(editUser.birthday as Timestamp);
+          editUser.birthday = this.timezoneService.convertDateByClientTimezone(
+            editUser.birthday as Timestamp
+          );
         }
 
         if (editUser.startDate) {
-          editUser.startDate = this.timezoneService.convertDateByClientTimezone(editUser.startDate as Timestamp);
+          editUser.startDate = this.timezoneService.convertDateByClientTimezone(
+            editUser.startDate as Timestamp
+          );
         }
 
         if (editUser.exitDate) {
-          editUser.exitDate = this.timezoneService.convertDateByClientTimezone(editUser.exitDate as Timestamp);
+          editUser.exitDate = this.timezoneService.convertDateByClientTimezone(
+            editUser.exitDate as Timestamp
+          );
         }
 
         this.profileForm.patchValue(editUser);
@@ -189,7 +196,9 @@ export class UserProfileComponent {
   normalFieldsUpdate() {
     const data: any = this.profileForm.value;
     if (data.birthday) {
-      data.birthday = this.timezoneService.convertTimestampByClientTimezone(startOfDay(data.birthday));
+      data.birthday = this.timezoneService.convertTimestampByClientTimezone(
+        startOfDay(data.birthday)
+      );
     }
 
     this.userService
@@ -203,10 +212,14 @@ export class UserProfileComponent {
   advancedFieldsUpdate() {
     const data: any = this.advancedForm.value;
     if (data.startDate) {
-      data.startDate = this.timezoneService.convertTimestampByClientTimezone(startOfDay(data.startDate));
+      data.startDate = this.timezoneService.convertTimestampByClientTimezone(
+        startOfDay(data.startDate)
+      );
     }
     if (data.exitDate) {
-      data.exitDate = this.timezoneService.convertTimestampByClientTimezone(startOfDay(data.exitDate));
+      data.exitDate = this.timezoneService.convertTimestampByClientTimezone(
+        startOfDay(data.exitDate)
+      );
     }
 
     this.userService
@@ -295,5 +308,37 @@ export class UserProfileComponent {
           if (err.message) this.openSnackBar(err.message);
         },
       });
+  }
+  profileImageUrl: string | null = null;
+
+  cloudName = 'dqbtn8sx3';
+  uploadPreset = 'ngeip-beta';
+  myWidget: any;
+
+  currentUserIdForUpload: number | null = null;
+
+  ngOnInit() {
+    this.myWidget = cloudinary.createUploadWidget(
+      {
+        cloudName: this.cloudName,
+        uploadPreset: this.uploadPreset,
+      },
+      (error: any, result: any) => {
+        if (!error && result && result.event === 'success') {
+          // 1. 儲存圖片網址到變數
+          this.profileImageUrl = result.info.secure_url;
+
+          // 2. （可選）顯示在 img tag
+          const img = document.getElementById('uploadedImage');
+          if (img) {
+            img.setAttribute('src', result.info.secure_url);
+          }
+        }
+      }
+    );
+  }
+
+  openWidget() {
+    this.myWidget.open();
   }
 }
