@@ -44,6 +44,7 @@ import { User, UserService } from '../services/user.service';
 import { UserNamePipe } from '../pipes/user-name.pipe';
 import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
 import { TimezoneService } from '../services/timezone.service';
+import { SystemConfigService } from '../services/system-config.service';
 declare var cloudinary: any;
 @Component({
   selector: 'app-user-profile',
@@ -97,7 +98,6 @@ export class UserProfileComponent {
     birthday: new FormControl(''),
     name: new FormControl('', [Validators.required]),
     phone: new FormControl(''),
-    photo: new FormControl(''),
     remoteWorkEligibility: new FormControl('N/A'),
     remoteWorkRecommender: new FormControl<string[]>([]),
     uid: new FormControl('', [Validators.required]),
@@ -130,12 +130,14 @@ export class UserProfileComponent {
   displayedColumns: string[] = ['date', 'hours', 'reason', 'actionBy'];
   myProfileMode = true;
   title = 'My Profile';
-  // profilePhotoUrl: string | null = null;
+  photoUrl?: string;
+  cloudinaryWidget: any;
 
   constructor(
     private userService: UserService,
     private annualLeaveService: AnnualLeaveService,
     private timezoneService: TimezoneService,
+    private systemConfigService: SystemConfigService,
     private _dialog: MatDialog,
     private _snackBar: MatSnackBar,
     @Optional() @Inject(MAT_DIALOG_DATA) protected data: any
@@ -178,7 +180,8 @@ export class UserProfileComponent {
         this.remainingLeaveHoursForm
           .get('actionBy')
           ?.setValue(currentUser.uid!);
-
+        // Set photoUrl from currentUser
+        this.photoUrl = currentUser.photo;
         return users;
       })
     );
@@ -309,36 +312,50 @@ export class UserProfileComponent {
         },
       });
   }
-  profileImageUrl: string | null = null;
-
-  cloudName = 'dqbtn8sx3';
-  uploadPreset = 'ngeip-beta';
-  myWidget: any;
-
-  currentUserIdForUpload: number | null = null;
 
   ngOnInit() {
-    this.myWidget = cloudinary.createUploadWidget(
-      {
-        cloudName: this.cloudName,
-        uploadPreset: this.uploadPreset,
-      },
-      (error: any, result: any) => {
-        if (!error && result && result.event === 'success') {
-          // 1. 儲存圖片網址到變數
-          this.profileImageUrl = result.info.secure_url;
+    this.systemConfigService.license$.subscribe((license) => {
+      const cloudName = license.cloudinaryCloudName;
+      const uploadPreset = license.cloudinaryUploadPreset;
 
-          // 2. （可選）顯示在 img tag
-          const img = document.getElementById('uploadedImage');
-          if (img) {
-            img.setAttribute('src', result.info.secure_url);
+      if (cloudName && uploadPreset) {
+        this.cloudinaryWidget = cloudinary.createUploadWidget(
+          {
+            cloudName,
+            uploadPreset,
+          },
+          (error: any, result: any) => {
+            if (!error && result && result.event === 'success') {
+              const uploadedUrl = result.info.secure_url;
+              this.photoUrl = uploadedUrl;
+              const userData = {
+                uid: this.profileForm.get('uid')?.value,
+                photo: uploadedUrl,
+              } as User;
+              this.userService.updateUserPhoto(userData).subscribe();
+            }
           }
-        }
+        );
       }
-    );
+    });
   }
 
   openWidget() {
-    this.myWidget.open();
+    // TODO:
+    //   if(systemconfig.cloudinaryCloudName || systemconfig.cloudinaryUploadPreset){
+    //    this.openSnackBar('請先註冊 cloudinary 並設定');
+    // } else {
+    //   this.cloudinaryWidget.open();
+    // }
+
+    this.systemConfigService.license$.pipe(take(1)).subscribe((license) => {
+      const cloudName = license.cloudinaryCloudName;
+      const uploadPreset = license.cloudinaryUploadPreset;
+      if (!cloudName || !uploadPreset) {
+        this.openSnackBar('請先註冊 cloudinary 並設定');
+      } else {
+        this.cloudinaryWidget.open();
+      }
+    });
   }
 }

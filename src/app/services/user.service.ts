@@ -161,6 +161,14 @@ export class UserService {
     return from(updateDoc(docRef, data));
   }
 
+  updateUserPhoto(user: User) {
+    const docRef = doc(this.firestore, 'users', user.uid!);
+    const data = {
+      photo: user.photo,
+    };
+    return from(updateDoc(docRef, data));
+  }
+
   updateUserAdvanced(user: User) {
     const docRef = doc(this.firestore, 'users', user.uid!);
     const data = {
@@ -265,7 +273,6 @@ export interface User {
   role: 'admin' | 'user';
   startDate?: Timestamp | FieldValue; // 到職日
   exitDate?: Timestamp | FieldValue; // 離職日
-
   uid?: string;
 }
 

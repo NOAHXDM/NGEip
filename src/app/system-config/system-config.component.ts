@@ -48,6 +48,8 @@ export class SystemConfigComponent {
     overtimePriorityReplacedByLeave: new FormArray(
       this.reasonPriorityList.map(() => new FormControl(false))
     ),
+    cloudinaryCloudName: new FormControl(),
+    cloudinaryUploadPreset: new FormControl(),
   });
 
   constructor(
@@ -73,8 +75,13 @@ export class SystemConfigComponent {
   }
 
   updateLicense() {
-    const { maxUsers, initialSettlementYear, timeFilterRange } =
-      this.configForm.value;
+    const {
+      maxUsers,
+      initialSettlementYear,
+      timeFilterRange,
+      cloudinaryCloudName,
+      cloudinaryUploadPreset,
+    } = this.configForm.value;
 
     const overtimePriorityReplacedByLeave =
       this.configForm.value.overtimePriorityReplacedByLeave
@@ -92,7 +99,9 @@ export class SystemConfigComponent {
         maxUsers!,
         initialSettlementYear!,
         timeFilterRange!,
-        overtimePriorityReplacedByLeave!
+        overtimePriorityReplacedByLeave!,
+        cloudinaryCloudName!,
+        cloudinaryUploadPreset!
       )
       .pipe(take(1))
       .subscribe({
