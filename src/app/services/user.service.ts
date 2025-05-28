@@ -77,8 +77,6 @@ export class UserService {
   );
   readonly timezoneService = inject(TimezoneService);
 
-  constructor() {}
-
   createUser(email: string, password: string, name: string) {
     let totalUsers = 0;
     return from(

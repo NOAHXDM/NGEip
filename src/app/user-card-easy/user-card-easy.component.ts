@@ -5,11 +5,11 @@ import { User, UserService } from '../services/user.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { UserProfileComponent } from '../user-profile/user-profile.component';
 import { MatIconModule } from '@angular/material/icon';
-
+import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-user-card-easy',
   standalone: true,
-  imports: [MatIconModule, MatDialogModule, MatBadgeModule],
+  imports: [MatIconModule, MatDialogModule, MatBadgeModule, CommonModule],
   templateUrl: './user-card-easy.component.html',
   styleUrl: './user-card-easy.component.scss',
 })
@@ -20,7 +20,6 @@ export class UserCardEasyComponent {
   constructor(private userService: UserService, private _dialog: MatDialog) {
     this.isAdmin$ = this.userService.isAdmin$;
   }
-
   openUserProfileDialog() {
     this.isAdmin$.pipe(take(1)).subscribe({
       next: (isAdmin) => {

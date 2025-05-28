@@ -341,13 +341,6 @@ export class UserProfileComponent {
   }
 
   openWidget() {
-    // TODO:
-    //   if(systemconfig.cloudinaryCloudName || systemconfig.cloudinaryUploadPreset){
-    //    this.openSnackBar('請先註冊 cloudinary 並設定');
-    // } else {
-    //   this.cloudinaryWidget.open();
-    // }
-
     this.systemConfigService.license$.pipe(take(1)).subscribe((license) => {
       const cloudName = license.cloudinaryCloudName;
       const uploadPreset = license.cloudinaryUploadPreset;

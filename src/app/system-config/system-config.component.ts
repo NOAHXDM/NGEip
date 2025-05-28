@@ -17,10 +17,12 @@ import {
 } from '@angular/material/snack-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { take } from 'rxjs';
+import { Observable, take } from 'rxjs';
 
 import { AttendanceService } from '../services/attendance.service';
 import { SystemConfigService } from '../services/system-config.service';
+import { UserService } from '../services/user.service';
+import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-system-config',
   standalone: true,
@@ -32,11 +34,15 @@ import { SystemConfigService } from '../services/system-config.service';
     MatInputModule,
     MatSlideToggleModule,
     ReactiveFormsModule,
+    CommonModule,
   ],
   templateUrl: './system-config.component.html',
   styleUrl: './system-config.component.scss',
 })
 export class SystemConfigComponent {
+  publicIds: string[] = [];
+  readonly isAdmin$: Observable<boolean>;
+
   readonly attendanceService = inject(AttendanceService);
   readonly reasonPriorityList = this.attendanceService.reasonPriorityList;
   configForm = new FormGroup({
@@ -54,8 +60,10 @@ export class SystemConfigComponent {
 
   constructor(
     private systemConfigService: SystemConfigService,
-    private _snackBar: MatSnackBar
+    private _snackBar: MatSnackBar,
+    private userService: UserService
   ) {
+    this.isAdmin$ = this.userService.isAdmin$;
     this.systemConfigService.license$.pipe(takeUntilDestroyed()).subscribe({
       next: (license) => {
         const model = {
@@ -117,5 +125,28 @@ export class SystemConfigComponent {
       verticalPosition: verticalPosition,
       duration: 5000,
     });
+  }
+
+  downloadJSON() {
+    this.userService.list$.pipe(take(1)).subscribe({
+      next: (users) => {
+        this.publicIds = users
+          .filter((user) => !!user.photo)
+          .map((user) => {
+            const photoUrl = user.photo;
+            const photoUrlSplit = photoUrl!.split('/');
+            const photoPublicIdFile = photoUrlSplit.pop()!.split('.');
+            const [photoPublicId] = photoPublicIdFile;
+            return photoPublicId;
+          });
+      },
+    });
+    const JSONData = JSON.stringify(this.publicIds);
+    const blob = new Blob([JSONData], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'firebase-use-photo';
+    link.click();
+    URL.revokeObjectURL(link.href);
   }
 }

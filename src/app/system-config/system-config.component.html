@@ -61,6 +61,16 @@
       <mat-label>Upload Preset</mat-label>
       <input type="text" matInput formControlName="cloudinaryUploadPreset" />
     </mat-form-field>
+    @if (isAdmin$ | async) {
+    <button
+      type="button"
+      mat-raised-button
+      (click)="downloadJSON()"
+      class="downloadJSON"
+    >
+      DownloadJSON</button
+    >}
+    <hr />
 
     <button type="submit" mat-flat-button [disabled]="configForm.invalid">
       Update
