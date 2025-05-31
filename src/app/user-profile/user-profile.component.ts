@@ -181,7 +181,7 @@ export class UserProfileComponent {
           .get('actionBy')
           ?.setValue(currentUser.uid!);
         // Set photoUrl from currentUser
-        this.photoUrl = currentUser.photo;
+        this.photoUrl = editUser.photo;
         return users;
       })
     );
