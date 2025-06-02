@@ -150,6 +150,7 @@ export class UserService {
   updateUser(user: User) {
     const docRef = doc(this.firestore, 'users', user.uid!);
     const data = {
+      email: user.email,
       name: user.name,
       phone: user.phone,
       remoteWorkEligibility: user.remoteWorkEligibility,

@@ -98,6 +98,7 @@ export class UserProfileComponent {
     birthday: new FormControl(''),
     name: new FormControl('', [Validators.required]),
     phone: new FormControl(''),
+    email: new FormControl(''),
     remoteWorkEligibility: new FormControl('N/A'),
     remoteWorkRecommender: new FormControl<string[]>([]),
     uid: new FormControl('', [Validators.required]),
@@ -210,6 +211,7 @@ export class UserProfileComponent {
       .subscribe({
         next: () => this.openSnackBar('Profile updated successfully.'),
       });
+    console.log('email', data.email);
   }
 
   advancedFieldsUpdate() {
