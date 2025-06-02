@@ -211,7 +211,6 @@ export class UserProfileComponent {
       .subscribe({
         next: () => this.openSnackBar('Profile updated successfully.'),
       });
-    console.log('email', data.email);
   }
 
   advancedFieldsUpdate() {
