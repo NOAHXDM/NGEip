@@ -98,7 +98,6 @@ export class UserProfileComponent {
     birthday: new FormControl(''),
     name: new FormControl('', [Validators.required]),
     phone: new FormControl(''),
-    email: new FormControl(''),
     remoteWorkEligibility: new FormControl('N/A'),
     remoteWorkRecommender: new FormControl<string[]>([]),
     uid: new FormControl('', [Validators.required]),
@@ -182,7 +181,7 @@ export class UserProfileComponent {
           .get('actionBy')
           ?.setValue(currentUser.uid!);
         // Set photoUrl from currentUser
-        this.photoUrl = editUser.photo;
+        this.photoUrl = editUser.photoUrl;
         return users;
       })
     );
@@ -331,9 +330,9 @@ export class UserProfileComponent {
               this.photoUrl = uploadedUrl;
               const userData = {
                 uid: this.profileForm.get('uid')?.value,
-                photo: uploadedUrl,
+                photoUrl: uploadedUrl,
               } as User;
-              this.userService.updateUserPhoto(userData).subscribe();
+              this.userService.updateUserPhotoUrl(userData).subscribe();
             }
           }
         );

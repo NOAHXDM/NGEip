@@ -19,7 +19,6 @@ import {
   LEAVE_POLICY_CONFIG,
   TAIWAN_POLICY,
 } from './tokens/leave-policy.token';
-import { provideHttpClient } from '@angular/common/http';
 
 export const appConfig: ApplicationConfig = {
   providers: [

@@ -45,3 +45,7 @@ Thumbs.db
 .firebase
 *-debug.log
 .runtimeconfig.json
+
+# 新增要忽略的資料夾
+.env
+tools/in_use_publicID.json

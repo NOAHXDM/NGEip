@@ -5,11 +5,10 @@ import { User, UserService } from '../services/user.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { UserProfileComponent } from '../user-profile/user-profile.component';
 import { MatIconModule } from '@angular/material/icon';
-import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-user-card-easy',
   standalone: true,
-  imports: [MatIconModule, MatDialogModule, MatBadgeModule, CommonModule],
+  imports: [MatIconModule, MatDialogModule, MatBadgeModule],
   templateUrl: './user-card-easy.component.html',
   styleUrl: './user-card-easy.component.scss',
 })

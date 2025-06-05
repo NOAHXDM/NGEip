@@ -150,7 +150,6 @@ export class UserService {
   updateUser(user: User) {
     const docRef = doc(this.firestore, 'users', user.uid!);
     const data = {
-      email: user.email,
       name: user.name,
       phone: user.phone,
       remoteWorkEligibility: user.remoteWorkEligibility,
@@ -160,10 +159,10 @@ export class UserService {
     return from(updateDoc(docRef, data));
   }
 
-  updateUserPhoto(user: User) {
+  updateUserPhotoUrl(user: User) {
     const docRef = doc(this.firestore, 'users', user.uid!);
     const data = {
-      photo: user.photo,
+      photoUrl: user.photoUrl,
     };
     return from(updateDoc(docRef, data));
   }
@@ -265,7 +264,7 @@ export interface User {
   leaveTransactionHistory?: LeaveTransaction[]; // 休假交易紀錄
   name: string;
   phone?: string;
-  photo?: string;
+  photoUrl?: string;
   remainingLeaveHours: number; // 剩餘特休時數
   remoteWorkEligibility: 'N/A' | 'WFH2' | 'WFH4.5'; // 遠距工作資格
   remoteWorkRecommender: string[];

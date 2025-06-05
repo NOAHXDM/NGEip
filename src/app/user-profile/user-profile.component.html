@@ -31,8 +31,8 @@
         />
         <!-- 沒網址顯示原先首字 -->
         <ng-template #NoProfileImage>
-          <div *ngIf="userList$ | async as users">
-            {{ users[0].name[0] }}
+          <div>
+            {{ profileForm.get("name")?.value?.at(0) }}
           </div>
         </ng-template>
       </div>
@@ -52,13 +52,6 @@
       <input type="text" matInput formControlName="phone" />
       <mat-icon matSuffix>call</mat-icon>
       <mat-hint>Enter you phone</mat-hint>
-    </mat-form-field>
-    <!-- Google -->
-    <mat-form-field appearance="outline">
-      <mat-label>Email</mat-label>
-      <input type="text" matInput formControlName="email" />
-      <mat-icon matSuffix>mail</mat-icon>
-      <mat-hint>Enter you Email</mat-hint>
     </mat-form-field>
 
     <!-- Remote Work Eligibility -->

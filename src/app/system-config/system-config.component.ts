@@ -22,7 +22,7 @@ import { Observable, take } from 'rxjs';
 import { AttendanceService } from '../services/attendance.service';
 import { SystemConfigService } from '../services/system-config.service';
 import { UserService } from '../services/user.service';
-import { CommonModule } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 @Component({
   selector: 'app-system-config',
   standalone: true,
@@ -34,7 +34,7 @@ import { CommonModule } from '@angular/common';
     MatInputModule,
     MatSlideToggleModule,
     ReactiveFormsModule,
-    CommonModule,
+    AsyncPipe,
   ],
   templateUrl: './system-config.component.html',
   styleUrl: './system-config.component.scss',
@@ -127,13 +127,13 @@ export class SystemConfigComponent {
     });
   }
 
-  downloadJSON() {
+  downloadUsersPhotoPublicId() {
     this.userService.list$.pipe(take(1)).subscribe({
       next: (users) => {
         this.publicIds = users
-          .filter((user) => !!user.photo)
+          .filter((user) => !!user.photoUrl)
           .map((user) => {
-            const photoUrl = user.photo;
+            const photoUrl = user.photoUrl;
             const photoUrlSplit = photoUrl!.split('/');
             const photoPublicIdFile = photoUrlSplit.pop()!.split('.');
             const [photoPublicId] = photoPublicIdFile;
