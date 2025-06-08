@@ -61,14 +61,13 @@
       <mat-label>Upload Preset</mat-label>
       <input type="text" matInput formControlName="cloudinaryUploadPreset" />
     </mat-form-field>
-    @if (isAdmin$ | async) {
     <button
       type="button"
       mat-raised-button
       (click)="downloadUsersPhotoPublicId()"
     >
-      Download User Photo PublicId</button
-    >}
+      Download User Photo PublicId
+    </button>
     <hr />
 
     <button type="submit" mat-flat-button [disabled]="configForm.invalid">

@@ -101,6 +101,7 @@ export class UserProfileComponent {
     remoteWorkEligibility: new FormControl('N/A'),
     remoteWorkRecommender: new FormControl<string[]>([]),
     uid: new FormControl('', [Validators.required]),
+    photoUrl: new FormControl(),
   });
   advancedForm = new FormGroup({
     jobRank: new FormControl(''),
@@ -130,7 +131,6 @@ export class UserProfileComponent {
   displayedColumns: string[] = ['date', 'hours', 'reason', 'actionBy'];
   myProfileMode = true;
   title = 'My Profile';
-  photoUrl?: string;
   cloudinaryWidget: any;
 
   constructor(
@@ -181,7 +181,6 @@ export class UserProfileComponent {
           .get('actionBy')
           ?.setValue(currentUser.uid!);
         // Set photoUrl from currentUser
-        this.photoUrl = editUser.photoUrl;
         return users;
       })
     );
@@ -327,7 +326,8 @@ export class UserProfileComponent {
           (error: any, result: any) => {
             if (!error && result && result.event === 'success') {
               const uploadedUrl = result.info.secure_url;
-              this.photoUrl = uploadedUrl;
+              this.profileForm.controls.photoUrl.patchValue(uploadedUrl);
+
               const userData = {
                 uid: this.profileForm.get('uid')?.value,
                 photoUrl: uploadedUrl,

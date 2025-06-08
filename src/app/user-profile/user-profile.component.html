@@ -24,17 +24,13 @@
     <!-- Photo -->
     <div class="avatar-layout">
       <div class="avatar-circle" (click)="openWidget()">
-        <img
-          [src]="photoUrl"
-          *ngIf="photoUrl; else NoProfileImage"
-          class="avatar-circle"
-        />
-        <!-- 沒網址顯示原先首字 -->
-        <ng-template #NoProfileImage>
-          <div>
-            {{ profileForm.get("name")?.value?.at(0) }}
-          </div>
-        </ng-template>
+        @if (profileForm.get("photoUrl")) {
+        <img [src]="profileForm.get('photoUrl')?.value" class="avatar-circle" />
+        }@else {
+        <div>
+          {{ profileForm.get("name")?.value?.at(0) }}
+        </div>
+        }
       </div>
     </div>
     <h3 class="pt-3 text-center">{{ title }}</h3>
