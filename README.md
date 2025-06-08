@@ -130,8 +130,6 @@ export const appConfig = {
 };
 ```
 
-![Create a new firebase project](./docs/create_firebase_project.gif)
-
 ### 4. **Install Firebase CLI**
 
 ```bash
@@ -150,8 +148,6 @@ Make sure there is a `.firebaserc` file in the root directory of your project, a
 }
 ```
 
-![Modify .firebaserc](./docs/firebase_init.gif)
-
 ### 6. Enable Firebase Permissions
 
 - Here are the steps to enable **Authentication**, **Hosting**, and **Firestore Database**:
@@ -166,7 +162,6 @@ Make sure there is a `.firebaserc` file in the root directory of your project, a
 
 - In the Firebase Console, select **Firestore Database** and click **Get Started**.
 - Set the options for your database, choosing either **Test mode** or **Production mode**, depending on your needs.
-  ![Enable firebase service](./docs/enable_firebase_service.gif)
 
 #### Enable **Hosting**
 
@@ -198,8 +193,6 @@ Run the following command to deploy your website to Firebase:
 firebase deploy
 ```
 
-![firebase deploy](./docs/firebase_deploy.gif)
-
 ### 10. **Create Upload Preset in Cloudinary**
 
 1. Log in to your Cloudinary account.
@@ -212,7 +205,6 @@ Configure the following options:
 - **Upload folder** : Set the target folder to photos (or your desired folder path).
 - **Generated public ID** : Select Auto-generate an unguessable public ID value. This ensures Cloudinary generates a unique and secure ID automatically
 - **Generated display name** : Select Use the last segment of the public ID as the display name.
-  ![create_cloudinary](./docs/create_cloudinary.gif)
 
 ### 11. **Get Cloudinary Configuration Parameters**
 
@@ -233,7 +225,6 @@ CLOUDINARY_URL=cloudinary://<your_api_key>:<your_api_secret>@dqbtn8sx3
 
 Replace <your_api_key>,and <your_api_secret> with your actual Cloudinary credentials.
 
-![Set_Environment_Variables](./docs/Set_Environment_Variables.gif)
 
 ## Delete Unused Photos
 
@@ -256,8 +247,6 @@ node tools/delete_in_use_publicID.js
 ```
 "輸入 Y 確認刪除，其他鍵取消:
 ```
-
-![Delete_Unused_Photos](./docs/Delete_Unused_Photos.gif)
 
 **Deletion Complete**
 
