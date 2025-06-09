@@ -22,7 +22,6 @@ import { Observable, take } from 'rxjs';
 import { AttendanceService } from '../services/attendance.service';
 import { SystemConfigService } from '../services/system-config.service';
 import { UserService } from '../services/user.service';
-import { AsyncPipe } from '@angular/common';
 @Component({
   selector: 'app-system-config',
   standalone: true,
@@ -34,7 +33,6 @@ import { AsyncPipe } from '@angular/common';
     MatInputModule,
     MatSlideToggleModule,
     ReactiveFormsModule,
-    AsyncPipe,
   ],
   templateUrl: './system-config.component.html',
   styleUrl: './system-config.component.scss',

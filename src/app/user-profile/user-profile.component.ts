@@ -180,7 +180,6 @@ export class UserProfileComponent {
         this.remainingLeaveHoursForm
           .get('actionBy')
           ?.setValue(currentUser.uid!);
-        // Set photoUrl from currentUser
         return users;
       })
     );
@@ -193,6 +192,34 @@ export class UserProfileComponent {
       ),
       map((data) => new MatTableDataSource(data))
     );
+  }
+
+  ngOnInit() {
+    this.systemConfigService.license$.subscribe((license) => {
+      const cloudName = license.cloudinaryCloudName;
+      const uploadPreset = license.cloudinaryUploadPreset;
+
+      if (cloudName && uploadPreset) {
+        this.cloudinaryWidget = cloudinary.createUploadWidget(
+          {
+            cloudName,
+            uploadPreset,
+          },
+          (error: any, result: any) => {
+            if (!error && result && result.event === 'success') {
+              const uploadedUrl = result.info.secure_url;
+              this.profileForm.get('photoUrl')?.setValue(uploadedUrl);
+
+              const userData = {
+                uid: this.profileForm.get('uid')?.value,
+                photoUrl: uploadedUrl,
+              } as User;
+              this.userService.updateUserPhotoUrl(userData).subscribe();
+            }
+          }
+        );
+      }
+    });
   }
 
   normalFieldsUpdate() {
@@ -310,34 +337,6 @@ export class UserProfileComponent {
           if (err.message) this.openSnackBar(err.message);
         },
       });
-  }
-
-  ngOnInit() {
-    this.systemConfigService.license$.subscribe((license) => {
-      const cloudName = license.cloudinaryCloudName;
-      const uploadPreset = license.cloudinaryUploadPreset;
-
-      if (cloudName && uploadPreset) {
-        this.cloudinaryWidget = cloudinary.createUploadWidget(
-          {
-            cloudName,
-            uploadPreset,
-          },
-          (error: any, result: any) => {
-            if (!error && result && result.event === 'success') {
-              const uploadedUrl = result.info.secure_url;
-              this.profileForm.controls.photoUrl.patchValue(uploadedUrl);
-
-              const userData = {
-                uid: this.profileForm.get('uid')?.value,
-                photoUrl: uploadedUrl,
-              } as User;
-              this.userService.updateUserPhotoUrl(userData).subscribe();
-            }
-          }
-        );
-      }
-    });
   }
 
   openWidget() {
