@@ -48,3 +48,4 @@ Thumbs.db
 
 # Temp
 .env
+tools/eipImages.json
