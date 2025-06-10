@@ -24,7 +24,7 @@
     <!-- Photo -->
     <div class="avatar-layout">
       <div class="avatar-circle" (click)="openWidget()">
-        @if (profileForm.get("photoUrl")) {
+        @if (profileForm.get("photoUrl")?.value) {
         <img [src]="profileForm.get('photoUrl')?.value" class="avatar-circle" />
         }@else {
         <div>

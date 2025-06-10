@@ -101,7 +101,7 @@ export class UserProfileComponent {
     remoteWorkEligibility: new FormControl('N/A'),
     remoteWorkRecommender: new FormControl<string[]>([]),
     uid: new FormControl('', [Validators.required]),
-    photoUrl: new FormControl(),
+    photoUrl: new FormControl<string | null>(null),
   });
   advancedForm = new FormGroup({
     jobRank: new FormControl(''),
