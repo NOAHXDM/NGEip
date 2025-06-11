@@ -1,11 +1,11 @@
 import { AsyncPipe } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
-import { Observable, take } from 'rxjs';
+import { take } from 'rxjs';
 
 import { UserService } from '../services/user.service';
 
@@ -25,11 +25,11 @@ import { UserService } from '../services/user.service';
   styleUrl: './layout.component.scss',
 })
 export class LayoutComponent {
-  readonly isAdmin$: Observable<boolean>;
+  userService = inject(UserService);
+  readonly isAdmin$ = this.userService.isAdmin$;
+  readonly currentUser$ = this.userService.currentUser$;
 
-  constructor(private userService: UserService, private _router: Router) {
-    this.isAdmin$ = this.userService.isAdmin$;
-  }
+  constructor(private _router: Router) {}
 
   logout() {
     this.userService
