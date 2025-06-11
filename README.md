@@ -130,8 +130,6 @@ export const appConfig = {
 };
 ```
 
-![Create a new firebase project](./docs/create_firebase_project.gif)
-
 ### 4. **Install Firebase CLI**
 
 ```bash
@@ -150,8 +148,6 @@ Make sure there is a `.firebaserc` file in the root directory of your project, a
 }
 ```
 
-![Modify .firebaserc](./docs/firebase_init.gif)
-
 ### 6. Enable Firebase Permissions
 
 - Here are the steps to enable **Authentication**, **Hosting**, and **Firestore Database**:
@@ -166,7 +162,6 @@ Make sure there is a `.firebaserc` file in the root directory of your project, a
 
 - In the Firebase Console, select **Firestore Database** and click **Get Started**.
 - Set the options for your database, choosing either **Test mode** or **Production mode**, depending on your needs.
-  ![Enable firebase service](./docs/enable_firebase_service.gif)
 
 #### Enable **Hosting**
 
@@ -198,7 +193,65 @@ Run the following command to deploy your website to Firebase:
 firebase deploy
 ```
 
-![firebase deploy](./docs/firebase_deploy.gif)
+### 10. **Create Upload Preset in Cloudinary**
+
+1. Log in to your Cloudinary account.
+2. In the left sidebar, go to **Settings** → **Upload** tab.
+3. In the Upload Presets section, select the default preset to edit its settings.
+
+Configure the following options:
+
+- **Upload preset name** : Copy this name and use it in your project configuration.
+- **Upload folder** : Set the target folder to photos (or your desired folder path).
+- **Generated public ID** : Select Auto-generate an unguessable public ID value. This ensures Cloudinary generates a unique and secure ID automatically
+- **Generated display name** : Select Use the last segment of the public ID as the display name.
+
+### 11. **Get Cloudinary Configuration Parameters**
+
+In the left sidebar, go to **Settings** → **API Keys** tab.
+
+Copy the following credentials:
+
+1. **Cloud name** : Add this to your Cloudinary configuration.
+2. **Upload preset name** : Use the name you created in Step 9.
+
+### 12. **Set Environment Variables**
+
+In your project root, update the .env file with the following content:
+
+```
+CLOUDINARY_URL=cloudinary://<your_api_key>:<your_api_secret>@dqbtn8sx3
+```
+
+Replace <your_api_key>,and <your_api_secret> with your actual Cloudinary credentials.
+
+
+## Delete Unused Photos
+
+Export a List of Public IDs in Use
+
+- Download a list of all images currently in use in your project
+  and save the contents of the JSON file to /in_use_publicID.json.
+
+Run the Cleanup Script :
+In your terminal, run the following command
+
+```
+node tools/delete_in_use_publicID.js
+```
+
+- This script will compare the in-use public IDs (in_use_publicID.json) with all existing public IDs from Cloudinary.
+- It will identify and list the unused assets.
+- When prompted, confirm deletion by typing y.
+
+```
+"輸入 Y 確認刪除，其他鍵取消:
+```
+
+**Deletion Complete**
+
+The script will delete all Cloudinary assets not included in the in_use_publicID.json list.
+This helps reduce storage usage and keeps your media library clean and organized.
 
 ## Contributing
 

@@ -2,3 +2,20 @@
   max-height: 30vh;
   overflow: auto;
 }
+.avatar-layout {
+  display: flex;
+  justify-content: center;
+  margin-top: 15px;
+}
+.avatar-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #ced6eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 20px;
+  color: #333;
+}

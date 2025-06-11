@@ -44,7 +44,8 @@ import { User, UserService } from '../services/user.service';
 import { UserNamePipe } from '../pipes/user-name.pipe';
 import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
 import { TimezoneService } from '../services/timezone.service';
-
+import { SystemConfigService } from '../services/system-config.service';
+declare var cloudinary: any;
 @Component({
   selector: 'app-user-profile',
   standalone: true,
@@ -97,10 +98,10 @@ export class UserProfileComponent {
     birthday: new FormControl(''),
     name: new FormControl('', [Validators.required]),
     phone: new FormControl(''),
-    // photo: new FormControl(''),
     remoteWorkEligibility: new FormControl('N/A'),
     remoteWorkRecommender: new FormControl<string[]>([]),
     uid: new FormControl('', [Validators.required]),
+    photoUrl: new FormControl(''),
   });
   advancedForm = new FormGroup({
     jobRank: new FormControl(''),
@@ -130,11 +131,13 @@ export class UserProfileComponent {
   displayedColumns: string[] = ['date', 'hours', 'reason', 'actionBy'];
   myProfileMode = true;
   title = 'My Profile';
+  cloudinaryWidget: any;
 
   constructor(
     private userService: UserService,
     private annualLeaveService: AnnualLeaveService,
     private timezoneService: TimezoneService,
+    private systemConfigService: SystemConfigService,
     private _dialog: MatDialog,
     private _snackBar: MatSnackBar,
     @Optional() @Inject(MAT_DIALOG_DATA) protected data: any
@@ -150,15 +153,21 @@ export class UserProfileComponent {
           : { ...users.find((user) => user.uid == this.data.user.uid) };
 
         if (editUser.birthday) {
-          editUser.birthday = this.timezoneService.convertDateByClientTimezone(editUser.birthday as Timestamp);
+          editUser.birthday = this.timezoneService.convertDateByClientTimezone(
+            editUser.birthday as Timestamp
+          );
         }
 
         if (editUser.startDate) {
-          editUser.startDate = this.timezoneService.convertDateByClientTimezone(editUser.startDate as Timestamp);
+          editUser.startDate = this.timezoneService.convertDateByClientTimezone(
+            editUser.startDate as Timestamp
+          );
         }
 
         if (editUser.exitDate) {
-          editUser.exitDate = this.timezoneService.convertDateByClientTimezone(editUser.exitDate as Timestamp);
+          editUser.exitDate = this.timezoneService.convertDateByClientTimezone(
+            editUser.exitDate as Timestamp
+          );
         }
 
         this.profileForm.patchValue(editUser);
@@ -171,7 +180,6 @@ export class UserProfileComponent {
         this.remainingLeaveHoursForm
           .get('actionBy')
           ?.setValue(currentUser.uid!);
-
         return users;
       })
     );
@@ -186,10 +194,40 @@ export class UserProfileComponent {
     );
   }
 
+  ngOnInit() {
+    this.systemConfigService.license$.subscribe((license) => {
+      const cloudName = license.cloudinaryCloudName;
+      const uploadPreset = license.cloudinaryUploadPreset;
+
+      if (cloudName && uploadPreset) {
+        this.cloudinaryWidget = cloudinary.createUploadWidget(
+          {
+            cloudName,
+            uploadPreset,
+          },
+          (error: any, result: any) => {
+            if (!error && result && result.event === 'success') {
+              const uploadedUrl = result.info.secure_url;
+              this.profileForm.get('photoUrl')?.setValue(uploadedUrl);
+
+              const userData = {
+                uid: this.profileForm.get('uid')?.value,
+                photoUrl: uploadedUrl,
+              } as User;
+              this.userService.updateUserPhotoUrl(userData).subscribe();
+            }
+          }
+        );
+      }
+    });
+  }
+
   normalFieldsUpdate() {
     const data: any = this.profileForm.value;
     if (data.birthday) {
-      data.birthday = this.timezoneService.convertTimestampByClientTimezone(startOfDay(data.birthday));
+      data.birthday = this.timezoneService.convertTimestampByClientTimezone(
+        startOfDay(data.birthday)
+      );
     }
 
     this.userService
@@ -203,10 +241,14 @@ export class UserProfileComponent {
   advancedFieldsUpdate() {
     const data: any = this.advancedForm.value;
     if (data.startDate) {
-      data.startDate = this.timezoneService.convertTimestampByClientTimezone(startOfDay(data.startDate));
+      data.startDate = this.timezoneService.convertTimestampByClientTimezone(
+        startOfDay(data.startDate)
+      );
     }
     if (data.exitDate) {
-      data.exitDate = this.timezoneService.convertTimestampByClientTimezone(startOfDay(data.exitDate));
+      data.exitDate = this.timezoneService.convertTimestampByClientTimezone(
+        startOfDay(data.exitDate)
+      );
     }
 
     this.userService
@@ -295,5 +337,17 @@ export class UserProfileComponent {
           if (err.message) this.openSnackBar(err.message);
         },
       });
+  }
+
+  openWidget() {
+    this.systemConfigService.license$.pipe(take(1)).subscribe((license) => {
+      const cloudName = license.cloudinaryCloudName;
+      const uploadPreset = license.cloudinaryUploadPreset;
+      if (!cloudName || !uploadPreset) {
+        this.openSnackBar('請先註冊 cloudinary 並設定');
+      } else {
+        this.cloudinaryWidget.open();
+      }
+    });
   }
 }
