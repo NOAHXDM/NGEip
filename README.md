@@ -225,32 +225,27 @@ CLOUDINARY_URL=cloudinary://<your_api_key>:<your_api_secret>@dqbtn8sx3
 
 Replace <your_api_key>,and <your_api_secret> with your actual Cloudinary credentials.
 
-
 ## Delete Unused Photos
 
 Export a List of Public IDs in Use
 
 - Download a list of all images currently in use in your project
-  and save the contents of the JSON file to /in_use_publicID.json.
+  and save the contents of the JSON file to tools/eipImages.json.
 
 Run the Cleanup Script :
 In your terminal, run the following command
 
 ```
-node tools/delete_in_use_publicID.js
+node tools/cloudinary-cleanup.js
 ```
 
-- This script will compare the in-use public IDs (in_use_publicID.json) with all existing public IDs from Cloudinary.
+- This script will compare the in-use public IDs (eipImages.json) with all existing public IDs from Cloudinary.
 - It will identify and list the unused assets.
 - When prompted, confirm deletion by typing y.
 
-```
-"輸入 Y 確認刪除，其他鍵取消:
-```
-
 **Deletion Complete**
 
-The script will delete all Cloudinary assets not included in the in_use_publicID.json list.
+The script will delete all Cloudinary assets not included in the eipImages.json list.
 This helps reduce storage usage and keeps your media library clean and organized.
 
 ## Contributing

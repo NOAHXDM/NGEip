@@ -340,14 +340,10 @@ export class UserProfileComponent {
   }
 
   openWidget() {
-    this.systemConfigService.license$.pipe(take(1)).subscribe((license) => {
-      const cloudName = license.cloudinaryCloudName;
-      const uploadPreset = license.cloudinaryUploadPreset;
-      if (!cloudName || !uploadPreset) {
-        this.openSnackBar('請先註冊 cloudinary 並設定');
-      } else {
-        this.cloudinaryWidget.open();
-      }
-    });
+    if (this.cloudinaryWidget) {
+      this.cloudinaryWidget.open();
+    } else {
+      this.openSnackBar('請先註冊 cloudinary 並設定');
+    }
   }
 }
