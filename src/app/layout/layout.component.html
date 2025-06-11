@@ -11,7 +11,20 @@
     }
     <a mat-button [routerLink]="['/Users']">Users</a>
   </div>
-  <span class="avator" [matMenuTriggerFor]="profileMenu"></span>
+  <span
+    class="avator"
+    [style.margin.px]="'0 10'"
+    [style.backgroundImage]="'url(https://placehold.co/36x36)'"
+    [matMenuTriggerFor]="profileMenu"
+  >
+    @if((currentUser$ | async)?.photoUrl) {
+    <img
+      [src]="(currentUser$ | async)?.photoUrl"
+      alt="User Avatar"
+      class="avator"
+    />
+    }
+  </span>
 </mat-toolbar>
 <!-- Main content -->
 <div class="container-fluid pt-2">
