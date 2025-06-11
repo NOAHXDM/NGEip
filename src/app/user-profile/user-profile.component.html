@@ -21,7 +21,20 @@
     (ngSubmit)="normalFieldsUpdate()"
     novalidate
   >
+    <!-- Photo -->
+    <div class="avatar-layout">
+      <div class="avatar-circle" (click)="openWidget()">
+        @if (profileForm.get("photoUrl")?.value) {
+        <img [src]="profileForm.get('photoUrl')?.value" class="avatar-circle" />
+        }@else {
+        <div>
+          {{ profileForm.get("name")?.value?.at(0) }}
+        </div>
+        }
+      </div>
+    </div>
     <h3 class="pt-3 text-center">{{ title }}</h3>
+
     <!-- Name -->
     <mat-form-field appearance="outline">
       <mat-label>Name</mat-label>
@@ -36,6 +49,7 @@
       <mat-icon matSuffix>call</mat-icon>
       <mat-hint>Enter you phone</mat-hint>
     </mat-form-field>
+
     <!-- Remote Work Eligibility -->
     <mat-form-field appearance="outline">
       <mat-label>Remote Work Eligibility</mat-label>

@@ -40,6 +40,8 @@ export class SystemConfigService {
           initialSettlementYear: new Date().getFullYear(),
           timeFilterRange: false,
           overtimePriorityReplacedByLeave: [],
+          cloudinaryCloudName: '',
+          cloudinaryUploadPresetp: '',
         };
         transaction.set(systemConfigRef, license);
       })
@@ -50,13 +52,22 @@ export class SystemConfigService {
     maxUsers: number,
     initialSettlementYear: number,
     timeFilterRange: boolean,
-    overtimePriorityReplacedByLeave: number[]
+    overtimePriorityReplacedByLeave: number[],
+    cloudinaryCloudName: string,
+    cloudinaryUploadPreset: string
   ) {
     const systemConfigRef = doc(this.firestore, 'systemConfig', 'license');
     return from(
       setDoc(
         systemConfigRef,
-        { maxUsers, initialSettlementYear, timeFilterRange, overtimePriorityReplacedByLeave },
+        {
+          maxUsers,
+          initialSettlementYear,
+          timeFilterRange,
+          overtimePriorityReplacedByLeave,
+          cloudinaryCloudName,
+          cloudinaryUploadPreset,
+        },
         { merge: true }
       )
     );
@@ -70,4 +81,6 @@ export interface License {
   initialSettlementYear: number;
   timeFilterRange: boolean;
   overtimePriorityReplacedByLeave: number[];
+  cloudinaryCloudName: string;
+  cloudinaryUploadPreset: string;
 }

@@ -77,8 +77,6 @@ export class UserService {
   );
   readonly timezoneService = inject(TimezoneService);
 
-  constructor() {}
-
   createUser(email: string, password: string, name: string) {
     let totalUsers = 0;
     return from(
@@ -157,6 +155,14 @@ export class UserService {
       remoteWorkEligibility: user.remoteWorkEligibility,
       remoteWorkRecommender: user.remoteWorkRecommender,
       birthday: user.birthday,
+    };
+    return from(updateDoc(docRef, data));
+  }
+
+  updateUserPhotoUrl(user: User) {
+    const docRef = doc(this.firestore, 'users', user.uid!);
+    const data = {
+      photoUrl: user.photoUrl,
     };
     return from(updateDoc(docRef, data));
   }
@@ -258,14 +264,13 @@ export interface User {
   leaveTransactionHistory?: LeaveTransaction[]; // 休假交易紀錄
   name: string;
   phone?: string;
-  photo?: string;
+  photoUrl?: string;
   remainingLeaveHours: number; // 剩餘特休時數
   remoteWorkEligibility: 'N/A' | 'WFH2' | 'WFH4.5'; // 遠距工作資格
   remoteWorkRecommender: string[];
   role: 'admin' | 'user';
   startDate?: Timestamp | FieldValue; // 到職日
   exitDate?: Timestamp | FieldValue; // 離職日
-
   uid?: string;
 }
 

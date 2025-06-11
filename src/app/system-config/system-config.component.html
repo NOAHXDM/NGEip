@@ -42,6 +42,33 @@
       </p>
       }
     </section>
+    <hr />
+    <a
+      href="https://cloudinary.com/documentation"
+      target="_blank"
+      class="cloudinary"
+    >
+      <img
+        src="https://assets.streamlinehq.com/image/private/w_300,h_300,ar_1/f_auto/v1/icons/1/cloudinary-icon-ug0qqy8ms6ozyzy6cntbll.png/cloudinary-icon-hz05evx1htrghud89kpab4.png?_a=DATAdtAAZAA0"
+        class="cloudinary"
+      />
+    </a>
+    <mat-form-field appearance="outline">
+      <mat-label>Cloud Name</mat-label>
+      <input type="text" matInput formControlName="cloudinaryCloudName" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Upload Preset</mat-label>
+      <input type="text" matInput formControlName="cloudinaryUploadPreset" />
+    </mat-form-field>
+    <button
+      type="button"
+      mat-raised-button
+      (click)="downloadUsersPhotoPublicId()"
+    >
+      Download User Photo PublicId
+    </button>
+    <hr />
 
     <button type="submit" mat-flat-button [disabled]="configForm.invalid">
       Update
