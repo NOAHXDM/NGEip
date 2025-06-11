@@ -143,7 +143,7 @@ export class SystemConfigComponent {
     const blob = new Blob([JSONData], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'firebase-use-photo';
+    link.download = 'eipImages';
     link.click();
     URL.revokeObjectURL(link.href);
   }
