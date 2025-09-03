@@ -1,18 +1,18 @@
-import { Component, inject } from '@angular/core';
+import { AsyncPipe } from '@angular/common';
+import { Component, inject, ViewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { AsyncPipe } from '@angular/common';
+import { MatSort, MatSortModule } from '@angular/material/sort';
 
 import { UserNamePipe } from '../pipes/user-name.pipe';
 import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
 import { User, UserService } from '../services/user.service';
 import { UserProfileComponent } from '../user-profile/user-profile.component';
-import { MatSort, MatSortModule } from '@angular/material/sort';
-import { ViewChild } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { LineThroughDirective } from '../directives/line-through.directive';
 
 @Component({
   selector: 'app-user-list',
@@ -29,6 +29,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     MatTableModule,
     UserNamePipe,
     MatSortModule,
+    LineThroughDirective,
   ],
 })
 export class UserListComponent {

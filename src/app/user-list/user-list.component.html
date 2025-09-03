@@ -2,29 +2,29 @@
   <mat-table [dataSource]="dataSource" matSort>
     <ng-container matColumnDef="name" sticky>
       <mat-header-cell *matHeaderCellDef mat-sort-header>Name</mat-header-cell>
-      <mat-cell *matCellDef="let element">{{ element.name }}</mat-cell>
+      <mat-cell *matCellDef="let element" [appLineThrough]="element.exitDate">{{ element.name }}</mat-cell>
     </ng-container>
 
     <ng-container matColumnDef="startDate">
       <mat-header-cell *matHeaderCellDef mat-sort-header>Start Date</mat-header-cell>
-      <mat-cell *matCellDef="let element">
+      <mat-cell *matCellDef="let element" [appLineThrough]="element.exitDate">
         {{ element.startDate | firestoreTimestamp : "yyyy-MM-dd" }}
       </mat-cell>
     </ng-container>
 
     <ng-container matColumnDef="jobTitle">
       <mat-header-cell *matHeaderCellDef mat-sort-header>Job Title</mat-header-cell>
-      <mat-cell *matCellDef="let element">{{ element.jobTitle }}</mat-cell>
+      <mat-cell *matCellDef="let element" [appLineThrough]="element.exitDate">{{ element.jobTitle }}</mat-cell>
     </ng-container>
 
     <ng-container matColumnDef="jobRank">
       <mat-header-cell *matHeaderCellDef mat-sort-header>Job Rank</mat-header-cell>
-      <mat-cell *matCellDef="let element">{{ element.jobRank }}</mat-cell>
+      <mat-cell *matCellDef="let element" [appLineThrough]="element.exitDate">{{ element.jobRank }}</mat-cell>
     </ng-container>
 
     <ng-container matColumnDef="remoteWorkEligibility">
       <mat-header-cell *matHeaderCellDef>Remote Work Eligibility</mat-header-cell>
-      <mat-cell *matCellDef="let element" class="flex-column justify-content-center align-items-start">
+      <mat-cell *matCellDef="let element" [appLineThrough]="element.exitDate" class="flex-column justify-content-center align-items-start">
         <div class="py-1">{{ element.remoteWorkEligibility }}</div>
         <div class="flex-row">
           <mat-chip-set>
@@ -42,14 +42,14 @@
       <mat-header-cell *matHeaderCellDef mat-sort-header>
         Remaining Leave Hours
       </mat-header-cell>
-      <mat-cell *matCellDef="let element">
+      <mat-cell *matCellDef="let element" [appLineThrough]="element.exitDate">
         {{ element.remainingLeaveHours }}
       </mat-cell>
     </ng-container>
 
     <ng-container matColumnDef="contactInfo">
       <mat-header-cell *matHeaderCellDef>Contact Info</mat-header-cell>
-      <mat-cell *matCellDef="let element" class="flex-column justify-content-center align-items-start">
+      <mat-cell *matCellDef="let element" [appLineThrough]="element.exitDate" class="flex-column justify-content-center align-items-start">
         <div>{{ element.email }}</div>
         <div>{{ element.phone }}</div>
       </mat-cell>
@@ -57,7 +57,7 @@
 
     <ng-container matColumnDef="birthday">
       <mat-header-cell *matHeaderCellDef mat-sort-header>Birthday</mat-header-cell>
-      <mat-cell *matCellDef="let element">
+      <mat-cell *matCellDef="let element" [appLineThrough]="element.exitDate">
         {{ element.birthday | firestoreTimestamp : "yyyy-MM-dd" }}
       </mat-cell>
     </ng-container>
