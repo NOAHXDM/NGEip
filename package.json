@@ -1,10 +1,10 @@
 {
   "name": "angular-eip",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "scripts": {
-    "ng": "ng",
-    "start": "ng serve",
+    "start": "firebase emulators:start --config firebase.local.json",
     "build": "ng build",
+    "deploy": "npm run build && firebase deploy --config firebase.prod.json",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
