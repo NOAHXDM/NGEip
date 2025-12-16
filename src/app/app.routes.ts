@@ -18,6 +18,40 @@ export const routes: Routes = [
       { path: 'MyProfile', component: UserProfileComponent },
       { path: 'SystemConfig', component: SystemConfigComponent },
       { path: 'Users', component: UserListComponent },
+      {
+        path: 'Subsidy',
+        children: [
+          { path: '', redirectTo: 'List', pathMatch: 'full' },
+          {
+            path: 'List',
+            loadComponent: () =>
+              import('./subsidy/subsidy-list/subsidy-list.component').then(
+                (c) => c.SubsidyListComponent
+              ),
+          },
+          {
+            path: 'Stats',
+            loadComponent: () =>
+              import('./subsidy/subsidy-stats/subsidy-stats.component').then(
+                (c) => c.SubsidyStatsComponent
+              ),
+          },
+          {
+            path: 'Meals',
+            loadComponent: () =>
+              import(
+                './subsidy/meal-subsidy/meal-list/meal-list.component'
+              ).then((c) => c.MealListComponent),
+          },
+          {
+            path: 'Meals/MyStats',
+            loadComponent: () =>
+              import(
+                './subsidy/meal-subsidy/user-meal-stats/user-meal-stats.component'
+              ).then((c) => c.UserMealStatsComponent),
+          },
+        ],
+      },
     ],
   },
   { path: 'Login', component: LoginComponent, canActivate: [noAuthGuard] },

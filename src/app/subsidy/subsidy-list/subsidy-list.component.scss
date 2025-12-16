@@ -1,0 +1,18 @@
+.table-container {
+  max-height: 600px;
+  overflow: auto;
+  margin-top: 16px;
+}
+
+table {
+  width: 100%;
+}
+
+mat-card-header {
+  padding: 16px;
+  gap: 12px;
+}
+
+mat-form-field {
+  margin-bottom: 0 !important;
+}

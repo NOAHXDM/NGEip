@@ -44,5 +44,50 @@ service cloud.firestore {
     match /attendanceStats/{document=**} {
       allow read, write, update: if true;
     }
+
+    // 統一補助申請集合
+    match /subsidyApplications/{applicationId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (resource.data.userId == request.auth.uid &&
+         resource.data.status == 'pending')
+      );
+      allow delete: if isAdmin();
+
+      // 筆電分期子集合
+      match /installments/{installmentId} {
+        allow read: if isSignedIn();
+        allow create: if isAdmin();
+      }
+
+      // 稽核軌跡子集合
+      match /auditTrail/{auditId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn();
+      }
+    }
+
+    // 供餐補助集合（原始資料）
+    match /mealSubsidies/{dateId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // 使用者月度餐費統計
+    match /userMealStats/{statsId} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        statsId.matches(request.auth.uid + '_.*')
+      );
+      allow write: if isAdmin();
+    }
+
+    // 補助統計
+    match /subsidyStats/{statsId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
   }
 }

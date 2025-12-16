@@ -1,0 +1,41 @@
+<h2 mat-dialog-title>Audit Trail</h2>
+<mat-dialog-content class="mat-typography">
+  <mat-stepper orientation="vertical" linear="false">
+    @for (trail of auditTrailList$ | async; track trail.id) {
+      <mat-step>
+        <ng-template matStepLabel>
+          <div class="d-flex justify-content-between align-items-center w-100">
+            <span>{{ $any(trail.actionDateTime) | firestoreTimestamp : 'yyyy-MM-dd HH:mm:ss' }}</span>
+            <span class="badge bg-secondary">{{ trail.action }}</span>
+          </div>
+        </ng-template>
+        <div class="mt-2">
+          @if (trail.action === 'status_change' && trail.previousStatus && trail.newStatus) {
+            <p class="mb-1">
+              <strong>Status Change:</strong>
+              <span class="badge" [class.bg-warning]="trail.previousStatus === 'pending'"
+                    [class.bg-success]="trail.previousStatus === 'approved'"
+                    [class.bg-danger]="trail.previousStatus === 'rejected'">
+                {{ trail.previousStatus | subsidyStatus }}
+              </span>
+              →
+              <span class="badge" [class.bg-warning]="trail.newStatus === 'pending'"
+                    [class.bg-success]="trail.newStatus === 'approved'"
+                    [class.bg-danger]="trail.newStatus === 'rejected'">
+                {{ trail.newStatus | subsidyStatus }}
+              </span>
+            </p>
+          }
+          @if (trail.content) {
+            <div class="alert alert-light mt-2">
+              <small>{{ trail.content }}</small>
+            </div>
+          }
+          <p class="text-end text-muted mb-0">
+            <small>Operated by: {{ trail.actionBy | userName }}</small>
+          </p>
+        </div>
+      </mat-step>
+    }
+  </mat-stepper>
+</mat-dialog-content>

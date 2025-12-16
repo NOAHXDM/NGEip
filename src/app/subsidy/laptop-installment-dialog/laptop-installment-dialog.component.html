@@ -1,0 +1,74 @@
+<h2 mat-dialog-title>Laptop Installment Records</h2>
+<mat-dialog-content>
+  <div class="mb-3">
+    <p><strong>Applicant:</strong> {{ data.application.userId | userName }}</p>
+    <p><strong>Invoice Amount:</strong> ${{ data.application.invoiceAmount || 0 | number:'1.0-0' }}</p>
+    <p><strong>Total Subsidy:</strong> ${{ subsidyInfo.totalSubsidy | number:'1.0-0' }} (Invoice × 0.8, capped at $54,000)</p>
+    <div class="alert alert-info">
+      <p class="mb-1"><strong>Installment Amount Rules:</strong></p>
+      <ul class="mb-0">
+        <li>Periods 1-12: $1,000/period</li>
+        <li>Periods 13-24: $1,500/period</li>
+        <li>Periods 25-36: $2,000/period</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="table-container mat-elevation-z2">
+    <table mat-table [dataSource]="(installmentsList$ | async) || []" class="w-100">
+      <!-- 期數 -->
+      <ng-container matColumnDef="installmentNumber">
+        <th mat-header-cell *matHeaderCellDef>Period</th>
+        <td mat-cell *matCellDef="let element">Period {{ element.installmentNumber }}</td>
+      </ng-container>
+
+      <!-- 領取日期 -->
+      <ng-container matColumnDef="receivedDate">
+        <th mat-header-cell *matHeaderCellDef>Received Date</th>
+        <td mat-cell *matCellDef="let element">
+          {{ element.receivedDate | firestoreTimestamp : 'yyyy-MM-dd' }}
+        </td>
+      </ng-container>
+
+      <!-- 領取金額 -->
+      <ng-container matColumnDef="amount">
+        <th mat-header-cell *matHeaderCellDef>Amount</th>
+        <td mat-cell *matCellDef="let element">${{ element.amount }}</td>
+      </ng-container>
+
+      <!-- 記錄人 -->
+      <ng-container matColumnDef="recordedBy">
+        <th mat-header-cell *matHeaderCellDef>Recorded By</th>
+        <td mat-cell *matCellDef="let element">{{ element.recordedBy | userName }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </div>
+
+  @if ((installmentsList$ | async)?.length === 0) {
+    <div class="alert alert-info mt-3">
+      No records yet
+    </div>
+  }
+
+  @if ((installmentsList$ | async)?.length === subsidyInfo.installmentAmounts.length) {
+    <div class="alert alert-success mt-3">
+      <mat-icon>check_circle</mat-icon>
+      All installments completed ({{ subsidyInfo.installmentAmounts.length }} periods, total ${{ subsidyInfo.totalSubsidy | number:'1.0-0' }})
+    </div>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Close</button>
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="recordNextInstallment()"
+    [disabled]="(installmentsList$ | async)?.length === subsidyInfo.installmentAmounts.length"
+  >
+    <mat-icon>add</mat-icon>
+    Record Next Period
+  </button>
+</mat-dialog-actions>
