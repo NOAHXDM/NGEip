@@ -1,0 +1,34 @@
+<h2 mat-dialog-title>
+  <mat-icon>calendar_month</mat-icon>
+  {{ data.stats.yearMonth }} - Meal Details
+</h2>
+
+<mat-dialog-content>
+  <div class="summary-info mb-3">
+    <p><strong>Total Meals:</strong> {{ data.stats.mealCount }}</p>
+    <p><strong>Total Amount:</strong> ${{ data.stats.totalAmount }}</p>
+  </div>
+
+  <div class="table-container">
+    <table mat-table [dataSource]="data.stats.details" class="w-100">
+      <!-- 日期 -->
+      <ng-container matColumnDef="date">
+        <th mat-header-cell *matHeaderCellDef>Date</th>
+        <td mat-cell *matCellDef="let element">{{ element.date }}</td>
+      </ng-container>
+
+      <!-- 金額 -->
+      <ng-container matColumnDef="amount">
+        <th mat-header-cell *matHeaderCellDef>Amount</th>
+        <td mat-cell *matCellDef="let element">${{ element.amount }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Close</button>
+</mat-dialog-actions>

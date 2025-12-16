@@ -1,0 +1,57 @@
+mat-card-header {
+  padding: 16px;
+}
+
+.summary-section {
+  margin-top: 16px;
+}
+
+.summary-card {
+  mat-card-content {
+    padding: 20px;
+  }
+}
+
+.summary-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  margin-right: 16px;
+}
+
+.summary-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.summary-value {
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.table-container {
+  overflow-x: auto;
+
+  table {
+    min-width: 600px;
+  }
+}
+
+.no-data-message {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 16px;
+  }
+}

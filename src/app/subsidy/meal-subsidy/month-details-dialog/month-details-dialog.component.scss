@@ -1,0 +1,28 @@
+h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  mat-icon {
+    color: #1976d2;
+  }
+}
+
+.summary-info {
+  padding: 12px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+
+  p {
+    margin: 4px 0;
+  }
+}
+
+.table-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+mat-dialog-content {
+  min-width: 400px;
+}

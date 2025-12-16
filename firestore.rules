@@ -77,10 +77,7 @@ service cloud.firestore {
 
     // 使用者月度餐費統計
     match /userMealStats/{statsId} {
-      allow read: if isSignedIn() && (
-        isAdmin() ||
-        statsId.matches(request.auth.uid + '_.*')
-      );
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 

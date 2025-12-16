@@ -1,0 +1,116 @@
+<div class="container-fluid mt-4">
+  <mat-card appearance="outlined">
+    <mat-card-header class="d-flex flex-wrap justify-content-between align-items-center">
+      <!-- 新增餐點記錄按鈕（僅管理員） -->
+      @if (isAdmin$ | async) {
+        <button type="button" mat-mini-fab color="primary" (click)="openNewMealDialog()">
+          <mat-icon>add</mat-icon>
+        </button>
+      }
+
+      <!-- 快速篩選按鈕 -->
+      <div class="d-flex gap-2">
+        <button mat-raised-button (click)="loadCurrentWeekMeals()">
+          <mat-icon>date_range</mat-icon>
+          Current Week
+        </button>
+        <button mat-raised-button (click)="loadCurrentMonthMeals()">
+          <mat-icon>calendar_month</mat-icon>
+          Current Month
+        </button>
+        <button mat-raised-button color="accent" (click)="navigateToUserStats()">
+          <mat-icon>bar_chart</mat-icon>
+          My Stats
+        </button>
+      </div>
+
+      <!-- 日期範圍過濾器 -->
+      <form [formGroup]="dateRangeForm" class="d-flex gap-2 align-items-center">
+        <mat-form-field appearance="outline" style="width: 150px;">
+          <mat-label>Start Date</mat-label>
+          <input matInput [matDatepicker]="startPicker" formControlName="start" (dateChange)="onDateRangeChange()">
+          <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+          <mat-datepicker #startPicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="width: 150px;">
+          <mat-label>End Date</mat-label>
+          <input matInput [matDatepicker]="endPicker" formControlName="end" (dateChange)="onDateRangeChange()">
+          <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
+          <mat-datepicker #endPicker></mat-datepicker>
+        </mat-form-field>
+
+        <button type="button" mat-icon-button (click)="dateRangeForm.reset(); loadCurrentMonthMeals()" title="Clear filters">
+          <mat-icon>clear</mat-icon>
+        </button>
+      </form>
+    </mat-card-header>
+
+    <mat-card-content class="pt-2">
+      <h3>Daily Meal Records</h3>
+
+      @if (mealRecordsList$ | async; as dataSource) {
+        <div class="table-container mat-elevation-z2">
+          <table mat-table [dataSource]="dataSource" matSort class="w-100">
+            <!-- 日期 -->
+            <ng-container matColumnDef="date">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
+              <td mat-cell *matCellDef="let element">
+                {{ element.date | firestoreTimestamp : 'yyyy-MM-dd' }}
+              </td>
+            </ng-container>
+
+            <!-- 星期幾 -->
+            <ng-container matColumnDef="dayOfWeek">
+              <th mat-header-cell *matHeaderCellDef>Day of Week</th>
+              <td mat-cell *matCellDef="let element">
+                {{ getDayOfWeekName(element.dayOfWeek) }}
+              </td>
+            </ng-container>
+
+            <!-- 用餐人數 -->
+            <ng-container matColumnDef="mealCount">
+              <th mat-header-cell *matHeaderCellDef>Meal Count</th>
+              <td mat-cell *matCellDef="let element">
+                {{ element.meals.length }}
+              </td>
+            </ng-container>
+
+            <!-- 當日總金額 -->
+            <ng-container matColumnDef="dailyTotal">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Daily Total</th>
+              <td mat-cell *matCellDef="let element">
+                ${{ element.dailyTotal }}
+              </td>
+            </ng-container>
+
+            <!-- 操作 -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let element">
+                <button mat-icon-button [matMenuTriggerFor]="actionMenu">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #actionMenu="matMenu">
+                  <button mat-menu-item (click)="openEditMealDialog(element)">
+                    <mat-icon>visibility</mat-icon>
+                    <span>View Details</span>
+                  </button>
+                  @if (isAdmin$ | async) {
+                    <button mat-menu-item (click)="openEditMealDialog(element)">
+                      <mat-icon>edit</mat-icon>
+                      <span>Edit</span>
+                    </button>
+                  }
+                </mat-menu>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+          </table>
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>
