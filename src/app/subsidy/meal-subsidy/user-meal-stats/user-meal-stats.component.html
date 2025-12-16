@@ -1,105 +1,110 @@
 <div class="container-fluid mt-4">
   <mat-card appearance="outlined">
     <mat-card-header class="d-flex justify-content-between align-items-center">
-      <h2 class="m-0">Personal Meal Statistics</h2>
-
-      <div class="d-flex gap-2 align-items-center">
-        <!-- 年份選擇 -->
-        <form [formGroup]="yearForm">
-          <mat-form-field appearance="outline" style="width: 120px;">
-            <mat-label>Year</mat-label>
-            <mat-select formControlName="year">
-              @for (year of getYearOptions(); track year) {
-                <mat-option [value]="year">{{ year }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </form>
-
-        <!-- 返回餐點列表 -->
+      <!-- 左側：返回按鈕 -->
+      <div class="header-left">
         <button mat-raised-button (click)="navigateToMealList()">
           <mat-icon>arrow_back</mat-icon>
           Back to Meal List
         </button>
       </div>
+
+      <!-- 中間：標題 -->
+      <div class="header-center">
+        <h2 class="m-0">Personal Meal Statistics</h2>
+      </div>
+
+      <!-- 右側：年份選擇 -->
+      <div class="header-right">
+        <form [formGroup]="yearForm">
+          <mat-form-field appearance="outline" style="width: 120px;">
+            <mat-label>Year</mat-label>
+            <mat-select formControlName="year">
+              @for (year of getYearOptions(); track year) {
+              <mat-option [value]="year">{{ year }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </form>
+      </div>
     </mat-card-header>
 
     <mat-card-content class="pt-2">
       @if (yearlyStats$ | async; as dataSource) {
-        <!-- 年度總計 -->
-        <div class="summary-section mb-4">
-          <div class="row">
-            <div class="col-md-6">
-              <mat-card appearance="outlined" class="summary-card">
-                <mat-card-content>
-                  <div class="d-flex align-items-center">
-                    <mat-icon class="summary-icon" color="primary">restaurant</mat-icon>
-                    <div>
-                      <div class="summary-label">Total Meals</div>
-                      <div class="summary-value">{{ yearlyMealCount }}</div>
-                    </div>
+      <!-- 年度總計 -->
+      <div class="summary-section mb-4">
+        <div class="row">
+          <div class="col-md-6">
+            <mat-card appearance="outlined" class="summary-card">
+              <mat-card-content>
+                <div class="d-flex align-items-center">
+                  <mat-icon class="summary-icon" color="primary">restaurant</mat-icon>
+                  <div>
+                    <div class="summary-label">Total Meals</div>
+                    <div class="summary-value">{{ yearlyMealCount }}</div>
                   </div>
-                </mat-card-content>
-              </mat-card>
-            </div>
-            <div class="col-md-6">
-              <mat-card appearance="outlined" class="summary-card">
-                <mat-card-content>
-                  <div class="d-flex align-items-center">
-                    <mat-icon class="summary-icon" color="accent">attach_money</mat-icon>
-                    <div>
-                      <div class="summary-label">Total Amount</div>
-                      <div class="summary-value">${{ yearlyTotal }}</div>
-                    </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+          <div class="col-md-6">
+            <mat-card appearance="outlined" class="summary-card">
+              <mat-card-content>
+                <div class="d-flex align-items-center">
+                  <mat-icon class="summary-icon" color="accent">attach_money</mat-icon>
+                  <div>
+                    <div class="summary-label">Total Amount</div>
+                    <div class="summary-value">${{ yearlyTotal }}</div>
                   </div>
-                </mat-card-content>
-              </mat-card>
-            </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
           </div>
         </div>
+      </div>
 
-        <!-- 月度明細表 -->
-        <div class="table-container mat-elevation-z2">
-          <table mat-table [dataSource]="dataSource" class="w-100">
-            <!-- 月份 -->
-            <ng-container matColumnDef="yearMonth">
-              <th mat-header-cell *matHeaderCellDef>Month</th>
-              <td mat-cell *matCellDef="let element">{{ element.yearMonth }}</td>
-            </ng-container>
+      <!-- 月度明細表 -->
+      <div class="table-container mat-elevation-z2">
+        <table mat-table [dataSource]="dataSource" class="w-100">
+          <!-- 月份 -->
+          <ng-container matColumnDef="yearMonth">
+            <th mat-header-cell *matHeaderCellDef>Month</th>
+            <td mat-cell *matCellDef="let element">{{ element.yearMonth }}</td>
+          </ng-container>
 
-            <!-- 用餐次數 -->
-            <ng-container matColumnDef="mealCount">
-              <th mat-header-cell *matHeaderCellDef>Meal Count</th>
-              <td mat-cell *matCellDef="let element">{{ element.mealCount }}</td>
-            </ng-container>
+          <!-- 用餐次數 -->
+          <ng-container matColumnDef="mealCount">
+            <th mat-header-cell *matHeaderCellDef>Meal Count</th>
+            <td mat-cell *matCellDef="let element">{{ element.mealCount }}</td>
+          </ng-container>
 
-            <!-- 總金額 -->
-            <ng-container matColumnDef="totalAmount">
-              <th mat-header-cell *matHeaderCellDef>Total Amount</th>
-              <td mat-cell *matCellDef="let element">${{ element.totalAmount }}</td>
-            </ng-container>
+          <!-- 總金額 -->
+          <ng-container matColumnDef="totalAmount">
+            <th mat-header-cell *matHeaderCellDef>Total Amount</th>
+            <td mat-cell *matCellDef="let element">${{ element.totalAmount }}</td>
+          </ng-container>
 
-            <!-- 操作 -->
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
-              <td mat-cell *matCellDef="let element">
-                <button mat-icon-button (click)="openMonthDetails(element)" title="View Details">
-                  <mat-icon>visibility</mat-icon>
-                </button>
-              </td>
-            </ng-container>
+          <!-- 操作 -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let element">
+              <button mat-icon-button (click)="openMonthDetails(element)" title="View Details">
+                <mat-icon>visibility</mat-icon>
+              </button>
+            </td>
+          </ng-container>
 
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-          </table>
-        </div>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+      </div>
 
-        @if (dataSource.data.length === 0) {
-          <div class="no-data-message">
-            <mat-icon>info</mat-icon>
-            <p>No meal records found for this year.</p>
-          </div>
-        }
+      @if (dataSource.data.length === 0) {
+      <div class="no-data-message">
+        <mat-icon>info</mat-icon>
+        <p>No meal records found for this year.</p>
+      </div>
+      }
       }
     </mat-card-content>
   </mat-card>

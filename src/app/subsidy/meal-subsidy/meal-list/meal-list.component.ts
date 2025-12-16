@@ -23,7 +23,6 @@ import {
 } from '../../../services/meal-subsidy.service';
 import { UserService } from '../../../services/user.service';
 import { FirestoreTimestampPipe } from '../../../pipes/firestore-timestamp.pipe';
-import { UserNamePipe } from '../../../pipes/user-name.pipe';
 import { MealDailyFormComponent } from '../meal-daily-form/meal-daily-form.component';
 
 @Component({
@@ -44,7 +43,6 @@ import { MealDailyFormComponent } from '../meal-daily-form/meal-daily-form.compo
     MatInputModule,
     MatDatepickerModule,
     FirestoreTimestampPipe,
-    UserNamePipe,
   ],
   templateUrl: './meal-list.component.html',
   styleUrl: './meal-list.component.scss',
@@ -60,6 +58,8 @@ export class MealListComponent {
   readonly isAdmin$ = this.userService.isAdmin$;
 
   @ViewChild(MatSort) sort?: MatSort;
+
+  showFilterPanel = false; // 控制浮動過濾器面板的顯示/隱藏
 
   // 日期範圍表單
   dateRangeForm = new FormGroup({
@@ -109,6 +109,15 @@ export class MealListComponent {
       .pipe(map((data) => this.transformToDataSource(data)));
   }
 
+  toggleFilterPanel() {
+    this.showFilterPanel = !this.showFilterPanel;
+  }
+
+  clearFilters() {
+    this.dateRangeForm.reset();
+    this.loadCurrentMonthMeals();
+  }
+
   transformToDataSource(
     data: DailyMealRecord[]
   ): MatTableDataSource<DailyMealRecord> {
@@ -132,9 +141,24 @@ export class MealListComponent {
     });
   }
 
+  openViewMealDialog(record: DailyMealRecord) {
+    const dialogRef = this.dialog.open(MealDailyFormComponent, {
+      data: { title: 'View Daily Meal Record', record, readOnly: true },
+      width: '800px',
+    });
+
+    dialogRef.afterClosed().subscribe({
+      next: (message) => {
+        if (message) {
+          this.openSnackBar(message);
+        }
+      },
+    });
+  }
+
   openEditMealDialog(record: DailyMealRecord) {
     const dialogRef = this.dialog.open(MealDailyFormComponent, {
-      data: { title: 'Edit Daily Meal Record', record },
+      data: { title: 'Edit Daily Meal Record', record, readOnly: false },
       width: '800px',
     });
 
