@@ -1,0 +1,13 @@
+.table-container {
+  overflow-x: auto;
+  margin-top: 16px;
+
+  table {
+    min-width: 600px;
+  }
+}
+
+mat-card-header {
+  gap: 16px;
+  padding: 16px;
+}

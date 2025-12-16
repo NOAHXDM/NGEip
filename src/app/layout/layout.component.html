@@ -9,7 +9,10 @@
     @if(isAdmin$ | async) {
     <a mat-button [routerLink]="['/SystemConfig']">System config</a>
     }
-    <a mat-button [routerLink]="['/Subsidy/List']">Subsidy</a>
+    <button mat-button [matMenuTriggerFor]="subsidyMenu">
+      Subsidy
+      <mat-icon>arrow_drop_down</mat-icon>
+    </button>
     <a mat-button [routerLink]="['/Users']">Users</a>
   </div>
   <span
@@ -31,6 +34,24 @@
 <div class="container-fluid pt-2">
   <router-outlet></router-outlet>
 </div>
+<!-- Subsidy menu -->
+<mat-menu #subsidyMenu>
+  <button mat-menu-item [routerLink]="['/Subsidy/List']">
+    <mat-icon>request_quote</mat-icon>
+    <span>Subsidy Applications</span>
+  </button>
+  <button mat-menu-item [routerLink]="['/Subsidy/Meals']">
+    <mat-icon>restaurant</mat-icon>
+    <span>Meal Subsidy</span>
+  </button>
+  @if(isAdmin$ | async) {
+    <button mat-menu-item [routerLink]="['/Subsidy/Stats']">
+      <mat-icon>bar_chart</mat-icon>
+      <span>Subsidy Statistics</span>
+    </button>
+  }
+</mat-menu>
+
 <!-- Profile menu -->
 <mat-menu #profileMenu>
   <button mat-menu-item [routerLink]="['/MyProfile']">
