@@ -44,12 +44,10 @@
     <mat-icon>restaurant</mat-icon>
     <span>Meal Subsidy</span>
   </button>
-  @if(isAdmin$ | async) {
-    <button mat-menu-item [routerLink]="['/Subsidy/Stats']">
-      <mat-icon>bar_chart</mat-icon>
-      <span>Subsidy Statistics</span>
-    </button>
-  }
+  <button mat-menu-item [routerLink]="['/Subsidy/Stats']">
+    <mat-icon>bar_chart</mat-icon>
+    <span>Subsidy Statistics</span>
+  </button>
 </mat-menu>
 
 <!-- Profile menu -->

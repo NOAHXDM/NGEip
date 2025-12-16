@@ -1,0 +1,466 @@
+<div class="container-fluid mt-4">
+  <mat-card appearance="outlined">
+    <mat-card-header class="d-flex justify-content-between align-items-center">
+      <h2 class="mb-0">Subsidy Statistics</h2>
+
+      <!-- 年度選擇器 -->
+      <mat-form-field appearance="outline" style="width: 150px;">
+        <mat-label>Year</mat-label>
+        <mat-select [value]="selectedYear()" (selectionChange)="onYearChange($event.value)">
+          @for (year of yearOptions; track year) {
+            <mat-option [value]="year">{{ year }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </mat-card-header>
+
+    <mat-card-content>
+      <!-- Tab 切換：個人統計 / 系統統計 -->
+      <mat-tab-group>
+        <!-- 個人統計 -->
+        <mat-tab label="My Statistics">
+          @if (userStats$ | async; as stats) {
+            <div class="mt-3">
+              <!-- 總覽卡片 -->
+              <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                  <mat-card appearance="outlined" class="text-center">
+                    <mat-card-content>
+                      <mat-icon style="font-size: 48px; width: 48px; height: 48px;" color="primary">account_balance_wallet</mat-icon>
+                      <h3 class="mb-0 mt-2">{{ stats.grandTotal | currency:'TWD':'symbol':'1.0-0' }}</h3>
+                      <p class="text-muted mb-0">Total Subsidy</p>
+                    </mat-card-content>
+                  </mat-card>
+                </div>
+                <div class="col-md-3">
+                  <mat-card appearance="outlined" class="text-center">
+                    <mat-card-content>
+                      <mat-icon style="font-size: 48px; width: 48px; height: 48px;" color="primary">receipt</mat-icon>
+                      <h3 class="mb-0 mt-2">{{ stats.totalSubsidyAmount | currency:'TWD':'symbol':'1.0-0' }}</h3>
+                      <p class="text-muted mb-0">Application Subsidy</p>
+                    </mat-card-content>
+                  </mat-card>
+                </div>
+                <div class="col-md-3">
+                  <mat-card appearance="outlined" class="text-center">
+                    <mat-card-content>
+                      <mat-icon style="font-size: 48px; width: 48px; height: 48px;" color="primary">restaurant</mat-icon>
+                      <h3 class="mb-0 mt-2">{{ stats.totalMealAmount | currency:'TWD':'symbol':'1.0-0' }}</h3>
+                      <p class="text-muted mb-0">Meal Subsidy</p>
+                    </mat-card-content>
+                  </mat-card>
+                </div>
+                <div class="col-md-3">
+                  <mat-card appearance="outlined" class="text-center">
+                    <mat-card-content>
+                      <mat-icon style="font-size: 48px; width: 48px; height: 48px;" color="primary">fastfood</mat-icon>
+                      <h3 class="mb-0 mt-2">{{ stats.totalMealCount }}</h3>
+                      <p class="text-muted mb-0">Meal Count</p>
+                    </mat-card-content>
+                  </mat-card>
+                </div>
+              </div>
+
+              <!-- 依類型統計 -->
+              <h4>Subsidy by Type</h4>
+              <div class="table-container mat-elevation-z2 mb-4">
+                <table mat-table [dataSource]="stats.subsidyByType" class="w-100">
+                  <ng-container matColumnDef="type">
+                    <th mat-header-cell *matHeaderCellDef>Type</th>
+                    <td mat-cell *matCellDef="let element">{{ element.type | subsidyType }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="count">
+                    <th mat-header-cell *matHeaderCellDef>Count</th>
+                    <td mat-cell *matCellDef="let element">{{ element.count }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="totalAmount">
+                    <th mat-header-cell *matHeaderCellDef>Total Amount</th>
+                    <td mat-cell *matCellDef="let element">{{ element.totalAmount | currency:'TWD':'symbol':'1.0-0' }}</td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="['type', 'count', 'totalAmount']"></tr>
+                  <tr mat-row *matRowDef="let row; columns: ['type', 'count', 'totalAmount']"></tr>
+                </table>
+              </div>
+
+              <!-- 月度餐費統計 -->
+              @if (stats.mealByMonth.length > 0) {
+                <h4>Meal Subsidy by Month</h4>
+                <div class="table-container mat-elevation-z2">
+                  <table mat-table [dataSource]="stats.mealByMonth" class="w-100">
+                    <ng-container matColumnDef="yearMonth">
+                      <th mat-header-cell *matHeaderCellDef>Month</th>
+                      <td mat-cell *matCellDef="let element">{{ element.yearMonth }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="mealCount">
+                      <th mat-header-cell *matHeaderCellDef>Meal Count</th>
+                      <td mat-cell *matCellDef="let element">{{ element.mealCount }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="totalAmount">
+                      <th mat-header-cell *matHeaderCellDef>Total Amount</th>
+                      <td mat-cell *matCellDef="let element">{{ element.totalAmount | currency:'TWD':'symbol':'1.0-0' }}</td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="['yearMonth', 'mealCount', 'totalAmount']"></tr>
+                    <tr mat-row *matRowDef="let row; columns: ['yearMonth', 'mealCount', 'totalAmount']"></tr>
+                  </table>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="mt-3 text-center text-muted">
+              <p>No statistics available</p>
+            </div>
+          }
+        </mat-tab>
+
+        <!-- 系統統計 -->
+        <mat-tab label="System Statistics">
+            <div class="mt-3">
+              <!-- 補助統計 -->
+              <h4>Subsidy Statistics</h4>
+              @if (systemSubsidyStats$ | async; as stats) {
+                <!-- 總覽卡片 -->
+                <div class="row g-3 mb-4">
+                  <div class="col-md-4">
+                    <mat-card appearance="outlined" class="text-center">
+                      <mat-card-content>
+                        <mat-icon style="font-size: 48px; width: 48px; height: 48px;" color="primary">paid</mat-icon>
+                        <h3 class="mb-0 mt-2">{{ stats.totalAmount | currency:'TWD':'symbol':'1.0-0' }}</h3>
+                        <p class="text-muted mb-0">Total Subsidy Amount</p>
+                      </mat-card-content>
+                    </mat-card>
+                  </div>
+                  <div class="col-md-4">
+                    <mat-card appearance="outlined" class="text-center">
+                      <mat-card-content>
+                        <mat-icon style="font-size: 48px; width: 48px; height: 48px;" color="primary">folder_open</mat-icon>
+                        <h3 class="mb-0 mt-2">{{ stats.totalCount }}</h3>
+                        <p class="text-muted mb-0">Total Applications</p>
+                      </mat-card-content>
+                    </mat-card>
+                  </div>
+                  <div class="col-md-4">
+                    <mat-card appearance="outlined" class="text-center">
+                      <mat-card-content>
+                        <mat-icon style="font-size: 48px; width: 48px; height: 48px;" color="primary">people</mat-icon>
+                        <h3 class="mb-0 mt-2">{{ stats.totalUsers }}</h3>
+                        <p class="text-muted mb-0">Total Users</p>
+                      </mat-card-content>
+                    </mat-card>
+                  </div>
+                </div>
+
+                <!-- 依類型統計 -->
+                <div class="table-container mat-elevation-z2 mb-4">
+                  <table mat-table [dataSource]="stats.byType" class="w-100">
+                    <ng-container matColumnDef="type">
+                      <th mat-header-cell *matHeaderCellDef>Type</th>
+                      <td mat-cell *matCellDef="let element">{{ element.type | subsidyType }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="count">
+                      <th mat-header-cell *matHeaderCellDef>Count</th>
+                      <td mat-cell *matCellDef="let element">{{ element.count }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="totalAmount">
+                      <th mat-header-cell *matHeaderCellDef>Total Amount</th>
+                      <td mat-cell *matCellDef="let element">{{ element.totalAmount | currency:'TWD':'symbol':'1.0-0' }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="userCount">
+                      <th mat-header-cell *matHeaderCellDef>User Count</th>
+                      <td mat-cell *matCellDef="let element">{{ element.userCount }}</td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="subsidyTypeColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: subsidyTypeColumns"></tr>
+                  </table>
+                </div>
+              }
+
+              <!-- 餐費統計 -->
+              <h4>Meal Subsidy Statistics</h4>
+              @if (systemMealStats$ | async; as stats) {
+                <!-- 總覽 -->
+                <div class="row g-3 mb-4">
+                  <div class="col-md-6">
+                    <mat-card appearance="outlined" class="text-center">
+                      <mat-card-content>
+                        <mat-icon style="font-size: 48px; width: 48px; height: 48px;" color="primary">restaurant_menu</mat-icon>
+                        <h3 class="mb-0 mt-2">{{ calculateMealYearTotal(stats) | currency:'TWD':'symbol':'1.0-0' }}</h3>
+                        <p class="text-muted mb-0">Total Meal Amount</p>
+                      </mat-card-content>
+                    </mat-card>
+                  </div>
+                  <div class="col-md-6">
+                    <mat-card appearance="outlined" class="text-center">
+                      <mat-card-content>
+                        <mat-icon style="font-size: 48px; width: 48px; height: 48px;" color="primary">analytics</mat-icon>
+                        <h3 class="mb-0 mt-2">{{ calculateMealYearAverage(stats) | currency:'TWD':'symbol':'1.0-0' }}</h3>
+                        <p class="text-muted mb-0">Average Per User (Monthly)</p>
+                      </mat-card-content>
+                    </mat-card>
+                  </div>
+                </div>
+
+                <!-- 月度統計 -->
+                <div class="table-container mat-elevation-z2">
+                  <table mat-table [dataSource]="stats" class="w-100">
+                    <ng-container matColumnDef="yearMonth">
+                      <th mat-header-cell *matHeaderCellDef>Month</th>
+                      <td mat-cell *matCellDef="let element">{{ element.yearMonth }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="userCount">
+                      <th mat-header-cell *matHeaderCellDef>User Count</th>
+                      <td mat-cell *matCellDef="let element">{{ element.userCount }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="totalMealCount">
+                      <th mat-header-cell *matHeaderCellDef>Total Meal Count</th>
+                      <td mat-cell *matCellDef="let element">{{ element.totalMealCount }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="totalAmount">
+                      <th mat-header-cell *matHeaderCellDef>Total Amount</th>
+                      <td mat-cell *matCellDef="let element">{{ element.totalAmount | currency:'TWD':'symbol':'1.0-0' }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="averagePerUser">
+                      <th mat-header-cell *matHeaderCellDef>Average Per User</th>
+                      <td mat-cell *matCellDef="let element">{{ element.averagePerUser | currency:'TWD':'symbol':'1.0-0' }}</td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="mealMonthColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: mealMonthColumns"></tr>
+                  </table>
+                </div>
+              }
+
+              <!-- Top 5 排行榜 -->
+              <h4 class="mt-4">Top 5 Users by Subsidy Type</h4>
+              @if (topUsers$ | async; as topUsers) {
+                <div class="row g-3">
+                  <!-- 筆電補助 Top 5 -->
+                  <div class="col-md-6">
+                    <mat-card appearance="outlined">
+                      <mat-card-header>
+                        <mat-card-title>Laptop Subsidy</mat-card-title>
+                      </mat-card-header>
+                      <mat-card-content>
+                        @if (topUsers.laptop.length > 0) {
+                          <table mat-table [dataSource]="topUsers.laptop" class="w-100">
+                            <ng-container matColumnDef="rank">
+                              <th mat-header-cell *matHeaderCellDef>Rank</th>
+                              <td mat-cell *matCellDef="let element; let i = index">{{ i + 1 }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="userId">
+                              <th mat-header-cell *matHeaderCellDef>User</th>
+                              <td mat-cell *matCellDef="let element">{{ element.userId | userName }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="count">
+                              <th mat-header-cell *matHeaderCellDef>Count</th>
+                              <td mat-cell *matCellDef="let element">{{ element.count }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="totalAmount">
+                              <th mat-header-cell *matHeaderCellDef>Total</th>
+                              <td mat-cell *matCellDef="let element">{{ element.totalAmount | currency:'TWD':'symbol':'1.0-0' }}</td>
+                            </ng-container>
+                            <tr mat-header-row *matHeaderRowDef="rankingColumns"></tr>
+                            <tr mat-row *matRowDef="let row; columns: rankingColumns"></tr>
+                          </table>
+                        } @else {
+                          <p class="text-muted text-center">No data</p>
+                        }
+                      </mat-card-content>
+                    </mat-card>
+                  </div>
+
+                  <!-- 健檢補助 Top 5 -->
+                  <div class="col-md-6">
+                    <mat-card appearance="outlined">
+                      <mat-card-header>
+                        <mat-card-title>Health Check Subsidy</mat-card-title>
+                      </mat-card-header>
+                      <mat-card-content>
+                        @if (topUsers.healthCheck.length > 0) {
+                          <table mat-table [dataSource]="topUsers.healthCheck" class="w-100">
+                            <ng-container matColumnDef="rank">
+                              <th mat-header-cell *matHeaderCellDef>Rank</th>
+                              <td mat-cell *matCellDef="let element; let i = index">{{ i + 1 }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="userId">
+                              <th mat-header-cell *matHeaderCellDef>User</th>
+                              <td mat-cell *matCellDef="let element">{{ element.userId | userName }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="count">
+                              <th mat-header-cell *matHeaderCellDef>Count</th>
+                              <td mat-cell *matCellDef="let element">{{ element.count }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="totalAmount">
+                              <th mat-header-cell *matHeaderCellDef>Total</th>
+                              <td mat-cell *matCellDef="let element">{{ element.totalAmount | currency:'TWD':'symbol':'1.0-0' }}</td>
+                            </ng-container>
+                            <tr mat-header-row *matHeaderRowDef="rankingColumns"></tr>
+                            <tr mat-row *matRowDef="let row; columns: rankingColumns"></tr>
+                          </table>
+                        } @else {
+                          <p class="text-muted text-center">No data</p>
+                        }
+                      </mat-card-content>
+                    </mat-card>
+                  </div>
+
+                  <!-- 進修課程 Top 5 -->
+                  <div class="col-md-6">
+                    <mat-card appearance="outlined">
+                      <mat-card-header>
+                        <mat-card-title>Training Course Subsidy</mat-card-title>
+                      </mat-card-header>
+                      <mat-card-content>
+                        @if (topUsers.training.length > 0) {
+                          <table mat-table [dataSource]="topUsers.training" class="w-100">
+                            <ng-container matColumnDef="rank">
+                              <th mat-header-cell *matHeaderCellDef>Rank</th>
+                              <td mat-cell *matCellDef="let element; let i = index">{{ i + 1 }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="userId">
+                              <th mat-header-cell *matHeaderCellDef>User</th>
+                              <td mat-cell *matCellDef="let element">{{ element.userId | userName }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="count">
+                              <th mat-header-cell *matHeaderCellDef>Count</th>
+                              <td mat-cell *matCellDef="let element">{{ element.count }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="totalAmount">
+                              <th mat-header-cell *matHeaderCellDef>Total</th>
+                              <td mat-cell *matCellDef="let element">{{ element.totalAmount | currency:'TWD':'symbol':'1.0-0' }}</td>
+                            </ng-container>
+                            <tr mat-header-row *matHeaderRowDef="rankingColumns"></tr>
+                            <tr mat-row *matRowDef="let row; columns: rankingColumns"></tr>
+                          </table>
+                        } @else {
+                          <p class="text-muted text-center">No data</p>
+                        }
+                      </mat-card-content>
+                    </mat-card>
+                  </div>
+
+                  <!-- AI 工具 Top 5 -->
+                  <div class="col-md-6">
+                    <mat-card appearance="outlined">
+                      <mat-card-header>
+                        <mat-card-title>AI Tool Subsidy</mat-card-title>
+                      </mat-card-header>
+                      <mat-card-content>
+                        @if (topUsers.aiTool.length > 0) {
+                          <table mat-table [dataSource]="topUsers.aiTool" class="w-100">
+                            <ng-container matColumnDef="rank">
+                              <th mat-header-cell *matHeaderCellDef>Rank</th>
+                              <td mat-cell *matCellDef="let element; let i = index">{{ i + 1 }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="userId">
+                              <th mat-header-cell *matHeaderCellDef>User</th>
+                              <td mat-cell *matCellDef="let element">{{ element.userId | userName }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="count">
+                              <th mat-header-cell *matHeaderCellDef>Count</th>
+                              <td mat-cell *matCellDef="let element">{{ element.count }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="totalAmount">
+                              <th mat-header-cell *matHeaderCellDef>Total</th>
+                              <td mat-cell *matCellDef="let element">{{ element.totalAmount | currency:'TWD':'symbol':'1.0-0' }}</td>
+                            </ng-container>
+                            <tr mat-header-row *matHeaderRowDef="rankingColumns"></tr>
+                            <tr mat-row *matRowDef="let row; columns: rankingColumns"></tr>
+                          </table>
+                        } @else {
+                          <p class="text-muted text-center">No data</p>
+                        }
+                      </mat-card-content>
+                    </mat-card>
+                  </div>
+
+                  <!-- 旅遊補助 Top 5 -->
+                  <div class="col-md-6">
+                    <mat-card appearance="outlined">
+                      <mat-card-header>
+                        <mat-card-title>Travel Subsidy</mat-card-title>
+                      </mat-card-header>
+                      <mat-card-content>
+                        @if (topUsers.travel.length > 0) {
+                          <table mat-table [dataSource]="topUsers.travel" class="w-100">
+                            <ng-container matColumnDef="rank">
+                              <th mat-header-cell *matHeaderCellDef>Rank</th>
+                              <td mat-cell *matCellDef="let element; let i = index">{{ i + 1 }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="userId">
+                              <th mat-header-cell *matHeaderCellDef>User</th>
+                              <td mat-cell *matCellDef="let element">{{ element.userId | userName }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="count">
+                              <th mat-header-cell *matHeaderCellDef>Count</th>
+                              <td mat-cell *matCellDef="let element">{{ element.count }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="totalAmount">
+                              <th mat-header-cell *matHeaderCellDef>Total</th>
+                              <td mat-cell *matCellDef="let element">{{ element.totalAmount | currency:'TWD':'symbol':'1.0-0' }}</td>
+                            </ng-container>
+                            <tr mat-header-row *matHeaderRowDef="rankingColumns"></tr>
+                            <tr mat-row *matRowDef="let row; columns: rankingColumns"></tr>
+                          </table>
+                        } @else {
+                          <p class="text-muted text-center">No data</p>
+                        }
+                      </mat-card-content>
+                    </mat-card>
+                  </div>
+
+                  <!-- 供餐補助 Top 5 -->
+                  <div class="col-md-6">
+                    <mat-card appearance="outlined">
+                      <mat-card-header>
+                        <mat-card-title>Meal Subsidy</mat-card-title>
+                      </mat-card-header>
+                      <mat-card-content>
+                        @if (topUsers.meal.length > 0) {
+                          <table mat-table [dataSource]="topUsers.meal" class="w-100">
+                            <ng-container matColumnDef="rank">
+                              <th mat-header-cell *matHeaderCellDef>Rank</th>
+                              <td mat-cell *matCellDef="let element; let i = index">{{ i + 1 }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="userId">
+                              <th mat-header-cell *matHeaderCellDef>User</th>
+                              <td mat-cell *matCellDef="let element">{{ element.userId | userName }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="count">
+                              <th mat-header-cell *matHeaderCellDef>Meal Count</th>
+                              <td mat-cell *matCellDef="let element">{{ element.count }}</td>
+                            </ng-container>
+                            <ng-container matColumnDef="totalAmount">
+                              <th mat-header-cell *matHeaderCellDef>Total</th>
+                              <td mat-cell *matCellDef="let element">{{ element.totalAmount | currency:'TWD':'symbol':'1.0-0' }}</td>
+                            </ng-container>
+                            <tr mat-header-row *matHeaderRowDef="rankingColumns"></tr>
+                            <tr mat-row *matRowDef="let row; columns: rankingColumns"></tr>
+                          </table>
+                        } @else {
+                          <p class="text-muted text-center">No data</p>
+                        }
+                      </mat-card-content>
+                    </mat-card>
+                  </div>
+                </div>
+              }
+            </div>
+          </mat-tab>
+      </mat-tab-group>
+    </mat-card-content>
+  </mat-card>
+</div>
