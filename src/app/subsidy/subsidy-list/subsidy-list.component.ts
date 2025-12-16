@@ -15,7 +15,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { provideNativeDateAdapter } from '@angular/material/core';
-import { map, Observable } from 'rxjs';
+import { map, Observable, take } from 'rxjs';
 
 import {
   SubsidyApplication,
@@ -73,6 +73,7 @@ export class SubsidyListComponent {
   selectedTabIndex = 0;
   selectedType: SubsidyType | null = null;
   typeList = this.subsidyService.typeList;
+  showFilterPanel = false; // 控制浮動過濾器面板的顯示/隱藏
 
   // 日期範圍表單
   dateRangeForm = new FormGroup({
@@ -114,33 +115,50 @@ export class SubsidyListComponent {
 
   onTabChange(index: number) {
     this.selectedTabIndex = index;
+    // 切換 Tab 時應用當前的過濾條件
+    this.applyFilters();
   }
 
   onTypeFilterChange(type: SubsidyType | null) {
     this.selectedType = type;
+    this.applyFilters();
+  }
+
+  onDateRangeChange() {
+    this.applyFilters();
+  }
+
+  toggleFilterPanel() {
+    this.showFilterPanel = !this.showFilterPanel;
+  }
+
+  clearFilters() {
+    this.dateRangeForm.reset();
+    this.selectedType = null;
+    this.applyFilters();
+  }
+
+  /**
+   * 根據當前的過濾條件重新載入資料
+   */
+  private applyFilters() {
+    const start = this.dateRangeForm.value.start;
+    const end = this.dateRangeForm.value.end;
 
     // 根據當前 Tab 重新載入資料
     if (this.selectedTabIndex === 0) {
       // 全部申請 Tab
-      const start = this.dateRangeForm.value.start;
-      const end = this.dateRangeForm.value.end;
       this.loadAllApplications(start || undefined, end || undefined);
     } else if (this.selectedTabIndex === 1) {
       // 我的申請 Tab
-      this.currentUser$.subscribe((user) => {
+      this.currentUser$.pipe(take(1)).subscribe((user) => {
         if (user && user.uid) {
-          this.loadMyApplications(user.uid);
+          this.loadMyApplications(user.uid, start || undefined, end || undefined);
         }
       });
-    }
-  }
-
-  onDateRangeChange() {
-    const start = this.dateRangeForm.value.start;
-    const end = this.dateRangeForm.value.end;
-
-    if (start && end) {
-      this.loadAllApplications(start, end);
+    } else if (this.selectedTabIndex === 2) {
+      // 待審核 Tab
+      this.loadPendingApplications(start || undefined, end || undefined);
     }
   }
 
@@ -148,14 +166,24 @@ export class SubsidyListComponent {
     let observable: Observable<SubsidyApplication[]>;
 
     if (startDate && endDate) {
-      // 使用指定的日期範圍
+      // 有日期範圍：使用日期範圍查詢（會同時考慮類型過濾）
       observable = this.subsidyService.searchByTypeAndDate(
         this.selectedType,
         startDate,
         endDate
       );
+    } else if (this.selectedType !== null) {
+      // 只有類型過濾，沒有日期範圍：使用當月資料並過濾類型
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      observable = this.subsidyService.searchByTypeAndDate(
+        this.selectedType,
+        startOfMonth,
+        startOfNextMonth
+      );
     } else {
-      // 預設顯示當月
+      // 沒有任何過濾：顯示當月所有資料
       observable = this.subsidyService.getCurrentMonthApplications();
     }
 
@@ -164,21 +192,64 @@ export class SubsidyListComponent {
     );
   }
 
-  loadMyApplications(userId: string) {
-    const observable =
-      this.selectedType !== null
-        ? this.subsidyService.getMyApplicationsByType(userId, this.selectedType)
-        : this.subsidyService.getMyApplications(userId);
+  loadMyApplications(userId: string, startDate?: Date, endDate?: Date) {
+    let observable: Observable<SubsidyApplication[]>;
+
+    if (startDate && endDate) {
+      // 有日期範圍：先取得所有我的申請，然後在客戶端過濾
+      observable = this.subsidyService.getMyApplications(userId).pipe(
+        map((applications) => {
+          return applications.filter((app) => {
+            const appDate = (app.applicationDate as any).toDate();
+            const matchesDate = appDate >= startDate && appDate < endDate;
+            const matchesType = this.selectedType === null || app.type === this.selectedType;
+            return matchesDate && matchesType;
+          });
+        })
+      );
+    } else if (this.selectedType !== null) {
+      // 只有類型過濾
+      observable = this.subsidyService.getMyApplicationsByType(userId, this.selectedType);
+    } else {
+      // 沒有任何過濾
+      observable = this.subsidyService.getMyApplications(userId);
+    }
 
     this.myApplicationsList$ = observable.pipe(
       map((data) => this.transformToDataSource(data))
     );
   }
 
-  loadPendingApplications() {
-    this.pendingApplicationsList$ = this.subsidyService
-      .getPendingApplications()
-      .pipe(map((data) => this.transformToDataSource(data)));
+  loadPendingApplications(startDate?: Date, endDate?: Date) {
+    let observable: Observable<SubsidyApplication[]>;
+
+    if (startDate && endDate) {
+      // 有日期範圍：先取得所有待審核申請，然後在客戶端過濾
+      observable = this.subsidyService.getPendingApplications().pipe(
+        map((applications) => {
+          return applications.filter((app) => {
+            const appDate = (app.applicationDate as any).toDate();
+            const matchesDate = appDate >= startDate && appDate < endDate;
+            const matchesType = this.selectedType === null || app.type === this.selectedType;
+            return matchesDate && matchesType;
+          });
+        })
+      );
+    } else if (this.selectedType !== null) {
+      // 只有類型過濾：先取得所有待審核申請，然後在客戶端過濾類型
+      observable = this.subsidyService.getPendingApplications().pipe(
+        map((applications) => {
+          return applications.filter((app) => app.type === this.selectedType);
+        })
+      );
+    } else {
+      // 沒有任何過濾：顯示所有待審核申請
+      observable = this.subsidyService.getPendingApplications();
+    }
+
+    this.pendingApplicationsList$ = observable.pipe(
+      map((data) => this.transformToDataSource(data))
+    );
   }
 
   transformToDataSource(
