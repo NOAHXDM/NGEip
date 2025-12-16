@@ -1,0 +1,41 @@
+<h2 mat-dialog-title>Change Status to: {{ targetStatusIcon.text }}</h2>
+<mat-dialog-content class="mat-typography">
+  <div class="d-flex align-items-center my-3">
+    <mat-icon [style.color]="sourceStatusIcon.color" [fontIcon]="sourceStatusIcon.name"></mat-icon>
+    <mat-progress-bar mode="buffer" ></mat-progress-bar>
+    <mat-icon [style.color]="targetStatusIcon.color" [fontIcon]="targetStatusIcon.name"></mat-icon>
+  </div>
+
+  @if (data.newStatus === 'approved') {
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Approved Amount</mat-label>
+      <input matInput type="number" [formControl]="approvedAmountControl" required>
+      <span matTextPrefix>$&nbsp;</span>
+      @if (approvedAmountControl.hasError('required')) {
+        <mat-error>Please enter approved amount</mat-error>
+      }
+      @if (approvedAmountControl.hasError('min')) {
+        <mat-error>Amount must be greater than or equal to 0</mat-error>
+      }
+      <mat-hint>Invoice Amount: ${{ data.application.invoiceAmount || 0 }} | Requested Subsidy: ${{ data.application.approvedAmount || 0 }}</mat-hint>
+    </mat-form-field>
+  }
+
+  @if (data.newStatus === 'rejected') {
+    <div class="alert alert-warning" role="alert">
+      <strong>Attention!</strong> After rejecting this application, the applicant can resubmit.
+    </div>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button type="button" mat-button mat-dialog-close>Cancel</button>
+  <button
+    type="button"
+    mat-raised-button
+    color="primary"
+    (click)="updateStatus()"
+    [disabled]="data.newStatus === 'approved' && approvedAmountControl.invalid"
+  >
+    Confirm
+  </button>
+</mat-dialog-actions>

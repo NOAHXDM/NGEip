@@ -1,0 +1,129 @@
+<h2 mat-dialog-title>{{ data.title }}</h2>
+<mat-dialog-content>
+  <form [formGroup]="subsidyForm">
+    <!-- 補助類型 -->
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Subsidy Type</mat-label>
+      <mat-select formControlName="type" required>
+        @for (type of typeList; track type.value) {
+          <mat-option [value]="type.value">{{ type.text }}</mat-option>
+        }
+      </mat-select>
+      @if (subsidyForm.get('type')?.hasError('required')) {
+        <mat-error>Please select subsidy type</mat-error>
+      }
+    </mat-form-field>
+
+    <!-- 申請人 -->
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Applicant</mat-label>
+      <mat-select formControlName="userId" required>
+        @for (user of userList$ | async; track user.uid) {
+          <mat-option [value]="user.uid">{{ user.name }}</mat-option>
+        }
+      </mat-select>
+      @if (subsidyForm.get('userId')?.hasError('required')) {
+        <mat-error>Please select applicant</mat-error>
+      }
+    </mat-form-field>
+
+    <!-- 申請日期 -->
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Application Date</mat-label>
+      <input matInput [matDatepicker]="picker" formControlName="applicationDate" required>
+      <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+      @if (subsidyForm.get('applicationDate')?.hasError('required')) {
+        <mat-error>Please select application date</mat-error>
+      }
+    </mat-form-field>
+
+    <!-- 內容說明（動態顯示） -->
+    @if (showContent()) {
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Content Description</mat-label>
+        <textarea
+          matInput
+          formControlName="content"
+          rows="3"
+          placeholder="Enter subsidy content description (e.g., course name, health check items, travel destination, etc.)"
+        ></textarea>
+        @if (subsidyForm.get('content')?.hasError('required')) {
+          <mat-error>Please enter content description</mat-error>
+        }
+      </mat-form-field>
+    }
+
+    <!-- 發票金額（動態顯示） -->
+    @if (showInvoiceAmount()) {
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Invoice Amount</mat-label>
+        <input matInput type="number" formControlName="invoiceAmount" placeholder="0">
+        <span matTextPrefix>$&nbsp;</span>
+        @if (subsidyForm.get('invoiceAmount')?.hasError('required')) {
+          <mat-error>Please enter invoice amount</mat-error>
+        }
+        @if (subsidyForm.get('invoiceAmount')?.hasError('min')) {
+          <mat-error>Amount must be greater than or equal to 0</mat-error>
+        }
+        <mat-hint>Enter the actual expense amount from the invoice</mat-hint>
+      </mat-form-field>
+    }
+
+    <!-- 核准補助金額（動態顯示） -->
+    @if (showApprovedAmount()) {
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Approved Subsidy Amount</mat-label>
+        <input matInput type="number" formControlName="approvedAmount" placeholder="0">
+        <span matTextPrefix>$&nbsp;</span>
+        @if (subsidyForm.get('approvedAmount')?.hasError('required')) {
+          <mat-error>Please enter approved subsidy amount</mat-error>
+        }
+        @if (subsidyForm.get('approvedAmount')?.hasError('min')) {
+          <mat-error>Amount must be greater than or equal to 0</mat-error>
+        }
+        <mat-hint>Enter the subsidy amount to be applied for (e.g., 40% for training, 50% for AI tools)</mat-hint>
+      </mat-form-field>
+    }
+
+    <!-- 季度（僅 AI 工具） -->
+    @if (showQuarter()) {
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Quarter</mat-label>
+        <mat-select formControlName="quarter" required>
+          <mat-option [value]="1">Q1</mat-option>
+          <mat-option [value]="2">Q2</mat-option>
+          <mat-option [value]="3">Q3</mat-option>
+          <mat-option [value]="4">Q4</mat-option>
+        </mat-select>
+        @if (subsidyForm.get('quarter')?.hasError('required')) {
+          <mat-error>Please select quarter</mat-error>
+        }
+      </mat-form-field>
+    }
+
+    <!-- 延至下一季金額（僅 AI 工具） -->
+    @if (showCarryOverAmount()) {
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Carry Over Amount</mat-label>
+        <input matInput type="number" formControlName="carryOverAmount" placeholder="0">
+        <span matTextPrefix>$&nbsp;</span>
+        <mat-hint>Unused subsidy from this quarter can be carried over to next quarter</mat-hint>
+        @if (subsidyForm.get('carryOverAmount')?.hasError('min')) {
+          <mat-error>Amount must be greater than or equal to 0</mat-error>
+        }
+      </mat-form-field>
+    }
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cancel</button>
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="onSubmit()"
+    [disabled]="subsidyForm.invalid"
+  >
+    Submit
+  </button>
+</mat-dialog-actions>
