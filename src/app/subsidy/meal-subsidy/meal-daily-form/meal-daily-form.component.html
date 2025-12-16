@@ -5,135 +5,101 @@
     <!-- 日期選擇 -->
     <mat-form-field appearance="outline" class="w-100">
       <mat-label>Date</mat-label>
-      <input
-        matInput
-        [matDatepicker]="datePicker"
-        formControlName="date"
-        required
-      />
-      <mat-datepicker-toggle
-        matIconSuffix
-        [for]="datePicker"
-      ></mat-datepicker-toggle>
+      <input matInput [matDatepicker]="datePicker" formControlName="date" required />
+      <mat-datepicker-toggle matIconSuffix [for]="datePicker"></mat-datepicker-toggle>
       <mat-datepicker #datePicker></mat-datepicker>
     </mat-form-field>
 
     <!-- 餐點列表 -->
     <div class="meals-section">
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4>Meal Entries</h4>
-        @if (isAdmin$ | async) {
-          <button
-            type="button"
-            mat-mini-fab
-            color="primary"
-            (click)="addMeal()"
-            title="Add Meal Entry"
-          >
-            <mat-icon>add</mat-icon>
-          </button>
+        <h6 class="section-title mb-0">Meal Entries</h6>
+        @if ((isAdmin$ | async) && !data.readOnly) {
+        <button type="button" mat-mini-fab color="primary" (click)="addMeal()" title="Add Meal Entry">
+          <mat-icon>add</mat-icon>
+        </button>
         }
       </div>
 
       @if (mealsArray.length === 0) {
-        <p class="text-muted">No meal entries yet. Click the + button to add one.</p>
+      <p class="text-muted">No meal entries yet. Click the + button to add one.</p>
       }
 
       <div formArrayName="meals">
         @for (mealControl of mealsArray.controls; track $index) {
-          <div [formGroupName]="$index" class="meal-entry-card mb-3">
-            <div class="d-flex justify-content-between align-items-start">
-              <h5 class="mb-2">Entry #{{ $index + 1 }}</h5>
-              @if (isAdmin$ | async) {
-                <button
-                  type="button"
-                  mat-icon-button
-                  color="warn"
-                  (click)="removeMeal($index)"
-                  title="Remove Entry"
-                >
-                  <mat-icon>delete</mat-icon>
-                </button>
-              }
+        <div [formGroupName]="$index" class="meal-entry-card mb-3">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="entry-label">Entry #{{ $index + 1 }}</div>
+            @if ((isAdmin$ | async) && !data.readOnly) {
+            <button type="button" mat-icon-button color="warn" (click)="removeMeal($index)" title="Remove Entry">
+              <mat-icon>delete</mat-icon>
+            </button>
+            }
+          </div>
+
+          <div class="row">
+            <!-- 員工選擇 -->
+            <div class="col-md-4">
+              <mat-form-field appearance="outline" class="w-100">
+                <mat-label>Employee</mat-label>
+                <mat-select formControlName="userId" required>
+                  @for (user of userList$ | async; track user.uid) {
+                  <mat-option [value]="user.uid!">
+                    {{ user.uid! | userName }}
+                  </mat-option>
+                  }
+                </mat-select>
+                @if (mealControl.get('userId')?.hasError('required')) {
+                <mat-error>Employee is required</mat-error>
+                }
+              </mat-form-field>
             </div>
 
-            <div class="row">
-              <!-- 員工選擇 -->
-              <div class="col-md-4">
-                <mat-form-field appearance="outline" class="w-100">
-                  <mat-label>Employee</mat-label>
-                  <mat-select formControlName="userId" required>
-                    @for (user of userList$ | async; track user.uid) {
-                      <mat-option [value]="user.uid!">
-                        {{ user.uid! | userName }}
-                      </mat-option>
-                    }
-                  </mat-select>
-                  @if (mealControl.get('userId')?.hasError('required')) {
-                    <mat-error>Employee is required</mat-error>
-                  }
-                </mat-form-field>
-              </div>
+            <!-- 點餐內容 -->
+            <div class="col-md-5">
+              <mat-form-field appearance="outline" class="w-100">
+                <mat-label>Order Content</mat-label>
+                <input matInput formControlName="orderContent" required placeholder="e.g., Lunch box A" />
+                @if (mealControl.get('orderContent')?.hasError('required')) {
+                <mat-error>Order content is required</mat-error>
+                }
+              </mat-form-field>
+            </div>
 
-              <!-- 點餐內容 -->
-              <div class="col-md-5">
-                <mat-form-field appearance="outline" class="w-100">
-                  <mat-label>Order Content</mat-label>
-                  <input
-                    matInput
-                    formControlName="orderContent"
-                    required
-                    placeholder="e.g., Lunch box A"
-                  />
-                  @if (mealControl.get('orderContent')?.hasError('required')) {
-                    <mat-error>Order content is required</mat-error>
-                  }
-                </mat-form-field>
-              </div>
-
-              <!-- 金額 -->
-              <div class="col-md-3">
-                <mat-form-field appearance="outline" class="w-100">
-                  <mat-label>Amount</mat-label>
-                  <input
-                    matInput
-                    type="number"
-                    formControlName="amount"
-                    required
-                    min="0"
-                  />
-                  <span matTextPrefix>$&nbsp;</span>
-                  @if (mealControl.get('amount')?.hasError('required')) {
-                    <mat-error>Amount is required</mat-error>
-                  }
-                  @if (mealControl.get('amount')?.hasError('min')) {
-                    <mat-error>Amount must be positive</mat-error>
-                  }
-                </mat-form-field>
-              </div>
+            <!-- 金額 -->
+            <div class="col-md-3">
+              <mat-form-field appearance="outline" class="w-100">
+                <mat-label>Amount</mat-label>
+                <input matInput type="number" formControlName="amount" required min="0" />
+                <span matTextPrefix>$&nbsp;</span>
+                @if (mealControl.get('amount')?.hasError('required')) {
+                <mat-error>Amount is required</mat-error>
+                }
+                @if (mealControl.get('amount')?.hasError('min')) {
+                <mat-error>Amount must be positive</mat-error>
+                }
+              </mat-form-field>
             </div>
           </div>
+        </div>
         }
       </div>
 
       <!-- 總計 -->
       @if (mealsArray.length > 0) {
-        <div class="total-section mt-3">
-          <h5>Daily Total: <strong>${{ calculateTotal() }}</strong></h5>
-        </div>
+      <div class="total-section mt-3">
+        <div class="total-label">Daily Total: <strong>${{ calculateTotal() }}</strong></div>
+      </div>
       }
     </div>
   </form>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button (click)="onCancel()">Cancel</button>
-  <button
-    mat-raised-button
-    color="primary"
-    (click)="onSave()"
-    [disabled]="mealForm.invalid || mealsArray.length === 0"
-  >
+  <button mat-button (click)="onCancel()">{{ data.readOnly ? 'Close' : 'Cancel' }}</button>
+  @if (!data.readOnly) {
+  <button mat-raised-button color="primary" (click)="onSave()" [disabled]="mealForm.invalid || mealsArray.length === 0">
     Save
   </button>
+  }
 </mat-dialog-actions>

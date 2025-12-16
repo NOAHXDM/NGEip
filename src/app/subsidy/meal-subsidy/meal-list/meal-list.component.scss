@@ -11,3 +11,84 @@ mat-card-header {
   gap: 16px;
   padding: 16px;
 }
+
+mat-form-field {
+  margin-bottom: 0 !important;
+}
+
+// 背景遮罩樣式
+.filter-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 999;
+  animation: fadeIn 0.3s ease-out;
+}
+
+// 浮動過濾器面板樣式
+.filter-panel {
+  position: absolute;
+  top: 80px;
+  right: 16px;
+  width: 320px;
+  background: white;
+  border-radius: 8px;
+  z-index: 1000;
+  animation: slideIn 0.3s ease-out;
+
+  .filter-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid #e0e0e0;
+
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 500;
+      color: #333;
+    }
+  }
+
+  .filter-panel-content {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+// 響應式設計
+@media (max-width: 768px) {
+  .filter-panel {
+    width: calc(100% - 32px);
+    right: 16px;
+    left: 16px;
+  }
+}

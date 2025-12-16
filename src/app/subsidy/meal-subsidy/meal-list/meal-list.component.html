@@ -1,11 +1,12 @@
 <div class="container-fluid mt-4">
   <mat-card appearance="outlined">
-    <mat-card-header class="d-flex flex-wrap justify-content-between align-items-center">
+    <!-- 自定義 header，不使用 mat-card-header 避免自動生成的元素影響布局 -->
+    <div class="card-header-custom d-flex justify-content-between align-items-center p-3">
       <!-- 新增餐點記錄按鈕（僅管理員） -->
       @if (isAdmin$ | async) {
-        <button type="button" mat-mini-fab color="primary" (click)="openNewMealDialog()">
-          <mat-icon>add</mat-icon>
-        </button>
+      <button type="button" mat-mini-fab color="primary" (click)="openNewMealDialog()">
+        <mat-icon>add</mat-icon>
+      </button>
       }
 
       <!-- 快速篩選按鈕 -->
@@ -24,92 +25,115 @@
         </button>
       </div>
 
-      <!-- 日期範圍過濾器 -->
-      <form [formGroup]="dateRangeForm" class="d-flex gap-2 align-items-center">
-        <mat-form-field appearance="outline" style="width: 150px;">
-          <mat-label>Start Date</mat-label>
-          <input matInput [matDatepicker]="startPicker" formControlName="start" (dateChange)="onDateRangeChange()">
-          <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
-          <mat-datepicker #startPicker></mat-datepicker>
-        </mat-form-field>
+      <!-- 過濾器控制按鈕 -->
+      <button type="button" mat-mini-fab color="accent" (click)="toggleFilterPanel()" title="Toggle Filters">
+        <mat-icon>filter_list</mat-icon>
+      </button>
+    </div>
 
-        <mat-form-field appearance="outline" style="width: 150px;">
-          <mat-label>End Date</mat-label>
-          <input matInput [matDatepicker]="endPicker" formControlName="end" (dateChange)="onDateRangeChange()">
-          <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
-          <mat-datepicker #endPicker></mat-datepicker>
-        </mat-form-field>
+    <!-- 浮動過濾器面板 -->
+    @if (showFilterPanel) {
+    <!-- 背景遮罩 -->
+    <div class="filter-backdrop" (click)="toggleFilterPanel()"></div>
 
-        <button type="button" mat-icon-button (click)="dateRangeForm.reset(); loadCurrentMonthMeals()" title="Clear filters">
-          <mat-icon>clear</mat-icon>
+    <div class="filter-panel mat-elevation-z4">
+      <div class="filter-panel-header">
+        <h3>Filter</h3>
+        <button type="button" mat-icon-button (click)="toggleFilterPanel()">
+          <mat-icon>close</mat-icon>
         </button>
-      </form>
-    </mat-card-header>
+      </div>
+
+      <div class="filter-panel-content">
+        <!-- 日期範圍過濾器 -->
+        <form [formGroup]="dateRangeForm" class="d-flex flex-column gap-3">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Start Date</mat-label>
+            <input matInput [matDatepicker]="startPicker" formControlName="start" (dateChange)="onDateRangeChange()">
+            <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker #startPicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>End Date</mat-label>
+            <input matInput [matDatepicker]="endPicker" formControlName="end" (dateChange)="onDateRangeChange()">
+            <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker #endPicker></mat-datepicker>
+          </mat-form-field>
+
+          <button type="button" mat-raised-button color="warn" (click)="clearFilters()" class="w-100">
+            <mat-icon>clear</mat-icon>
+            Clear Filters
+          </button>
+        </form>
+      </div>
+    </div>
+    }
 
     <mat-card-content class="pt-2">
       <h3>Daily Meal Records</h3>
 
       @if (mealRecordsList$ | async; as dataSource) {
-        <div class="table-container mat-elevation-z2">
-          <table mat-table [dataSource]="dataSource" matSort class="w-100">
-            <!-- 日期 -->
-            <ng-container matColumnDef="date">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
-              <td mat-cell *matCellDef="let element">
-                {{ element.date | firestoreTimestamp : 'yyyy-MM-dd' }}
-              </td>
-            </ng-container>
+      <div class="table-container mat-elevation-z2">
+        <table mat-table [dataSource]="dataSource" matSort class="w-100">
+          <!-- 日期 -->
+          <ng-container matColumnDef="date">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
+            <td mat-cell *matCellDef="let element">
+              {{ element.date | firestoreTimestamp : 'yyyy-MM-dd' }}
+            </td>
+          </ng-container>
 
-            <!-- 星期幾 -->
-            <ng-container matColumnDef="dayOfWeek">
-              <th mat-header-cell *matHeaderCellDef>Day of Week</th>
-              <td mat-cell *matCellDef="let element">
-                {{ getDayOfWeekName(element.dayOfWeek) }}
-              </td>
-            </ng-container>
+          <!-- 星期幾 -->
+          <ng-container matColumnDef="dayOfWeek">
+            <th mat-header-cell *matHeaderCellDef>Day of Week</th>
+            <td mat-cell *matCellDef="let element">
+              {{ getDayOfWeekName(element.dayOfWeek) }}
+            </td>
+          </ng-container>
 
-            <!-- 用餐人數 -->
-            <ng-container matColumnDef="mealCount">
-              <th mat-header-cell *matHeaderCellDef>Meal Count</th>
-              <td mat-cell *matCellDef="let element">
-                {{ element.meals.length }}
-              </td>
-            </ng-container>
+          <!-- 用餐人數 -->
+          <ng-container matColumnDef="mealCount">
+            <th mat-header-cell *matHeaderCellDef>Meal Count</th>
+            <td mat-cell *matCellDef="let element">
+              {{ element.meals.length }}
+            </td>
+          </ng-container>
 
-            <!-- 當日總金額 -->
-            <ng-container matColumnDef="dailyTotal">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Daily Total</th>
-              <td mat-cell *matCellDef="let element">
-                ${{ element.dailyTotal }}
-              </td>
-            </ng-container>
+          <!-- 當日總金額 -->
+          <ng-container matColumnDef="dailyTotal">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Daily Total</th>
+            <td mat-cell *matCellDef="let element">
+              ${{ element.dailyTotal }}
+            </td>
+          </ng-container>
 
-            <!-- 操作 -->
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
-              <td mat-cell *matCellDef="let element">
-                <button mat-icon-button [matMenuTriggerFor]="actionMenu">
-                  <mat-icon>more_vert</mat-icon>
+          <!-- 操作 -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let element">
+              <button mat-icon-button [matMenuTriggerFor]="actionMenu">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #actionMenu="matMenu">
+                <button mat-menu-item (click)="openViewMealDialog(element)">
+                  <mat-icon>visibility</mat-icon>
+                  <span>View Details</span>
                 </button>
-                <mat-menu #actionMenu="matMenu">
-                  <button mat-menu-item (click)="openEditMealDialog(element)">
-                    <mat-icon>visibility</mat-icon>
-                    <span>View Details</span>
-                  </button>
-                  @if (isAdmin$ | async) {
-                    <button mat-menu-item (click)="openEditMealDialog(element)">
-                      <mat-icon>edit</mat-icon>
-                      <span>Edit</span>
-                    </button>
-                  }
-                </mat-menu>
-              </td>
-            </ng-container>
+                @if (isAdmin$ | async) {
+                <button mat-menu-item (click)="openEditMealDialog(element)">
+                  <mat-icon>edit</mat-icon>
+                  <span>Edit</span>
+                </button>
+                }
+              </mat-menu>
+            </td>
+          </ng-container>
 
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-          </table>
-        </div>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+      </div>
       }
     </mat-card-content>
   </mat-card>

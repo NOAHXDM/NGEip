@@ -12,7 +12,6 @@ import { MatButtonModule, MatIconButton } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
   MatDialogActions,
-  MatDialogClose,
   MatDialogContent,
   MatDialogRef,
   MatDialogTitle,
@@ -42,7 +41,6 @@ import { UserNamePipe } from '../../../pipes/user-name.pipe';
     MatButtonModule,
     MatIconButton,
     MatDialogActions,
-    MatDialogClose,
     MatDialogContent,
     MatDialogTitle,
     MatFormFieldModule,
@@ -74,7 +72,7 @@ export class MealDailyFormComponent implements OnInit {
     private mealService: MealSubsidyService,
     private userService: UserService,
     @Inject(MAT_DIALOG_DATA)
-    protected data: { title: string; record?: DailyMealRecord }
+    protected data: { title: string; record?: DailyMealRecord; readOnly?: boolean }
   ) {
     this.userList$ = this.userService.list$;
     this.isAdmin$ = this.userService.isAdmin$;
@@ -87,6 +85,11 @@ export class MealDailyFormComponent implements OnInit {
     } else {
       // 新增模式：至少新增一個餐點欄位
       this.addMeal();
+    }
+
+    // 如果是唯讀模式，禁用整個表單
+    if (this.data.readOnly) {
+      this.mealForm.disable();
     }
   }
 
@@ -150,13 +153,13 @@ export class MealDailyFormComponent implements OnInit {
     const dailyTotal = this.calculateTotal();
 
     const recordData: Omit<DailyMealRecord, 'id' | 'createdAt' | 'updatedAt'> =
-      {
-        date: Timestamp.fromDate(date),
-        dayOfWeek,
-        meals,
-        dailyTotal,
-        userIds,
-      };
+    {
+      date: Timestamp.fromDate(date),
+      dayOfWeek,
+      meals,
+      dailyTotal,
+      userIds,
+    };
 
     this.mealService.saveDailyMeal(dateId, recordData).subscribe({
       next: () => {

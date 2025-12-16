@@ -2,6 +2,30 @@ mat-card-header {
   padding: 16px;
 }
 
+// Header 三欄布局
+.header-left,
+.header-right {
+  flex: 0 0 auto; // 根據內容自適應寬度
+  display: flex;
+}
+
+.header-left {
+  justify-content: flex-start;
+}
+
+.header-center {
+  flex: 1; // 佔據剩餘空間
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.header-right {
+  justify-content: flex-end;
+}
+
+
 .summary-section {
   margin-top: 16px;
 }
