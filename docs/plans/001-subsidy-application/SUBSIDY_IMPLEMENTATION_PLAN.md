@@ -305,7 +305,6 @@ tools/subsidy-migration/
 ├── migrate-laptop.js         # 筆電補助遷移
 ├── migrate-health-check.js   # 健檢補助遷移
 ├── migrate-training.js       # 進修課程遷移
-├── migrate-ai-tool.js        # AI 工具遷移
 ├── migrate-travel.js         # 旅遊補助遷移
 └── migrate-meals.js          # 供餐補助遷移
 ```
