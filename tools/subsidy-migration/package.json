@@ -5,7 +5,18 @@
   "private": true,
   "scripts": {
     "sync": "node sync-from-prod.js",
-    "sync:dry": "node sync-from-prod.js --dry-run"
+    "sync:dry": "node sync-from-prod.js --dry-run",
+    "backup": "node backup-production.js",
+    "verify": "node verify-migration.js",
+    "verify:prod": "USE_PRODUCTION=true node verify-migration.js",
+    "migrate:laptop": "node migrate-laptop-subsidies.js ./laptop-subsidies.json",
+    "migrate:laptop:prod": "USE_PRODUCTION=true node migrate-laptop-subsidies.js ./laptop-subsidies.json",
+    "migrate:training": "node migrate-training-courses.js ./training-courses.json",
+    "migrate:training:prod": "USE_PRODUCTION=true node migrate-training-courses.js ./training-courses.json",
+    "migrate:travel": "node migrate-travel-subsidies.js ./travel-subsidies.json",
+    "migrate:travel:prod": "USE_PRODUCTION=true node migrate-travel-subsidies.js ./travel-subsidies.json",
+    "migrate:meal": "node migrate-lunch-orders.js ./lunch-orders.json",
+    "migrate:meal:prod": "USE_PRODUCTION=true node migrate-lunch-orders.js ./lunch-orders.json"
   },
   "keywords": [
     "firestore",
