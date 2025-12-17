@@ -4,6 +4,7 @@ import {
   provideZoneChangeDetection,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
 
 import { routes } from './app.routes';
 import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
@@ -58,6 +59,7 @@ export const appConfig: ApplicationConfig = {
       },
       multi: true,
     },
-    { provide: LEAVE_POLICY_CONFIG, useValue: TAIWAN_POLICY }
+    { provide: LEAVE_POLICY_CONFIG, useValue: TAIWAN_POLICY },
+    provideHttpClient(),
   ],
 };
