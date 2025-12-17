@@ -26,12 +26,12 @@
       }
 
       <div formArrayName="meals">
-        @for (mealControl of mealsArray.controls; track $index) {
-        <div [formGroupName]="$index" class="meal-entry-card mb-3">
+        @for (mealControl of mealsArray.controls; track mealControl; let i = $index) {
+        <div [formGroupName]="i" class="meal-entry-card mb-3">
           <div class="d-flex justify-content-between align-items-start">
-            <div class="entry-label">Entry #{{ $index + 1 }}</div>
+            <div class="entry-label">Entry #{{ i + 1 }}</div>
             @if ((isAdmin$ | async) && !data.readOnly) {
-            <button type="button" mat-icon-button color="warn" (click)="removeMeal($index)" title="Remove Entry">
+            <button type="button" mat-icon-button color="warn" (click)="removeMeal(i)" title="Remove Entry">
               <mat-icon>delete</mat-icon>
             </button>
             }
@@ -96,6 +96,13 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
+  @if (!data.readOnly) {
+  <button type="button" mat-stroked-button color="primary" (click)="onImportFromSheet()"
+    title="Import from Google Sheets">
+    <mat-icon>file_upload</mat-icon>
+    Import
+  </button>
+  }
   <button mat-button (click)="onCancel()">{{ data.readOnly ? 'Close' : 'Cancel' }}</button>
   @if (!data.readOnly) {
   <button mat-raised-button color="primary" (click)="onSave()" [disabled]="mealForm.invalid || mealsArray.length === 0">
