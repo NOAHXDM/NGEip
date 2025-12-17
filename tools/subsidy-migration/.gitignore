@@ -13,3 +13,6 @@ backup/
 
 # Node.js 依賴目錄
 node_modules/
+
+# Migration backups
+backups/

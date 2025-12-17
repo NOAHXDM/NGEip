@@ -7,21 +7,53 @@
  * node migrate-training-courses.js <json檔案路徑>
  *
  * 範例：
+ * # 本地模擬器（預設）
  * node migrate-training-courses.js ./training-courses.json
+ *
+ * # 正式環境（需要 serviceAccountKey.json）
+ * USE_PRODUCTION=true node migrate-training-courses.js ./training-courses.json
  */
 
 const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
 
-// 初始化 Firebase Admin（使用模擬器）
-if (!admin.apps.length) {
-  admin.initializeApp({
-    projectId: 'noahxdm-eip'
-  });
+// 判斷是否使用正式環境
+const USE_PRODUCTION = process.env.USE_PRODUCTION === 'true';
 
-  // 連接到模擬器
-  process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
+// 初始化 Firebase Admin
+if (!admin.apps.length) {
+  if (USE_PRODUCTION) {
+    // === 正式環境配置 ===
+    const serviceAccountPath = path.join(__dirname, 'serviceAccountKey.json');
+
+    if (!fs.existsSync(serviceAccountPath)) {
+      console.error('❌ 錯誤：找不到 serviceAccountKey.json');
+      console.error('請先從 Firebase Console 下載 Service Account Key');
+      console.error('參考文件：README_PRODUCTION.md');
+      process.exit(1);
+    }
+
+    const serviceAccount = require(serviceAccountPath);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+
+    console.log('⚠️  警告：使用正式環境 Firestore');
+    console.log(`專案 ID: ${serviceAccount.project_id}`);
+    console.log('');
+  } else {
+    // === 模擬器配置 ===
+    admin.initializeApp({
+      projectId: 'noahxdm-eip'
+    });
+
+    // 連接到模擬器
+    process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
+
+    console.log('✓ 使用本地模擬器 (localhost:8080)');
+    console.log('');
+  }
 }
 
 const db = admin.firestore();
