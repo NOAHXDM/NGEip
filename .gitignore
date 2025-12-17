@@ -49,3 +49,6 @@ Thumbs.db
 # Temp
 .env
 tools/eipImages.json
+
+# Firestore backup
+firestore-backup/

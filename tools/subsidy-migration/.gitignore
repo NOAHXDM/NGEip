@@ -1,0 +1,15 @@
+# Service Account Key (機密檔案，不可提交)
+serviceAccountKey.json
+
+# 轉換後的 JSON 檔案
+*.json
+!package.json
+
+# 備份檔案
+backup/
+
+# 日誌檔案
+*.log
+
+# Node.js 依賴目錄
+node_modules/
