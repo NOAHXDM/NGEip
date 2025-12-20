@@ -31,8 +31,7 @@ firestore/
 │   └── {dateId}/               # 格式: YYYY-MM-DD
 ├── userMealStats/              # 使用者月度餐費統計（高效查詢）
 │   └── {userId}_{YYYY-MM}/     # 複合 ID，每個使用者每月一筆
-├── subsidyStats/               # 補助統計
-└── systemConfig/subsidyConfig  # 補助配置
+└── subsidyStats/               # 補助統計
 ```
 
 ### 關鍵介面定義
