@@ -20,7 +20,7 @@
 
 ## Overview
 
-Enterprise Information Portal (EIP) is a comprehensive enterprise management system built with Angular and Firebase. It provides a robust solution for managing employee attendance, leave management, and user administration.
+Enterprise Information Portal (EIP) is a comprehensive enterprise management system built with Angular and Firebase. It provides a robust solution for managing employee attendance, leave management, subsidy applications, and user administration.
 
 ## Features
 
@@ -45,15 +45,28 @@ Enterprise Information Portal (EIP) is a comprehensive enterprise management sys
   - Leave transaction history
   - Leave settlement functionality
 
+- **Subsidy Management**
+
+  - Employee subsidy application system
+  - Multiple subsidy types (training courses, laptop, meal, etc.)
+  - Subsidy application approval workflow
+  - Laptop installment record management with custom amount input
+  - Meal subsidy tracking and statistics
+  - Comprehensive subsidy statistics (user-level and system-wide analytics)
+  - Google Sheets import functionality for meal subsidy records
+  - Data migration tools for subsidy records
+
 - **System Configuration**
 
   - License management
   - Leave policy configuration
   - System preferences
+  - Cloudinary image upload configuration
 
-- **Data Export**
+- **Data Export & Migration**
 
   - Attendance statistics export (CSV format)
+  - Subsidy data migration tools (development and production support)
 
 ## Built With
 
