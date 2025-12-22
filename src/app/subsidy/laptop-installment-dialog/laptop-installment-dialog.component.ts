@@ -121,6 +121,59 @@ export class LaptopInstallmentDialogComponent {
     });
   }
 
+  recordCustomInstallment() {
+    this.installmentsList$.pipe(take(1)).subscribe({
+      next: (installments) => {
+        const nextNumber = installments.length + 1;
+
+        // 檢查是否超過36期
+        if (nextNumber > 36) {
+          this.openSnackBar('All 36 installment records have been completed');
+          return;
+        }
+
+        // 提示使用者輸入金額
+        const amountInput = window.prompt(
+          `Enter the amount for Period ${nextNumber}:`,
+          ''
+        );
+
+        // 使用者取消輸入
+        if (amountInput === null) {
+          return;
+        }
+
+        // 驗證輸入
+        const amount = parseFloat(amountInput);
+        if (isNaN(amount) || amount <= 0) {
+          this.openSnackBar('Please enter a valid amount (must be greater than 0)');
+          return;
+        }
+
+        this.userService.currentUser$
+          .pipe(
+            take(1),
+            switchMap((user) =>
+              this.subsidyService.recordInstallment(
+                this.data.application.id!,
+                nextNumber,
+                amount,
+                user.uid!
+              )
+            )
+          )
+          .subscribe({
+            next: () => {
+              this.openSnackBar(`Period ${nextNumber} recorded ($${amount})`);
+            },
+            error: (error) => {
+              this.openSnackBar(`Failed to record: ${error.message}`);
+            },
+          });
+      },
+    });
+  }
+
   openSnackBar(message: string) {
     this.snackBar.open(message, 'Close', {
       horizontalPosition: 'center',

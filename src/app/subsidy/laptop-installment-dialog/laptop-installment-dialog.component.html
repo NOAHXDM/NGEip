@@ -69,6 +69,15 @@
     [disabled]="(installmentsList$ | async)?.length === subsidyInfo.installmentAmounts.length"
   >
     <mat-icon>add</mat-icon>
-    Record Next Period
+    Record (Auto)
+  </button>
+  <button
+    mat-raised-button
+    color="accent"
+    (click)="recordCustomInstallment()"
+    [disabled]="(installmentsList$ | async)?.length === 36"
+  >
+    <mat-icon>edit</mat-icon>
+    Record (Custom)
   </button>
 </mat-dialog-actions>
