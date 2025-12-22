@@ -50,15 +50,23 @@
     <ng-container matColumnDef="contactInfo">
       <mat-header-cell *matHeaderCellDef>Contact Info</mat-header-cell>
       <mat-cell *matCellDef="let element" [appLineThrough]="element.exitDate" class="flex-column justify-content-center align-items-start">
-        <div>{{ element.email }}</div>
-        <div>{{ element.phone }}</div>
+        @if(element.exitDate) {
+          <div>-</div>
+        } @else {
+          <div>{{ element.email }}</div>
+          <div>{{ element.phone }}</div>
+        }
       </mat-cell>
     </ng-container>
 
     <ng-container matColumnDef="birthday">
       <mat-header-cell *matHeaderCellDef mat-sort-header>Birthday</mat-header-cell>
       <mat-cell *matCellDef="let element" [appLineThrough]="element.exitDate">
-        {{ element.birthday | firestoreTimestamp : "yyyy-MM-dd" }}
+        @if(element.exitDate) {
+          -
+        } @else {
+          {{ element.birthday | firestoreTimestamp : "yyyy-MM-dd" }}
+        }
       </mat-cell>
     </ng-container>
 
