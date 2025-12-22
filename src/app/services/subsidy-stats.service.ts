@@ -7,8 +7,9 @@ import {
   where,
   Timestamp,
   getDocs,
+  doc,
 } from '@angular/fire/firestore';
-import { combineLatest, from, map, Observable } from 'rxjs';
+import { combineLatest, from, map, Observable, forkJoin, of, switchMap } from 'rxjs';
 import { SubsidyApplication, SubsidyType } from './subsidy.service';
 import { UserMealStats } from './meal-subsidy.service';
 
@@ -33,7 +34,14 @@ export class SubsidyStatsService {
       where('status', '==', 'approved'),
     ];
 
-    if (year) {
+    // 筆電補助：查詢過去3年內的所有申請（不依 applicationDate 過濾年度）
+    // 因為36期分期會跨3年，需要追溯舊申請才能統計當年度實際領取金額
+    if (type === SubsidyType.Laptop && year) {
+      const threeYearsAgo = Timestamp.fromDate(new Date(year - 3, 0, 1));
+      constraints.push(where('applicationDate', '>=', threeYearsAgo));
+    }
+    // 其他補助：依 applicationDate 過濾年度
+    else if (year) {
       const startDate = Timestamp.fromDate(new Date(year, 0, 1));
       const endDate = Timestamp.fromDate(new Date(year + 1, 0, 1));
       constraints.push(
@@ -47,18 +55,70 @@ export class SubsidyStatsService {
         idField: 'id',
       }) as Observable<SubsidyApplication[]>
     ).pipe(
-      map((applications) => {
+      switchMap((applications) => {
+        // 筆電補助：查詢 installments 子集合（用 receivedDate 過濾年度）
+        if (type === SubsidyType.Laptop) {
+          if (applications.length === 0) {
+            return of({
+              type,
+              totalAmount: 0,
+              count: 0,
+              approvedAmount: 0,
+              installmentCount: 0,
+              applications: [],
+            });
+          }
+
+          const installmentQueries = applications.map((app) =>
+            app.id
+              ? this.getLaptopInstallmentsAmount(app.id, year)
+              : of({ totalAmount: 0, installmentCount: 0 })
+          );
+
+          return forkJoin(installmentQueries).pipe(
+            map((installmentsData) => {
+              // 只計算有實際領取記錄的申請
+              const applicationsWithInstallments = applications.filter(
+                (_, index) => installmentsData[index].installmentCount > 0
+              );
+
+              const totalAmount = installmentsData.reduce(
+                (sum, data) => sum + data.totalAmount,
+                0
+              );
+              const installmentCount = installmentsData.reduce(
+                (sum, data) => sum + data.installmentCount,
+                0
+              );
+              const approvedAmount = applicationsWithInstallments.reduce(
+                (sum, app) => sum + (app.approvedAmount || 0),
+                0
+              );
+
+              return {
+                type,
+                totalAmount,
+                count: applicationsWithInstallments.length,
+                approvedAmount,
+                installmentCount,
+                applications: applicationsWithInstallments,
+              };
+            })
+          );
+        }
+
+        // 其他補助：直接使用 approvedAmount
+        const count = applications.length;
         const totalAmount = applications.reduce(
           (sum, app) => sum + (app.approvedAmount || 0),
           0
         );
-        const count = applications.length;
-        return {
+        return of({
           type,
           totalAmount,
           count,
           applications,
-        };
+        });
       })
     );
   }
@@ -115,7 +175,14 @@ export class SubsidyStatsService {
       where('status', '==', 'approved'),
     ];
 
-    if (year) {
+    // 筆電補助：查詢過去3年內的所有申請（不依 applicationDate 過濾年度）
+    // 因為36期分期會跨3年，需要追溯舊申請才能統計當年度實際領取金額
+    if (type === SubsidyType.Laptop && year) {
+      const threeYearsAgo = Timestamp.fromDate(new Date(year - 3, 0, 1));
+      constraints.push(where('applicationDate', '>=', threeYearsAgo));
+    }
+    // 其他補助：依 applicationDate 過濾年度
+    else if (year) {
       const startDate = Timestamp.fromDate(new Date(year, 0, 1));
       const endDate = Timestamp.fromDate(new Date(year + 1, 0, 1));
       constraints.push(
@@ -129,21 +196,77 @@ export class SubsidyStatsService {
         idField: 'id',
       }) as Observable<SubsidyApplication[]>
     ).pipe(
-      map((applications) => {
+      switchMap((applications) => {
+        // 筆電補助：查詢 installments 子集合（用 receivedDate 過濾年度）
+        if (type === SubsidyType.Laptop) {
+          if (applications.length === 0) {
+            return of({
+              type,
+              totalAmount: 0,
+              count: 0,
+              approvedAmount: 0,
+              installmentCount: 0,
+              userCount: 0,
+              applications: [],
+            });
+          }
+
+          const installmentQueries = applications.map((app) =>
+            app.id
+              ? this.getLaptopInstallmentsAmount(app.id, year)
+              : of({ totalAmount: 0, installmentCount: 0 })
+          );
+
+          return forkJoin(installmentQueries).pipe(
+            map((installmentsData) => {
+              // 只計算有實際領取記錄的申請
+              const applicationsWithInstallments = applications.filter(
+                (_, index) => installmentsData[index].installmentCount > 0
+              );
+
+              const totalAmount = installmentsData.reduce(
+                (sum, data) => sum + data.totalAmount,
+                0
+              );
+              const installmentCount = installmentsData.reduce(
+                (sum, data) => sum + data.installmentCount,
+                0
+              );
+              const approvedAmount = applicationsWithInstallments.reduce(
+                (sum, app) => sum + (app.approvedAmount || 0),
+                0
+              );
+              const userCount = new Set(
+                applicationsWithInstallments.map((app) => app.userId)
+              ).size;
+
+              return {
+                type,
+                totalAmount,
+                count: applicationsWithInstallments.length,
+                approvedAmount,
+                installmentCount,
+                userCount,
+                applications: applicationsWithInstallments,
+              };
+            })
+          );
+        }
+
+        // 其他補助：直接使用 approvedAmount
+        const count = applications.length;
+        const userCount = new Set(applications.map((app) => app.userId)).size;
         const totalAmount = applications.reduce(
           (sum, app) => sum + (app.approvedAmount || 0),
           0
         );
-        const count = applications.length;
-        const userCount = new Set(applications.map((app) => app.userId)).size;
-
-        return {
+        return of({
           type,
           totalAmount,
           count,
           userCount,
           applications,
-        };
+        });
       })
     );
   }
@@ -350,7 +473,14 @@ export class SubsidyStatsService {
       where('status', '==', 'approved'),
     ];
 
-    if (year) {
+    // 筆電補助：查詢過去3年內的所有申請（不依 applicationDate 過濾年度）
+    // 因為36期分期會跨3年，需要追溯舊申請才能統計當年度實際領取金額
+    if (type === SubsidyType.Laptop && year) {
+      const threeYearsAgo = Timestamp.fromDate(new Date(year - 3, 0, 1));
+      constraints.push(where('applicationDate', '>=', threeYearsAgo));
+    }
+    // 其他補助：依 applicationDate 過濾年度
+    else if (year) {
       const startDate = Timestamp.fromDate(new Date(year, 0, 1));
       const endDate = Timestamp.fromDate(new Date(year + 1, 0, 1));
       constraints.push(
@@ -364,8 +494,56 @@ export class SubsidyStatsService {
         idField: 'id',
       }) as Observable<SubsidyApplication[]>
     ).pipe(
-      map((applications) => {
-        // 依使用者分組統計
+      switchMap((applications) => {
+        // 筆電補助：需要查詢 installments 子集合（用 receivedDate 過濾年度）
+        if (type === SubsidyType.Laptop) {
+          if (applications.length === 0) {
+            return of([]);
+          }
+
+          // 查詢每個申請的 installments
+          const installmentQueries = applications.map((app) =>
+            app.id
+              ? this.getLaptopInstallmentsAmount(app.id, year).pipe(
+                  map((data) => ({ userId: app.userId, ...data }))
+                )
+              : of({ userId: app.userId, totalAmount: 0, installmentCount: 0 })
+          );
+
+          return forkJoin(installmentQueries).pipe(
+            map((installmentsData) => {
+              // 依使用者分組統計
+              const userStats = new Map<string, { totalAmount: number; count: number }>();
+
+              installmentsData.forEach((data) => {
+                // 只計算有實際領取記錄的資料
+                if (data.installmentCount > 0) {
+                  const current = userStats.get(data.userId) || { totalAmount: 0, count: 0 };
+                  userStats.set(data.userId, {
+                    totalAmount: current.totalAmount + data.totalAmount,
+                    count: current.count + data.installmentCount,
+                  });
+                }
+              });
+
+              // 轉換為排行陣列並排序
+              const rankings: UserRanking[] = Array.from(userStats.entries()).map(
+                ([userId, stats]) => ({
+                  userId,
+                  totalAmount: stats.totalAmount,
+                  count: stats.count,
+                })
+              );
+
+              // 依金額由高到低排序，取前 N 名
+              return rankings
+                .sort((a, b) => b.totalAmount - a.totalAmount)
+                .slice(0, limit);
+            })
+          );
+        }
+
+        // 其他補助：直接使用 approvedAmount
         const userStats = new Map<string, { totalAmount: number; count: number }>();
 
         applications.forEach((app) => {
@@ -386,9 +564,11 @@ export class SubsidyStatsService {
         );
 
         // 依金額由高到低排序，取前 N 名
-        return rankings
-          .sort((a, b) => b.totalAmount - a.totalAmount)
-          .slice(0, limit);
+        return of(
+          rankings
+            .sort((a, b) => b.totalAmount - a.totalAmount)
+            .slice(0, limit)
+        );
       })
     );
   }
@@ -474,6 +654,41 @@ export class SubsidyStatsService {
       })
     );
   }
+
+  /**
+   * 查詢筆電補助的實際領取金額（從 installments 子集合）
+   * @private
+   */
+  private getLaptopInstallmentsAmount(
+    applicationId: string,
+    year?: number
+  ): Observable<{ totalAmount: number; installmentCount: number }> {
+    const installmentsRef = collection(
+      doc(this.firestore, 'subsidyApplications', applicationId),
+      'installments'
+    );
+
+    let constraints = [];
+    if (year) {
+      const startDate = Timestamp.fromDate(new Date(year, 0, 1));
+      const endDate = Timestamp.fromDate(new Date(year + 1, 0, 1));
+      constraints.push(
+        where('receivedDate', '>=', startDate),
+        where('receivedDate', '<', endDate)
+      );
+    }
+
+    return from(getDocs(query(installmentsRef, ...constraints))).pipe(
+      map((snapshot) => {
+        const totalAmount = snapshot.docs.reduce(
+          (sum, doc) => sum + (doc.data()['amount'] || 0),
+          0
+        );
+        const installmentCount = snapshot.docs.length;
+        return { totalAmount, installmentCount };
+      })
+    );
+  }
 }
 
 /**
@@ -481,9 +696,11 @@ export class SubsidyStatsService {
  */
 export interface SubsidyTypeStats {
   type: SubsidyType;
-  totalAmount: number;
+  totalAmount: number;        // 筆電：實際領取金額；其他：核准金額
   count: number;
-  userCount?: number; // 僅系統統計使用
+  approvedAmount?: number;    // 筆電專用：核准總額（供比較用）
+  installmentCount?: number;  // 筆電專用：領取期數
+  userCount?: number;         // 僅系統統計使用
   applications: SubsidyApplication[];
 }
 
