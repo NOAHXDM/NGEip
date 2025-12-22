@@ -498,6 +498,123 @@ interface SubsidyApplication {
 - 狀態變更仍透過 `SubsidyStatusChangeComponent` 進行
 - 已核准/已拒絕的申請若需修正，應重新提交新申請
 
+### 9.6 筆電補助統計邏輯設計
+
+**問題**：筆電補助採用分期領取機制，統計應基於實際已領取金額，而非核准總額。
+
+**業務需求**：
+- 員工申請筆電補助時，核准總額記錄在 `approvedAmount`
+- 員工分 36 期領取，每期領取記錄在 `installments` 子集合
+- 統計時應計算「實際已領取」的金額，而非「核准但未領取」的金額
+- 年度統計需根據 `receivedDate` 判斷是否計入當年度
+
+**實際案例**：
+- 2024/01 核准筆電補助 36,000 元（36 期，每期 1,000 元）
+- 2024/01-12 領取 12,000 元（12 期）
+- 2025/01-12 領取 12,000 元（12 期）
+- 2026/01-12 領取 12,000 元（12 期）
+- **2024 年度統計應顯示 12,000 元**，而非 36,000 元
+
+**統計邏輯設計**：
+
+```typescript
+// 其他補助類型：直接使用 approvedAmount
+const totalAmount = applications.reduce(
+  (sum, app) => sum + (app.approvedAmount || 0),
+  0
+);
+
+// 筆電補助：需要查詢 installments 子集合
+async function getLaptopActualAmount(applicationId: string, year?: number): Promise<number> {
+  const installmentsRef = collection(
+    doc(firestore, 'subsidyApplications', applicationId),
+    'installments'
+  );
+
+  let constraints = [];
+  if (year) {
+    const startDate = Timestamp.fromDate(new Date(year, 0, 1));
+    const endDate = Timestamp.fromDate(new Date(year + 1, 0, 1));
+    constraints.push(
+      where('receivedDate', '>=', startDate),
+      where('receivedDate', '<', endDate)
+    );
+  }
+
+  const snapshot = await getDocs(query(installmentsRef, ...constraints));
+  return snapshot.docs.reduce((sum, doc) => sum + (doc.data().amount || 0), 0);
+}
+```
+
+**重要：查詢邏輯需要追溯過去 3 年的申請**
+
+由於筆電補助是 36 期分期（跨 3 年），查詢統計時不能只看當年度的申請：
+
+```typescript
+// ❌ 錯誤：只查詢 2024 年的申請
+where('applicationDate', '>=', '2024-01-01')
+where('applicationDate', '<', '2025-01-01')
+
+// ✅ 正確：查詢過去 3 年的申請，再用 receivedDate 過濾
+// 筆電補助
+where('applicationDate', '>=', '2021-01-01')  // year - 3
+// 然後在 installments 查詢時用 receivedDate 過濾 2024 年
+
+// 其他補助維持原本邏輯
+where('applicationDate', '>=', '2024-01-01')
+where('applicationDate', '<', '2025-01-01')
+```
+
+**範例**：
+- 2022/01 申請筆電補助 36,000 元（36 期）
+- 2022 年領取 1-12 期：12,000 元
+- 2023 年領取 13-24 期：12,000 元
+- 2024 年領取 25-36 期：12,000 元
+
+**2024 年統計時**：
+- 查詢條件：`applicationDate >= 2021-01-01`（追溯過去 3 年）
+- 找到 2022 年的申請
+- 查詢該申請的 installments，篩選 `receivedDate` 在 2024 年
+- 累計金額：12,000 元（第 25-36 期）
+
+**統計服務調整重點**：
+
+1. **`getUserSubsidyStatsByType` / `getSystemSubsidyStatsByType`**
+   - 判斷 `type === SubsidyType.Laptop` 時，改用 installments 統計
+   - 其他類型維持原本的 `approvedAmount` 邏輯
+
+2. **`getTopUsersByType`**
+   - 筆電補助排行榜需要累計每位使用者的實際領取金額
+   - 查詢所有筆電申請，逐一查詢 installments 子集合
+
+3. **統計介面調整**
+   ```typescript
+   export interface SubsidyTypeStats {
+     type: SubsidyType;
+     totalAmount: number;        // 筆電：實際領取金額；其他：核准金額
+     approvedAmount?: number;    // 筆電專用：核准總額（供比較用）
+     count: number;              // 申請件數
+     installmentCount?: number;  // 筆電專用：領取期數
+     userCount?: number;         // 系統統計：使用者數
+     applications: SubsidyApplication[];
+   }
+   ```
+
+**前端顯示調整**：
+- 筆電補助統計顯示：「實際領取 12,000 元 / 核准總額 36,000 元」
+- 其他補助統計顯示：「核准金額 5,000 元」
+- 筆電補助可額外顯示「已領取 12 期 / 總共 36 期」
+
+**效能考量**：
+- 筆電補助統計需要額外查詢 installments 子集合，會增加讀取次數
+- 建議在前端快取統計結果，避免頻繁查詢
+- 考慮使用 Cloud Functions 定期計算並儲存至 `subsidyStats` 集合
+
+**注意事項**：
+- 跨年度的筆電補助需要正確計算各年度的實際領取金額
+- 刪除 installment 記錄時，統計會自動更新（即時查詢）
+- 未來可考慮新增「預期領取進度」vs「實際領取進度」的比較圖表
+
 ---
 
 ## 十、待確認事項
