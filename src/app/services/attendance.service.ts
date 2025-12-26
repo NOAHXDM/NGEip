@@ -50,7 +50,7 @@ export class AttendanceService {
   readonly getCurrentMonth = this._getCurrentMonth().pipe(shareReplay(1));
   readonly getPreviousMonth = this._getPreviousMonth().pipe(shareReplay(1));
 
-  create(formValue: any) {
+  create(formValue: any, actionBy: string) {
     const data = {
       ...formValue,
       startDateTime: this.timezoneService.convertTimestampByClientTimezone(formValue.startDateTime),
@@ -59,7 +59,7 @@ export class AttendanceService {
 
     const auditTrail: AttendanceLogAuditTrail = {
       action: 'create',
-      actionBy: formValue.userId,
+      actionBy: actionBy,
       actionDateTime: serverTimestamp(),
     };
 
@@ -68,7 +68,7 @@ export class AttendanceService {
     ).pipe(switchMap((docRef) => this.addAuditTrail(docRef, auditTrail)));
   }
 
-  update(formValue: any, originValue: any): Observable<any> {
+  update(formValue: any, originValue: any, actionBy: string): Observable<any> {
     const data = {
       ...formValue,
       startDateTime: this.timezoneService.convertTimestampByClientTimezone(formValue.startDateTime),
@@ -81,7 +81,7 @@ export class AttendanceService {
 
     const auditTrail: AttendanceLogAuditTrail = {
       action: 'update',
-      actionBy: formValue.userId,
+      actionBy: actionBy,
       actionDateTime: serverTimestamp(),
       content: this.maskCotent(diff),
     };
