@@ -25,7 +25,7 @@ import { provideDateFnsDatetimeAdapter } from '@ng-matero/extensions-date-fns-ad
 
 import { startOfMonth, addMonths, subMonths } from 'date-fns';
 import { enUS } from 'date-fns/locale';
-import { debounceTime, Observable, take } from 'rxjs';
+import { debounceTime, Observable, switchMap, take } from 'rxjs';
 
 import {
   AttendanceLog,
@@ -147,8 +147,12 @@ export class AttendanceComponent implements OnInit {
       // Set attendance data to the form
       const value: any = {
         ...this.data.attendance,
-        startDateTime: this.timezoneService.convertDateByClientTimezone(this.data.attendance.startDateTime as Timestamp),
-        endDateTime: this.timezoneService.convertDateByClientTimezone(this.data.attendance.endDateTime as Timestamp),
+        startDateTime: this.timezoneService.convertDateByClientTimezone(
+          this.data.attendance.startDateTime as Timestamp
+        ),
+        endDateTime: this.timezoneService.convertDateByClientTimezone(
+          this.data.attendance.endDateTime as Timestamp
+        ),
       };
       this.attendanceForm.patchValue(value);
     } else {
@@ -191,18 +195,32 @@ export class AttendanceComponent implements OnInit {
 
   save() {
     if (!this.data.attendance) {
-      // Create new attendance
-      this.attendanceService
-        .create(this.attendanceForm.value)
-        .pipe(take(1))
+      this.userService.currentUser$
+        .pipe(
+          take(1),
+          // Create new attendance
+          switchMap((user: User) =>
+            this.attendanceService.create(this.attendanceForm.value, user.uid!)
+          ),
+          take(1)
+        )
         .subscribe({
           next: () => this.dialogRef.close(true),
         });
     } else {
-      // Update attendance
-      this.attendanceService
-        .update(this.attendanceForm.value, this.data.attendance)
-        .pipe(take(1))
+      this.userService.currentUser$
+        .pipe(
+          take(1),
+          // Update attendance
+          switchMap((user: User) =>
+            this.attendanceService.update(
+              this.attendanceForm.value,
+              this.data.attendance,
+              user.uid!
+            )
+          ),
+          take(1)
+        )
         .subscribe({
           next: (result: any) =>
             this.dialogRef.close(
