@@ -1,4 +1,4 @@
-import { AsyncPipe, NgIf, NgTemplateOutlet } from '@angular/common';
+import { AsyncPipe, DatePipe, DecimalPipe, NgIf, NgTemplateOutlet } from '@angular/common';
 import {
   Component,
   Inject,
@@ -14,6 +14,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatChipsModule } from '@angular/material/chips';
 import { MAT_DATE_LOCALE } from '@angular/material/core';
 import {
   MAT_DIALOG_DATA,
@@ -23,6 +24,7 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import {
   MatSnackBar,
@@ -37,7 +39,7 @@ import { Timestamp } from '@angular/fire/firestore';
 
 import { startOfDay } from 'date-fns';
 import { enUS } from 'date-fns/locale';
-import { concatMap, map, Observable, switchMap, take } from 'rxjs';
+import { concatMap, map, Observable, of, switchMap, take } from 'rxjs';
 
 import { AnnualLeaveService } from '../services/annual-leave.service';
 import { User, UserService } from '../services/user.service';
@@ -45,6 +47,7 @@ import { UserNamePipe } from '../pipes/user-name.pipe';
 import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
 import { TimezoneService } from '../services/timezone.service';
 import { SystemConfigService } from '../services/system-config.service';
+import { SubsidyLimitService, UserSubsidyLimitStatus } from '../services/subsidy-limit.service';
 declare var cloudinary: any;
 @Component({
   selector: 'app-user-profile',
@@ -53,14 +56,18 @@ declare var cloudinary: any;
     NgIf,
     NgTemplateOutlet,
     AsyncPipe,
+    DatePipe,
+    DecimalPipe,
     UserNamePipe,
     FirestoreTimestampPipe,
     ReactiveFormsModule,
     MatButtonModule,
+    MatChipsModule,
     MatDialogModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatProgressBarModule,
     MatSelectModule,
     MatSnackBarModule,
     MatTableModule,
@@ -128,6 +135,7 @@ export class UserProfileComponent {
   readonly userList$: Observable<User[]>;
   readonly remainingLeaveHours = signal(0);
   readonly leaveTransactionHistory$: Observable<MatTableDataSource<any>>;
+  readonly subsidyLimitStatus$: Observable<UserSubsidyLimitStatus | null>;
   displayedColumns: string[] = ['date', 'hours', 'reason', 'actionBy'];
   myProfileMode = true;
   title = 'My Profile';
@@ -138,6 +146,7 @@ export class UserProfileComponent {
     private annualLeaveService: AnnualLeaveService,
     private timezoneService: TimezoneService,
     private systemConfigService: SystemConfigService,
+    private subsidyLimitService: SubsidyLimitService,
     private _dialog: MatDialog,
     private _snackBar: MatSnackBar,
     @Optional() @Inject(MAT_DIALOG_DATA) protected data: any
@@ -191,6 +200,23 @@ export class UserProfileComponent {
         )
       ),
       map((data) => new MatTableDataSource(data))
+    );
+
+    this.subsidyLimitStatus$ = this.userList$.pipe(
+      switchMap((users) => {
+        const targetUser = this.myProfileMode
+          ? users[0]
+          : users.find((u) => u.uid === this.data.user.uid);
+
+        if (!targetUser?.startDate) {
+          return of(null);
+        }
+
+        return this.subsidyLimitService.getUserSubsidyLimitStatus(
+          targetUser.uid!,
+          targetUser.startDate as Timestamp
+        );
+      })
     );
   }
 
@@ -345,5 +371,15 @@ export class UserProfileComponent {
     } else {
       this.openSnackBar('請先註冊 cloudinary 並設定');
     }
+  }
+
+  getProgressPercentage(used: number, total: number): number {
+    return total > 0 ? (used / total) * 100 : 0;
+  }
+
+  getProgressColor(percentage: number): string {
+    if (percentage >= 90) return 'warn';
+    if (percentage >= 70) return 'accent';
+    return 'primary';
   }
 }

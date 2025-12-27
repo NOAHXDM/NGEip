@@ -28,6 +28,7 @@ export class UserCardEasyComponent {
           const dialogRef = this._dialog.open(UserProfileComponent, {
             data: { user: this.user },
             width: '65vw',
+            maxHeight: '90vh',
           });
         }
       },

@@ -11,6 +11,9 @@
         *ngTemplateOutlet="remainingLeaveHoursContent"
       ></ng-container>
     </mat-tab>
+    <mat-tab label="Subsidy Limit">
+      <ng-container *ngTemplateOutlet="subsidyLimitContent"></ng-container>
+    </mat-tab>
   </mat-tab-group>
 </div>
 
@@ -257,4 +260,117 @@
     <button mat-button mat-dialog-close>No Thanks</button>
     <button mat-button [mat-dialog-close]="true">Ok</button>
   </mat-dialog-actions>
+</ng-template>
+
+<ng-template #subsidyLimitContent>
+  <div class="subsidy-limit-container p-3">
+    @if (subsidyLimitStatus$ | async; as status) {
+      <!-- 期間資訊卡片 -->
+      <div class="period-info mb-4">
+        <h5 class="text-center mb-2">Subsidy Period (Anniversary)</h5>
+        <div class="text-center text-muted">
+          {{ status.period.periodStart | date: 'yyyy/MM/dd' }} -
+          {{ status.period.periodEnd | date: 'yyyy/MM/dd' }}
+        </div>
+        <div class="text-center mt-2">
+          <mat-chip-set>
+            <mat-chip [highlighted]="status.probationPassed">
+              {{ status.probationPassed ? '✓' : '✗' }} Probation
+            </mat-chip>
+            <mat-chip [highlighted]="status.oneYearCompleted">
+              {{ status.oneYearCompleted ? '✓' : '✗' }} 1 Year
+            </mat-chip>
+            <mat-chip>Tenure: {{ status.yearsOfService | number: '1.1-1' }} yrs</mat-chip>
+          </mat-chip-set>
+        </div>
+      </div>
+
+      <!-- 補助額度列表 -->
+      <div class="subsidies-list">
+        @for (subsidy of status.subsidies; track subsidy.type) {
+          <div class="subsidy-card mat-elevation-z2 mb-3 p-3">
+            <!-- 標題與資格狀態 -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="mb-0">
+                {{ subsidy.displayName }}
+                @if (!subsidy.eligible) {
+                  <mat-chip class="ms-2" color="warn">{{ subsidy.ineligibleReason }}</mat-chip>
+                }
+              </h6>
+              <span class="badge"
+                    [class.bg-success]="subsidy.eligible"
+                    [class.bg-secondary]="!subsidy.eligible">
+                {{ subsidy.eligible ? 'Eligible' : 'Ineligible' }}
+              </span>
+            </div>
+
+            <!-- 備註說明（進修+AI限制） -->
+            @if (subsidy.note) {
+              <div class="text-muted small mb-2">
+                <mat-icon class="small-icon">info</mat-icon>
+                {{ subsidy.note }}
+              </div>
+            }
+
+            <!-- 額度資訊 -->
+            @if (subsidy.laptopInstallmentInfo) {
+              <!-- 筆電補助：顯示領取進度 -->
+              <div class="laptop-info mb-2">
+                <div class="d-flex justify-content-between text-sm mb-1">
+                  <span>Received: {{ subsidy.usedAmount | number: '1.0-0' }}</span>
+                  <span>Approved: {{ subsidy.laptopInstallmentInfo.approvedAmount | number: '1.0-0' }}</span>
+                </div>
+                <div class="text-muted small">
+                  Progress: {{ subsidy.laptopInstallmentInfo.receivedCount }}/36 installments
+                </div>
+              </div>
+
+              <!-- 筆電補助進度條 -->
+              <mat-progress-bar
+                mode="determinate"
+                [value]="getProgressPercentage(subsidy.laptopInstallmentInfo.receivedCount, 36)"
+                [color]="getProgressColor(getProgressPercentage(subsidy.laptopInstallmentInfo.receivedCount, 36))"
+              ></mat-progress-bar>
+
+              <!-- 領取率 -->
+              <div class="text-end text-muted small mt-1">
+                Completion: {{ getProgressPercentage(subsidy.laptopInstallmentInfo.receivedCount, 36) | number: '1.0-0' }}%
+              </div>
+            } @else if (subsidy.type === 1) {
+              <!-- 筆電補助：沒有正在領取的申請 -->
+              <div class="text-muted small">
+                No ongoing laptop subsidy
+              </div>
+            } @else {
+              <!-- 其他補助：顯示一般額度資訊 -->
+              <div class="amount-info mb-2">
+                <div class="d-flex justify-content-between text-sm">
+                  <span>Used: {{ subsidy.usedAmount | number: '1.0-0' }}</span>
+                  <span>Available: {{ subsidy.availableAmount | number: '1.0-0' }}</span>
+                  <span>Total: {{ subsidy.totalLimit | number: '1.0-0' }}</span>
+                </div>
+              </div>
+
+              <!-- 進度條 -->
+              <mat-progress-bar
+                mode="determinate"
+                [value]="getProgressPercentage(subsidy.usedAmount, subsidy.totalLimit)"
+                [color]="getProgressColor(getProgressPercentage(subsidy.usedAmount, subsidy.totalLimit))"
+              ></mat-progress-bar>
+
+              <!-- 使用率 -->
+              <div class="text-end text-muted small mt-1">
+                Usage: {{ getProgressPercentage(subsidy.usedAmount, subsidy.totalLimit) | number: '1.0-0' }}%
+              </div>
+            }
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="text-center text-muted p-4">
+        <mat-icon>info</mat-icon>
+        <p>Start date not set. Cannot calculate subsidy limits.</p>
+      </div>
+    }
+  </div>
 </ng-template>
