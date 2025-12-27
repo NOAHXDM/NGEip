@@ -14,7 +14,6 @@ import { Observable } from 'rxjs';
 
 import { SubsidyStatsService, UserRanking } from '../../services/subsidy-stats.service';
 import { SubsidyType } from '../../services/subsidy.service';
-import { SubsidyTypePipe } from '../../pipes/subsidy-type.pipe';
 import { UserNamePipe } from '../../pipes/user-name.pipe';
 
 export interface RankingDialogData {
@@ -35,7 +34,6 @@ export interface RankingDialogData {
     MatButtonModule,
     MatIconModule,
     MatTableModule,
-    SubsidyTypePipe,
     UserNamePipe,
   ],
   templateUrl: './subsidy-ranking-dialog.component.html',

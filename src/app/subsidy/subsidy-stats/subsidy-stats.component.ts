@@ -8,13 +8,21 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
-import { map, Observable, switchMap } from 'rxjs';
+import { Observable, switchMap } from 'rxjs';
 
-import { SubsidyStatsService, UserTotalSubsidy, SystemSubsidySummary, SystemMealStats, AllTopUsers } from '../../services/subsidy-stats.service';
+import {
+  SubsidyStatsService,
+  UserTotalSubsidy,
+  SystemSubsidySummary,
+  SystemMealStats,
+  AllTopUsers,
+} from '../../services/subsidy-stats.service';
 import { UserService } from '../../services/user.service';
 import { SubsidyTypePipe } from '../../pipes/subsidy-type.pipe';
-import { UserNamePipe } from '../../pipes/user-name.pipe';
-import { SubsidyRankingDialogComponent, RankingDialogData } from '../subsidy-ranking-dialog/subsidy-ranking-dialog.component';
+import {
+  SubsidyRankingDialogComponent,
+  RankingDialogData,
+} from '../subsidy-ranking-dialog/subsidy-ranking-dialog.component';
 
 @Component({
   selector: 'app-subsidy-stats',
@@ -30,7 +38,6 @@ import { SubsidyRankingDialogComponent, RankingDialogData } from '../subsidy-ran
     MatIconModule,
     MatButtonModule,
     SubsidyTypePipe,
-    UserNamePipe,
   ],
   templateUrl: './subsidy-stats.component.html',
   styleUrl: './subsidy-stats.component.scss',
@@ -58,7 +65,13 @@ export class SubsidyStatsComponent {
 
   // 表格欄位
   subsidyTypeColumns = ['type', 'count', 'totalAmount', 'userCount'];
-  mealMonthColumns = ['yearMonth', 'userCount', 'totalMealCount', 'totalAmount', 'averagePerUser'];
+  mealMonthColumns = [
+    'yearMonth',
+    'userCount',
+    'totalMealCount',
+    'totalAmount',
+    'averagePerUser',
+  ];
   rankingColumns = ['rank', 'userId', 'count', 'totalAmount'];
 
   constructor() {
@@ -66,13 +79,20 @@ export class SubsidyStatsComponent {
     this.userStats$ = this.currentUser$.pipe(
       switchMap((user) => {
         if (!user || !user.uid) return [null];
-        return this.statsService.getUserTotalSubsidy(user.uid, this.selectedYear());
+        return this.statsService.getUserTotalSubsidy(
+          user.uid,
+          this.selectedYear()
+        );
       })
     );
 
     // 監聽年度變更，重新載入系統統計
-    this.systemSubsidyStats$ = this.statsService.getSystemAllSubsidyStats(this.selectedYear());
-    this.systemMealStats$ = this.statsService.getSystemMealStatsByYear(this.selectedYear());
+    this.systemSubsidyStats$ = this.statsService.getSystemAllSubsidyStats(
+      this.selectedYear()
+    );
+    this.systemMealStats$ = this.statsService.getSystemMealStatsByYear(
+      this.selectedYear()
+    );
     this.topUsers$ = this.statsService.getAllTopUsers(this.selectedYear());
   }
 
@@ -107,9 +127,12 @@ export class SubsidyStatsComponent {
    * 計算餐費年度平均
    */
   calculateMealYearAverage(stats: SystemMealStats[]): number {
-    const monthsWithData = stats.filter(s => s.userCount > 0);
+    const monthsWithData = stats.filter((s) => s.userCount > 0);
     if (monthsWithData.length === 0) return 0;
-    const totalAverage = monthsWithData.reduce((sum, s) => sum + s.averagePerUser, 0);
+    const totalAverage = monthsWithData.reduce(
+      (sum, s) => sum + s.averagePerUser,
+      0
+    );
     return totalAverage / monthsWithData.length;
   }
 

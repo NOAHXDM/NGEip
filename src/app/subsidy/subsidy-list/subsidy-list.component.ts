@@ -24,7 +24,6 @@ import {
 } from '../../services/subsidy.service';
 import { UserService } from '../../services/user.service';
 import { SubsidyTypePipe } from '../../pipes/subsidy-type.pipe';
-import { SubsidyStatusPipe } from '../../pipes/subsidy-status.pipe';
 import { FirestoreTimestampPipe } from '../../pipes/firestore-timestamp.pipe';
 import { UserNamePipe } from '../../pipes/user-name.pipe';
 import { SubsidyApplicationComponent } from '../subsidy-application/subsidy-application.component';
@@ -51,7 +50,6 @@ import { LaptopInstallmentDialogComponent } from '../laptop-installment-dialog/l
     MatInputModule,
     MatDatepickerModule,
     SubsidyTypePipe,
-    SubsidyStatusPipe,
     FirestoreTimestampPipe,
     UserNamePipe,
   ],
