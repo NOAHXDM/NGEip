@@ -20,23 +20,29 @@
 
 ## Overview
 
-Enterprise Information Portal (EIP) is a comprehensive enterprise management system built with Angular and Firebase. It provides a robust solution for managing employee attendance, leave management, subsidy applications, and user administration.
+Enterprise Information Portal (EIP) is a comprehensive enterprise management system built with Angular 20 and Firebase. It provides a robust solution for managing employee attendance, leave management, subsidy applications, and user administration with full support for local development using Firebase Emulators.
 
 ## Features
 
 - **User Management**
 
-  - User registration and authentication
+  - User registration and authentication (Firebase Auth with Google Sign-In support)
   - Role-based access control (Admin/User)
-  - User profile management
-  - User list display
+  - User profile management with Cloudinary avatar upload
+  - User list display with filtering (hide resigned employees)
+  - Visual indicators for resigned employees
+  - Contact information and birthday privacy for resigned users
 
 - **Attendance Management**
 
-  - Attendance record creation and tracking
+  - Attendance record creation and tracking with audit trails
   - Status management (Pending/Approved/Rejected)
-  - Multiple attendance types
-  - Attendance statistics and reporting
+  - Multiple attendance types support
+  - Attendance statistics and reporting with date-based filtering
+  - Dynamic filtering (daily, weekly, monthly, custom range)
+  - Applicant filtering dialog
+  - CSV export functionality
+  - Action tracking with `actionBy` parameter for audit compliance
 
 - **Leave Management**
 
@@ -47,21 +53,26 @@ Enterprise Information Portal (EIP) is a comprehensive enterprise management sys
 
 - **Subsidy Management**
 
-  - Employee subsidy application system
+  - Employee subsidy application system (Phase 1, 2, and 3)
   - Multiple subsidy types (training courses, laptop, meal, etc.)
   - Subsidy application approval workflow
   - Laptop installment record management with custom amount input
   - Meal subsidy tracking and statistics
-  - Comprehensive subsidy statistics (user-level and system-wide analytics)
+  - Comprehensive subsidy statistics with ranking leaderboard (Dialog-based)
   - Google Sheets import functionality for meal subsidy records
-  - Data migration tools for subsidy records
+  - Improved Excel import logic for new format compatibility
+  - Data migration tools for subsidy records (development and production support)
+  - Firestore index optimization for enhanced query performance
 
 - **System Configuration**
 
-  - License management
-  - Leave policy configuration
-  - System preferences
+  - License management (max users, current users tracking)
+  - Leave policy configuration (Taiwan Labor Standards Act compliant)
+  - System preferences (initial settlement year, overtime priority)
   - Cloudinary image upload configuration
+  - Timezone selection and handling
+  - Custom date range options
+  - Firebase Emulator support for local development
 
 - **Data Export & Migration**
 
@@ -76,8 +87,10 @@ Enterprise Information Portal (EIP) is a comprehensive enterprise management sys
 #### Additional Technologies
 
 - [Angular Material](https://material.angular.io/) - UI component library
-- [Bootstrap](https://getbootstrap.com/) - CSS framework
-- [Date-fns](https://date-fns.org/) - Date utility library
+- [Bootstrap 5](https://getbootstrap.com/) - CSS framework
+- [Date-fns](https://date-fns.org/) - Date utility library with timezone support
+- [Cloudinary](https://cloudinary.com/) - Image upload and management
+- [Karma](https://karma-runner.github.io/) & [Jasmine](https://jasmine.github.io/) - Testing framework
 
 <p></p>
 
@@ -87,9 +100,10 @@ Enterprise Information Portal (EIP) is a comprehensive enterprise management sys
 
 - Node.js (v18 or later)
 - npm (v9 or later)
-- Angular CLI (v18 or later)
+- Angular CLI (v20 or later)
 - Firebase account
 - Firebase CLI (`npm install -g firebase-tools`)
+- Cloudinary account (for avatar uploads)
 
 ### Installation
 
@@ -108,11 +122,50 @@ Install dependencies
 
 ### Running the Development Server
 
-Start the development server
+Start the Firebase Emulators (Auth on port 9099, Firestore on port 8080)
 
 ```bash
 npm start
 ```
+
+This command will start the Firebase emulators for local development. The application will connect to:
+- Firebase Auth Emulator: http://localhost:9099
+- Firestore Emulator: http://localhost:8080
+
+Additional commands:
+
+```bash
+npm run build      # Build for production (output to dist/angular-eip)
+npm run watch      # Build in development mode with file watching
+npm test           # Run Karma/Jasmine tests
+npm run deploy     # Build and deploy to Firebase (uses firebase.prod.json)
+```
+
+## Architecture
+
+### Environment Configuration
+
+The application uses environment-based Firebase configuration:
+- **Local Environment (firebase.local.json)**: Connects to Firebase Emulators (`environment.useEmulators: true`)
+- **Production Environment (firebase.prod.json)**: Connects to live Firebase (`environment.useEmulators: false`)
+
+Environment files are switched at build time using Angular's file replacement mechanism (see angular.json).
+
+### Firebase Integration
+
+- **Authentication**: Firebase Auth with emulator support
+- **Database**: Firestore with collections: `users`, `attendanceLogs`, `attendanceStats`, `systemConfig`, `subsidyApplications`, `lunchSubsidies`
+- **Hosting**: Static website deployed to Firebase Hosting (region: asia-east1)
+- **Emulators**: Auth on port 9099, Firestore on port 8080
+
+### Firestore Security Rules
+
+Defined in `firestore.rules`:
+- Admin role verified via Firestore query (not client claims)
+- Users can read all data, update their own non-sensitive fields (cannot change role/email)
+- Admins have full CRUD on users
+- `systemConfig/license`: Open read/write, but updating maxUsers requires admin
+- Attendance collections: Currently open read/write (recommended to tighten for production)
 
 ## Firebase Website Deployment Guide
 
@@ -124,24 +177,22 @@ npm start
 
 - In the Firebase Console, add a new "Web App" and obtain the initialization code.
 
-### 3. **Paste the Firebase Initialization Code**
+### 3. **Configure Firebase Environment Files**
 
-- Insert the provided Firebase code into your project.
+- Create `firebase.prod.json` in the project root and insert your Firebase configuration:
 
+```json
+{
+  "projectId": "your-project-id",
+  "apiKey": "your-api-key",
+  "authDomain": "your-project.firebaseapp.com",
+  "storageBucket": "your-project.appspot.com",
+  "messagingSenderId": "your-messaging-sender-id",
+  "appId": "your-app-id"
+}
 ```
-// app.config.ts
-export const appConfig = {
-  production: false,
-  firebase: {
-    apiKey: "your-api-key",
-    authDomain: "your-project.firebaseapp.com",
-    projectId: "your-project-id",
-    storageBucket: "your-project.appspot.com",
-    messagingSenderId: "your-messaging-sender-id",
-    appId: "your-app-id",
-  },
-};
-```
+
+- For local development, `firebase.local.json` is already configured to use emulators.
 
 ### 4. **Install Firebase CLI**
 
@@ -200,10 +251,17 @@ npm run build
 
 ### 9. **Deploy to Firebase Hosting**
 
-Run the following command to deploy your website to Firebase:
+Run the following command to build and deploy your website to Firebase:
 
+```bash
+npm run deploy
 ```
-firebase deploy
+
+Or manually:
+
+```bash
+npm run build
+firebase deploy --config firebase.prod.json
 ```
 
 ### 10. **Create Upload Preset in Cloudinary**

@@ -5,6 +5,19 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [2.1.0] - 2025-12-27
+
+### 新增
+- 出勤服務新增 `actionBy` 參數，用於記錄建立與更新操作的執行者
+
+### 變更
+- 升級 Angular 框架至 v20 版本
+- 重構補助統計排行榜，改為 Dialog 彈窗展示方式
+- 調整午餐補助匯入邏輯以適應新版 Excel 格式
+
+### 修復
+- 修復 Angular v20 升級後的相容性問題
+
 ## [2.0.0] - 2025-12-23
 
 ### 新增
@@ -113,5 +126,6 @@
 - Cloudinary
 - Karma/Jasmine
 
-[2.0.0]: https://github.com/NOAHXDM/NGEip/compare/6317ec7...HEAD
+[2.1.0]: https://github.com/NOAHXDM/NGEip/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/NOAHXDM/NGEip/compare/6317ec7...v2.0.0
 [1.0.0]: https://github.com/NOAHXDM/NGEip/releases/tag/v1.0.0
