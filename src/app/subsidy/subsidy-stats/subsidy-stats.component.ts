@@ -7,12 +7,14 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { map, Observable, switchMap } from 'rxjs';
 
 import { SubsidyStatsService, UserTotalSubsidy, SystemSubsidySummary, SystemMealStats, AllTopUsers } from '../../services/subsidy-stats.service';
 import { UserService } from '../../services/user.service';
 import { SubsidyTypePipe } from '../../pipes/subsidy-type.pipe';
 import { UserNamePipe } from '../../pipes/user-name.pipe';
+import { SubsidyRankingDialogComponent, RankingDialogData } from '../subsidy-ranking-dialog/subsidy-ranking-dialog.component';
 
 @Component({
   selector: 'app-subsidy-stats',
@@ -36,6 +38,7 @@ import { UserNamePipe } from '../../pipes/user-name.pipe';
 export class SubsidyStatsComponent {
   readonly statsService = inject(SubsidyStatsService);
   readonly userService = inject(UserService);
+  readonly dialog = inject(MatDialog);
 
   readonly currentUser$ = this.userService.currentUser$;
   readonly isAdmin$ = this.userService.isAdmin$;
@@ -108,5 +111,18 @@ export class SubsidyStatsComponent {
     if (monthsWithData.length === 0) return 0;
     const totalAverage = monthsWithData.reduce((sum, s) => sum + s.averagePerUser, 0);
     return totalAverage / monthsWithData.length;
+  }
+
+  /**
+   * 打開完整排行榜 Dialog
+   */
+  openRankingDialog(type: RankingDialogData['type']) {
+    this.dialog.open(SubsidyRankingDialogComponent, {
+      width: '700px',
+      data: {
+        type,
+        year: this.selectedYear(),
+      } as RankingDialogData,
+    });
   }
 }
