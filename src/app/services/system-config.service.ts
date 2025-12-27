@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import {
   FieldValue,
   Firestore,
@@ -16,9 +16,12 @@ import { catchError, from, Observable, of } from 'rxjs';
 })
 export class SystemConfigService {
   firestore: Firestore = inject(Firestore);
-  license$ = docData(
-    doc(this.firestore, 'systemConfig', 'license')
-  ) as Observable<License>;
+  private injector = inject(EnvironmentInjector);
+  license$ = runInInjectionContext(this.injector, () =>
+    docData(
+      doc(this.firestore, 'systemConfig', 'license')
+    ) as Observable<License>
+  );
   constructor() {}
 
   createLicenseIfNotExists() {

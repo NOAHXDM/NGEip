@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import {
   doc,
   FieldValue,
@@ -32,6 +32,7 @@ import { SystemConfigService } from './system-config.service';
 export class AttendanceStatsService {
   readonly firestore: Firestore = inject(Firestore);
   readonly systemConfigService = inject(SystemConfigService);
+  private readonly injector = inject(EnvironmentInjector);
 
   constructor(
     private attendanceService: AttendanceService,
@@ -39,11 +40,13 @@ export class AttendanceStatsService {
   ) {}
 
   getAttendanceStatsMonthly(yearMonth: string) {
-    return docData(doc(this.firestore, 'attendanceStats', yearMonth), {
-      idField: 'id',
-    }).pipe(
-      map((data) =>
-        data ? new AttendanceStatsModel(data as AttendanceStats) : null
+    return runInInjectionContext(this.injector, () =>
+      docData(doc(this.firestore, 'attendanceStats', yearMonth), {
+        idField: 'id',
+      }).pipe(
+        map((data) =>
+          data ? new AttendanceStatsModel(data as AttendanceStats) : null
+        )
       )
     );
   }

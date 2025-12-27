@@ -1,4 +1,35 @@
 /* You can add global styles to this file, and also import other style files */
+@use '@angular/material' as mat;
+
+// Customize the entire app. Change :root to your selector if you want to scope the styles.
+:root {
+  @include mat.badge-overrides((
+    background-color: cadetblue,
+  ));
+}
+
+// Fix for mat-icon color attribute in Angular Material 20 (M3 theme)
+// The color attribute no longer works in M3, so we need to set --mat-icon-color variable
+mat-icon[color="primary"] {
+  --mat-icon-color: var(--mat-sys-primary, #1976d2) !important;
+  color: var(--mat-sys-primary, #1976d2) !important;
+}
+
+mat-icon[color="accent"] {
+  --mat-icon-color: var(--mat-sys-tertiary, #ff4081) !important;
+  color: var(--mat-sys-tertiary, #ff4081) !important;
+}
+
+mat-icon[color="warn"] {
+  --mat-icon-color: var(--mat-sys-error, #f44336) !important;
+  color: var(--mat-sys-error, #f44336) !important;
+}
+
+mat-icon[color="disabled"] {
+  --mat-icon-color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.38)) !important;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.38)) !important;
+  opacity: 0.38;
+}
 
 html,
 body {

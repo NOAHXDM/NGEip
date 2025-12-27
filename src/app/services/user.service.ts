@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import {
   Auth,
   User as FirebaseUser,
@@ -42,19 +42,21 @@ import { TimezoneService } from './timezone.service';
 })
 export class UserService {
   private readonly auth = inject(Auth);
+  private readonly firestore: Firestore = inject(Firestore);
+  private readonly injector = inject(EnvironmentInjector);
   private readonly authState$: Observable<FirebaseUser | null> = authState(
     this.auth
   );
   readonly currentUser$ = this.authState$.pipe(
-    switchMap(
-      (user) =>
+    switchMap((user) =>
+      runInInjectionContext(this.injector, () =>
         docData(doc(this.firestore, 'users', user!.uid), {
           idField: 'uid',
         }) as Observable<User>
+      )
     ),
     shareReplay(1)
   );
-  readonly firestore: Firestore = inject(Firestore);
   readonly list$ = combineLatest([
     this.currentUser$,
     collectionData(

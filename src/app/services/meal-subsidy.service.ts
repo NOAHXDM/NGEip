@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import {
   collection,
   collectionData,
@@ -22,15 +22,18 @@ import { from, Observable, of, switchMap } from 'rxjs';
 })
 export class MealSubsidyService {
   readonly firestore: Firestore = inject(Firestore);
+  private readonly injector = inject(EnvironmentInjector);
 
   /**
    * 取得特定日期的餐點記錄
    */
   getDailyMeal(dateId: string): Observable<DailyMealRecord | undefined> {
     const docRef = doc(this.firestore, 'mealSubsidies', dateId);
-    return docData(docRef, { idField: 'id' }) as Observable<
-      DailyMealRecord | undefined
-    >;
+    return runInInjectionContext(this.injector, () =>
+      docData(docRef, { idField: 'id' }) as Observable<
+        DailyMealRecord | undefined
+      >
+    );
   }
 
   /**
@@ -149,9 +152,11 @@ export class MealSubsidyService {
   ): Observable<UserMealStats | undefined> {
     const statsId = `${userId}_${yearMonth}`;
     const docRef = doc(this.firestore, 'userMealStats', statsId);
-    return docData(docRef, { idField: 'id' }) as Observable<
-      UserMealStats | undefined
-    >;
+    return runInInjectionContext(this.injector, () =>
+      docData(docRef, { idField: 'id' }) as Observable<
+        UserMealStats | undefined
+      >
+    );
   }
 
   /**
