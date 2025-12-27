@@ -69,6 +69,7 @@ export class UserListComponent {
     const dialogRef = this._dialog.open(UserProfileComponent, {
       data: { user },
       width: '65vw',
+      maxHeight: '90vh',
     });
   }
 }

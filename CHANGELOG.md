@@ -5,6 +5,40 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [2.2.0] - 2025-12-28
+
+### 新增
+- 使用者個人檔案新增「補助額度」（Subsidy Limit）Tab，顯示員工補助使用情況
+- 基於到職日週年計算補助額度（例如：到職日 2024/3/15，期間為 2024/3/15 - 2025/3/14）
+- 補助申請資格自動判斷：
+  - 試用期（90 天）檢查
+  - 滿一年檢查
+  - 額度用完自動標記為不可申請
+- 五種補助類型完整支援：
+  - 進修課程補助（Training）：試用期後可申請，年度上限 24,000
+  - AI 工具補助（AI Tool）：試用期後可申請，年度上限 10,000
+  - 健檢補助（Health Check）：滿一年可申請，年度上限 6,000，可累積最多 12,000
+  - 筆電補助（Laptop）：滿一年可申請，年度上限 54,000
+  - 旅遊補助（Travel）：滿一年可申請，年度上限 15,000
+- 筆電補助特殊處理：
+  - 顯示分期領取進度（已領取 X/36 期）
+  - 前一次筆電補助必須領完 36 期才能再次申請
+  - 顯示已領取金額與核准金額
+- 健檢補助累積邏輯：前一年未用完的額度可累積至當年，最多累積至 12,000
+- 進修+AI 工具聯合限制：兩者合計上限 24,000，AI 工具獨立上限 10,000
+- 補助額度 Tab 內容可垂直捲動，期間資訊固定在頂部（sticky）
+
+### 變更
+- User Profile Dialog 新增高度限制（maxHeight: 90vh），解決內容過長無法捲動的問題
+- 補助額度 Tab 所有介面文字改為英文，提升國際化支援
+- 補助額度檢查邏輯：額度用完或超過時自動顯示「Quota exceeded」
+
+### 技術改進
+- 新增 `SubsidyLimitService` 服務，封裝補助額度計算邏輯
+- 實作到職日週年期間計算功能
+- 實作筆電分期狀態查詢功能
+- 優化補助額度 UI/UX，包含進度條視覺化和資格狀態標籤
+
 ## [2.1.0] - 2025-12-27
 
 ### 新增
@@ -126,6 +160,7 @@
 - Cloudinary
 - Karma/Jasmine
 
-[2.1.0]: https://github.com/NOAHXDM/NGEip/compare/v2.0.0...HEAD
+[2.2.0]: https://github.com/NOAHXDM/NGEip/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/NOAHXDM/NGEip/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/NOAHXDM/NGEip/compare/6317ec7...v2.0.0
 [1.0.0]: https://github.com/NOAHXDM/NGEip/releases/tag/v1.0.0
