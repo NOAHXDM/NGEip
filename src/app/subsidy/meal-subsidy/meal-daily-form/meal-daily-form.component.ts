@@ -191,7 +191,7 @@ export class MealDailyFormComponent implements OnInit {
     }
 
     try {
-      const url = `https://docs.google.com/spreadsheets/d/1Jj63gogpfhhODBWF1KH7SMl5RP4YIujP7LQlIpIkslQ/gviz/tq?gid=${gid.trim()}&tqx=out:json`;
+      const url = `https://docs.google.com/spreadsheets/d/1vd7o5_3UoG56z77IODsdcmdQ_4kszO9Ar2jMwpojFR8/gviz/tq?gid=${gid.trim()}&tqx=out:json`;
       this.snackBar.open('正在匯入資料...', '', { duration: 2000 });
 
       // 呼叫 Google Sheets API
@@ -282,8 +282,11 @@ export class MealDailyFormComponent implements OnInit {
   }
 
   /**
-   * 解析工作表資料
-   * 參考 lunch-order-parser.js 的邏輯
+   * 解析工作表資料（新格式）
+   * 新格式結構：
+   * - 第 1 列：日期與備註
+   * - 第 2 列：餐廳備註
+   * - 第 3 列起：訂單資料（員工姓名、餐點名稱、價格各佔獨立欄位）
    */
   private parseSheetData(jsonData: any): Array<{
     date: string;
@@ -308,14 +311,14 @@ export class MealDailyFormComponent implements OnInit {
       return orders;
     }
 
-    // 第一列：日期
+    // 第一列：日期與備註
     const dateRow = rows[0];
-    // 第二列：店家名稱
+    // 第二列：餐廳備註
     const restaurantRow = rows[1];
     // 第三列開始：訂餐資料
     const orderRows = rows.slice(2);
 
-    // 識別日期和店家的欄位結構
+    // 識別日期和餐廳的欄位結構
     const dateColumns: Array<{
       col: number;
       date: string;
@@ -327,35 +330,42 @@ export class MealDailyFormComponent implements OnInit {
 
     for (let col = 0; col < dateRow.c.length; col++) {
       const cell = dateRow.c[col];
-      if (cell && cell.v) {
-        const dateValue = cell.v;
-        let date: Date | null = null;
+      if (!cell || !cell.v) continue;
 
-        // 檢查是否為日期
-        if (typeof dateValue === 'number' && dateValue > 40000) {
-          // Excel 數字格式
-          date = this.excelDateToJSDate(dateValue);
-        } else if (typeof dateValue === 'string' && dateValue.match(/^\d{4}\/\d{1,2}\/\d{1,2}$/)) {
-          // 字串格式：YYYY/MM/DD 或 YYYY/M/D
-          const parts = dateValue.split('/');
-          date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      const cellValue = String(cell.v).trim();
+      let date: Date | null = null;
+
+      // 檢查是否為日期（可能包含備註，例如："2026/1/2 ...備註..."）
+      if (typeof cell.v === 'number' && cell.v > 40000) {
+        // Excel 數字格式
+        date = this.excelDateToJSDate(cell.v);
+      } else if (typeof cell.v === 'string') {
+        // 嘗試從字串中提取日期（格式：YYYY/M/D 或 YYYY/MM/DD）
+        const dateMatch = cellValue.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+        if (dateMatch) {
+          date = new Date(
+            parseInt(dateMatch[1]),
+            parseInt(dateMatch[2]) - 1,
+            parseInt(dateMatch[3])
+          );
         }
+      }
 
-        if (date) {
-          const dateStr = this.formatDateId(date);
+      if (date) {
+        const dateStr = this.formatDateId(date);
 
-          const restaurantCell = restaurantRow.c[col];
-          const restaurant = restaurantCell?.v || restaurantCell?.f || '未命名店家';
+        // 取得對應的餐廳名稱（日期欄的下一欄）
+        const restaurantCell = dateRow.c[col + 1];
+        const restaurant = restaurantCell?.v || restaurantCell?.f || '未命名店家';
 
-          dateColumns.push({
-            col,
-            date: dateStr,
-            restaurant: String(restaurant).trim(),
-            nameCol: col - 1,  // 員工名稱欄位
-            mealCol: col,      // 餐點名稱欄位
-            priceCol: col + 1  // 價格欄位
-          });
-        }
+        dateColumns.push({
+          col,
+          date: dateStr,
+          restaurant: String(restaurant).trim(),
+          nameCol: col,      // 員工名稱欄位與日期欄同欄
+          mealCol: col + 1,  // 餐點名稱欄位在日期欄的後一欄
+          priceCol: col + 2  // 價格欄位在日期欄的後兩欄
+        });
       }
     }
 
@@ -363,16 +373,22 @@ export class MealDailyFormComponent implements OnInit {
     for (const row of orderRows) {
       if (!row.c) continue;
 
-      const firstCell = row.c[0];
-
-      // 跳過統計列
-      if (firstCell && firstCell.v) {
-        const cellStr = String(firstCell.v).trim();
-        if (['預估金額', '實際金額', '個人承擔', '公司承擔'].includes(cellStr)) {
-          continue;
+      // 跳過統計列（檢查每個日期區間的第一個欄位）
+      let skipRow = false;
+      for (const dc of dateColumns) {
+        const nameCell = row.c[dc.nameCol];
+        if (nameCell && nameCell.v) {
+          const cellStr = String(nameCell.v).trim();
+          if (['預估金額', '實際金額', '個人承擔', '公司承擔'].includes(cellStr)) {
+            skipRow = true;
+            break;
+          }
         }
       }
 
+      if (skipRow) continue;
+
+      // 解析每個日期區間的訂單
       for (const dc of dateColumns) {
         const userNameCell = row.c[dc.nameCol];
         const mealNameCell = row.c[dc.mealCol];

@@ -49,10 +49,10 @@ function parseWorksheet(worksheet, sheetName) {
     return [];
   }
 
-  // 第一列：日期
+  // 第一列：日期和餐廳名稱
   const dateRow = data[0];
-  // 第二列：店家名稱和「餐費」標籤
-  const restaurantRow = data[1];
+  // 第二列：餐廳備註（可能包含「備註:...」和「餐費」標籤）
+  const remarkRow = data[1];
   // 第三列開始：訂餐資料
   const orderRows = data.slice(2);
 
@@ -63,16 +63,18 @@ function parseWorksheet(worksheet, sheetName) {
     if (dateValue && typeof dateValue === 'number' && dateValue > 40000) {
       // Excel 日期通常是大於 40000 的數字
       const date = excelDateToJSDate(dateValue);
-      const restaurant = restaurantRow[col] || '未命名店家';
+
+      // 餐廳名稱在日期欄的下一欄
+      const restaurant = dateRow[col + 1] || '未命名店家';
 
       dateColumns.push({
         col,
         date: formatDate(date),
         dateObj: date,
         restaurant: String(restaurant).trim(),
-        nameCol: col - 1,      // 員工名稱欄位
-        mealCol: col,          // 餐點名稱欄位
-        priceCol: col + 1      // 價格欄位
+        nameCol: col,          // 員工名稱欄位（與日期欄同欄）
+        mealCol: col + 1,      // 餐點名稱欄位（日期後一欄）
+        priceCol: col + 2      // 價格欄位（日期後兩欄）
       });
     }
   }
