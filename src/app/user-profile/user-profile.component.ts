@@ -1,4 +1,4 @@
-import { AsyncPipe, DatePipe, DecimalPipe, NgIf, NgTemplateOutlet } from '@angular/common';
+import { AsyncPipe, DatePipe, DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import {
   Component,
   Inject,
@@ -53,7 +53,6 @@ declare var cloudinary: any;
   selector: 'app-user-profile',
   standalone: true,
   imports: [
-    NgIf,
     NgTemplateOutlet,
     AsyncPipe,
     DatePipe,

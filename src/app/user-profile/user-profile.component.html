@@ -3,9 +3,11 @@
     <mat-tab label="Normal">
       <ng-container *ngTemplateOutlet="normalContent"></ng-container>
     </mat-tab>
-    <mat-tab label="Advanced" *ngIf="isAdmin$ | async">
-      <ng-container *ngTemplateOutlet="advancedContent"></ng-container>
-    </mat-tab>
+    @if (isAdmin$ | async) {
+      <mat-tab label="Advanced">
+        <ng-container *ngTemplateOutlet="advancedContent"></ng-container>
+      </mat-tab>
+    }
     <mat-tab label="Remaining Leave Hours">
       <ng-container
         *ngTemplateOutlet="remainingLeaveHoursContent"
