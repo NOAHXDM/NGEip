@@ -5,6 +5,14 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [2.2.1] - 2025-12-28
+
+### 重構
+- 升級至 Angular 20 控制流語法
+- 將 user-profile 元件的 `*ngIf` 改為 `@if` 語法
+- 移除未使用的 NgIf 匯入
+- 消除 NG8113 編譯警告
+
 ## [2.2.0] - 2025-12-28
 
 ### 新增
@@ -160,7 +168,8 @@
 - Cloudinary
 - Karma/Jasmine
 
-[2.2.0]: https://github.com/NOAHXDM/NGEip/compare/v2.1.0...HEAD
+[2.2.1]: https://github.com/NOAHXDM/NGEip/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/NOAHXDM/NGEip/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/NOAHXDM/NGEip/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/NOAHXDM/NGEip/compare/6317ec7...v2.0.0
 [1.0.0]: https://github.com/NOAHXDM/NGEip/releases/tag/v1.0.0
