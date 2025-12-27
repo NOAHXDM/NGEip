@@ -1,0 +1,21 @@
+mat-dialog-content {
+  min-width: 500px;
+  max-height: 70vh;
+}
+
+.table-container {
+  overflow: auto;
+  max-height: 60vh;
+}
+
+.rank-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
