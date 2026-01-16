@@ -5,6 +5,17 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [2.2.2] - 2026-01-16
+
+### 變更
+- 移除補助申請遷移腳本中的冗餘欄位 `installmentCount` 和 `totalMonthlyAmount`
+- 更新遷移文件說明，移除已廢棄的欄位引用
+- 補助統計資訊現在完全從 `installments` 子集合動態計算，避免資料不一致
+
+### 技術改進
+- 簡化 `subsidyApplications` 文件結構，減少資料冗餘
+- 統一資料來源：分期數和總金額統一從 `installments` 子集合計算
+
 ## [2.2.1] - 2025-12-28
 
 ### 重構
