@@ -173,13 +173,15 @@ Excel 檔案採用特殊的橫向分期結構：
 - `userName`：員工姓名
 - `applicationDate`：申請日期（第一期的領取日期）
 - `invoiceAmount`：發票金額（可能為 null）
-- `totalMonthlyAmount`：月付總額（所有分期金額加總）
-- `installmentCount`：分期數
+- `totalMonthlyAmount`：月付總額（所有分期金額加總，**僅用於驗證和顯示，不會寫入 Firestore**）
+- `installmentCount`：分期數（**僅用於驗證和顯示，不會寫入 Firestore**）
 - `installments`：分期詳情陣列（遷移時會轉為子集合）
   - `period`：期數（1, 2, 3...）→ 寫入 Firestore 時為 `installmentNumber`
   - `paymentDate`：領取日期（YYYY-MM-DD）→ 寫入 Firestore 時為 `receivedDate`
   - `amount`：該期金額
 - `originalInvoiceAmountStr`：原始發票金額字串
+
+**注意：** `totalMonthlyAmount` 和 `installmentCount` 僅在解析階段用於資料驗證和終端輸出，遷移到 Firestore 時不會儲存這些欄位，統計資訊將從 `installments` 子集合動態計算。
 
 ### Firestore 補助申請記錄
 
@@ -193,8 +195,6 @@ subsidyApplications/{applicationId}
 ├── content: string ("個人筆電")
 ├── notes: string (發票金額 | 核准金額 | 分期數 | 月付總計)
 ├── invoiceAmount: number|null (發票金額)
-├── installmentCount: number (分期數)
-├── totalMonthlyAmount: number (月付總額，供參考)
 ├── createdAt: Timestamp
 ├── updatedAt: Timestamp
 ├── installments/ (子集合)
@@ -210,6 +210,8 @@ subsidyApplications/{applicationId}
         ├── actionDateTime: Timestamp
         └── content: string (原始資料的 JSON)
 ```
+
+**注意：** 分期數和月付總計等統計資訊是從 `installments` 子集合動態計算得出，不儲存於文件中以避免資料冗餘。
 
 **notes 欄位範例：**
 ```

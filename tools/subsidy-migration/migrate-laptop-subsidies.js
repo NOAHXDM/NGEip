@@ -137,8 +137,6 @@ async function createLaptopSubsidyApplication(employee, userId) {
     content: '個人筆電',
     notes: notesLines.join(' | '),
     invoiceAmount: employee.invoiceAmount, // 發票金額（可能為 null）
-    installmentCount: employee.installmentCount,
-    totalMonthlyAmount: employee.totalMonthlyAmount, // 月付總額（供參考）
     createdAt: admin.firestore.Timestamp.now(),
     updatedAt: admin.firestore.Timestamp.now()
   };
