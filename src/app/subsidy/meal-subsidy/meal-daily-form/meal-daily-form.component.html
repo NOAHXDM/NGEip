@@ -97,10 +97,15 @@
 
 <mat-dialog-actions align="end">
   @if (!data.readOnly) {
-  <button type="button" mat-stroked-button color="primary" (click)="onImportFromSheet()"
-    title="Import from Google Sheets">
+  <button type="button" mat-stroked-button color="primary" (click)="onImportFromSheet(true)"
+    title="Import from Google Sheets (with $150 limit)">
     <mat-icon>file_upload</mat-icon>
     Import
+  </button>
+  <button type="button" mat-stroked-button color="accent" (click)="onImportFromSheet(false)"
+    title="Import from Google Sheets (without limit)">
+    <mat-icon>file_upload</mat-icon>
+    Import without limit
   </button>
   }
   <button mat-button (click)="onCancel()">{{ data.readOnly ? 'Close' : 'Cancel' }}</button>

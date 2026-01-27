@@ -5,6 +5,17 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [2.2.3] - 2026-01-27
+
+### 新增
+- 午餐補助日報表新增「Import without limit」按鈕，支援匯入原始金額而不受 $150 限制
+- 餐費匯入功能現在可選擇是否套用金額上限
+
+### 變更
+- 優化餐費匯入介面，提供兩種匯入模式：
+  - Import：套用 $150 上限（原有功能）
+  - Import without limit：不套用上限，直接匯入表格原始金額
+
 ## [2.2.2] - 2026-01-16
 
 ### 變更
@@ -179,7 +190,9 @@
 - Cloudinary
 - Karma/Jasmine
 
-[2.2.1]: https://github.com/NOAHXDM/NGEip/compare/v2.2.0...HEAD
+[2.2.3]: https://github.com/NOAHXDM/NGEip/compare/v2.2.2...HEAD
+[2.2.2]: https://github.com/NOAHXDM/NGEip/compare/v2.2.1...v2.2.2
+[2.2.1]: https://github.com/NOAHXDM/NGEip/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/NOAHXDM/NGEip/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/NOAHXDM/NGEip/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/NOAHXDM/NGEip/compare/6317ec7...v2.0.0

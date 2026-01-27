@@ -183,8 +183,9 @@ export class MealDailyFormComponent implements OnInit {
 
   /**
    * 匯入 Google Sheets 資料
+   * @param applyLimit 是否套用 $150 金額限制
    */
-  async onImportFromSheet() {
+  async onImportFromSheet(applyLimit: boolean = true) {
     const gid = prompt('請輸入 Google Sheet GID:');
     if (!gid || !gid.trim()) {
       return;
@@ -192,7 +193,8 @@ export class MealDailyFormComponent implements OnInit {
 
     try {
       const url = `https://docs.google.com/spreadsheets/d/1vd7o5_3UoG56z77IODsdcmdQ_4kszO9Ar2jMwpojFR8/gviz/tq?gid=${gid.trim()}&tqx=out:json`;
-      this.snackBar.open('正在匯入資料...', '', { duration: 2000 });
+      const limitText = applyLimit ? '（限制 $150）' : '（無限制）';
+      this.snackBar.open(`正在匯入資料${limitText}...`, '', { duration: 2000 });
 
       // 呼叫 Google Sheets API
       const response = await firstValueFrom(this.http.get(url, { responseType: 'text' }));
@@ -201,7 +203,7 @@ export class MealDailyFormComponent implements OnInit {
       const jsonData = this.parseGoogleSheetsResponse(response);
 
       // 解析工作表資料（包含日期資訊）
-      const orders = this.parseSheetData(jsonData);
+      const orders = this.parseSheetData(jsonData, applyLimit);
 
       if (orders.length === 0) {
         this.snackBar.open('未找到有效的訂單資料', '', { duration: 3000 });
@@ -233,7 +235,7 @@ export class MealDailyFormComponent implements OnInit {
       await this.populateFormWithOrders(matchedOrders);
 
       this.snackBar.open(
-        `成功匯入 ${matchedOrders.length} 筆 ${selectedDateStr} 的資料`,
+        `成功匯入 ${matchedOrders.length} 筆 ${selectedDateStr} 的資料${limitText}`,
         '',
         { duration: 3000 }
       );
@@ -287,8 +289,10 @@ export class MealDailyFormComponent implements OnInit {
    * - 第 1 列：日期與備註
    * - 第 2 列：餐廳備註
    * - 第 3 列起：訂單資料（員工姓名、餐點名稱、價格各佔獨立欄位）
+   * @param jsonData Google Sheets API 回傳的 JSON 資料
+   * @param applyLimit 是否套用 $150 金額限制
    */
-  private parseSheetData(jsonData: any): Array<{
+  private parseSheetData(jsonData: any, applyLimit: boolean = true): Array<{
     date: string;
     userName: string;
     orderContent: string;
@@ -404,10 +408,10 @@ export class MealDailyFormComponent implements OnInit {
           if (!['null', 'p', 'pass', '怕死'].includes(mealStr)) {
             const orderContent = `${dc.restaurant} - ${mealName}`;
 
-            // 處理金額：確保不超過 150
+            // 處理金額：根據 applyLimit 決定是否限制在 150 以內
             let amount = 150; // 預設值
             if (typeof price === 'number' && !isNaN(price)) {
-              amount = Math.min(price, 150);
+              amount = applyLimit ? Math.min(price, 150) : price;
             }
 
             orders.push({
