@@ -5,6 +5,17 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [2.2.4] - 2026-03-10
+
+### 修復
+- 修復出勤統計頁面選擇尚未結算的月份時，顯示空白資料的問題（#11）
+- 未結算月份現在改為動態計算該月已核准（Approved）的出勤時數，行為與 CURRENT 模式相同
+- 統計頁面在無結算資料時（含 CURRENT）改顯示「Statistics not yet settled」提示，取代原本空白狀態
+
+### 技術改進
+- `AttendanceStatsService` 新增 `getAttendanceStatsTemporaryForMonth(yearMonth)` 公開方法，支援針對指定月份動態計算統計
+- `AttendanceStatsComponent` 非 CURRENT 選項改用 `switchMap`，Firestore 無結算資料時自動 fallback 動態計算
+
 ## [2.2.3] - 2026-01-27
 
 ### 新增
@@ -190,7 +201,8 @@
 - Cloudinary
 - Karma/Jasmine
 
-[2.2.3]: https://github.com/NOAHXDM/NGEip/compare/v2.2.2...HEAD
+[2.2.4]: https://github.com/NOAHXDM/NGEip/compare/v2.2.3...HEAD
+[2.2.3]: https://github.com/NOAHXDM/NGEip/compare/v2.2.2...v2.2.3
 [2.2.2]: https://github.com/NOAHXDM/NGEip/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/NOAHXDM/NGEip/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/NOAHXDM/NGEip/compare/v2.1.0...v2.2.0
