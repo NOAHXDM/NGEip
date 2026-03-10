@@ -12,7 +12,7 @@ import { MatTableModule } from '@angular/material/table';
 import { Timestamp } from '@angular/fire/firestore';
 
 import { format } from 'date-fns';
-import { map, Observable, Subscription, take, tap } from 'rxjs';
+import { map, Observable, of, Subscription, switchMap, take, tap } from 'rxjs';
 
 import { AttendanceService } from '../../services/attendance.service';
 import {
@@ -108,12 +108,15 @@ export class AttendanceStatsComponent {
       this.list$ = this.attendanceStatsService
         .getAttendanceStatsMonthly(option)
         .pipe(
-          map((summary) => {
+          switchMap((summary) => {
             if (!summary) {
-              return [];
+              this.listLastUpdated = undefined;
+              return this.attendanceStatsService
+                .getAttendanceStatsTemporaryForMonth(option)
+                .pipe(map((fallback) => fallback.stats));
             }
             this.listLastUpdated = summary.lastUpdated as Timestamp;
-            return summary.stats;
+            return of(summary.stats);
           })
         );
     } else {

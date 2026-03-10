@@ -21,6 +21,8 @@
       <button mat-raised-button (click)="downloadCsv()">Download</button>
       @if (listLastUpdated) {
         <button mat-button disabled>Last updated: {{ listLastUpdated | firestoreTimestamp }}</button>
+      } @else {
+        <button mat-button disabled>Statistics not yet settled</button>
       }
     </div>
 
