@@ -57,6 +57,12 @@ export class AttendanceStatsService {
     );
   }
 
+  getAttendanceStatsTemporaryForMonth(yearMonth: string) {
+    return this.calcuateAttendanceStatsMonthly(yearMonth).pipe(
+      map((data) => new AttendanceStatsModel(data))
+    );
+  }
+
   updateAttendanceStatsMonthly(yearMonth: string) {
     return this.calcuateAttendanceStatsMonthly(yearMonth).pipe(
       concatMap((data) => {
