@@ -1,4 +1,4 @@
 
 export const environment = {
-    useEmulators: true,
+    useEmulators: false,
 };

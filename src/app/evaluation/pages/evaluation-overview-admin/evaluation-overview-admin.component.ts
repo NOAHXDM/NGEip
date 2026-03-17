@@ -264,7 +264,7 @@ interface EvaluateeCard {
                   <!-- 總分 -->
                   <div class="score-row">
                     <span class="score-label">總分</span>
-                    <span class="score-value">{{ card.snapshot.totalScore.toFixed(2) }}</span>
+                    <span class="score-value">{{ (card.snapshot.totalScore ?? 0).toFixed(2) }}</span>
                   </div>
 
                   <!-- 六大屬性分數 -->
@@ -273,8 +273,8 @@ interface EvaluateeCard {
                       <div class="attr-item">
                         <span class="attr-key">{{ key }}</span>
                         <span class="attr-score"
-                          [class.below-passing]="card.snapshot.attributes[key] < 6">
-                          {{ card.snapshot.attributes[key].toFixed(2) }}
+                          [class.below-passing]="(card.snapshot.attributes?.[key] ?? 0) < 6">
+                          {{ (card.snapshot.attributes?.[key] ?? 0).toFixed(2) }}
                         </span>
                       </div>
                     }
