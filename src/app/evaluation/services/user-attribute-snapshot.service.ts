@@ -4,7 +4,7 @@
  * 受評者職場屬性快照查詢服務
  *
  * 職責：
- *  - getMySnapshots()              取得目前登入者的所有快照（依 cycleId DESC）
+ *  - getMySnapshots()              取得目前登入者的所有快照（依 computedAt DESC）
  *  - getMySnapshot(cycleId)        取得目前登入者指定週期的快照
  *  - getAllSnapshotsByCycle(cycleId) 取得指定週期的所有快照（管理者專用）
  */
@@ -34,7 +34,7 @@ export class UserAttributeSnapshotService {
   private readonly auth = inject(Auth);
 
   /**
-   * 取得目前登入者的所有快照，依 cycleId 倒序排列
+   * 取得目前登入者的所有快照，依 computedAt 倒序排列
    * 結果以 shareReplay(1) 快取
    */
   getMySnapshots(): Observable<UserAttributeSnapshot[]> {
@@ -48,7 +48,7 @@ export class UserAttributeSnapshotService {
         const q = query(
           colRef,
           where('userId', '==', user.uid),
-          orderBy('cycleId', 'desc'),
+          orderBy('computedAt', 'desc'),
         );
         return (collectionData(q, { idField: 'id' }) as Observable<UserAttributeSnapshot[]>).pipe(
           shareReplay(1),
@@ -94,7 +94,7 @@ export class UserAttributeSnapshotService {
   }
 
   /**
-   * 取得指定使用者的所有快照，依 cycleId 倒序排列（管理者專用）
+   * 取得指定使用者的所有快照，依 computedAt 倒序排列（管理者專用）
    *
    * @param userId 目標使用者 UID
    */
@@ -103,7 +103,7 @@ export class UserAttributeSnapshotService {
     const q = query(
       colRef,
       where('userId', '==', userId),
-      orderBy('cycleId', 'desc'),
+      orderBy('computedAt', 'desc'),
     );
     return (collectionData(q, { idField: 'id' }) as Observable<UserAttributeSnapshot[]>).pipe(
       shareReplay(1),

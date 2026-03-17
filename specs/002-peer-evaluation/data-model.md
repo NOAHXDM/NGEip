@@ -253,7 +253,7 @@ interface UserAttributeSnapshot {
 ```
 
 **查詢模式**：
-- 受評者查看自己的快照：`where('userId', '==', uid).orderBy('cycleId', 'desc')`
+- 受評者查看自己的快照：`where('userId', '==', uid).orderBy('computedAt', 'desc')`
 - 管理者查看某週期所有快照：`where('cycleId', '==', cycleId)`
 - 管理者排名視圖：`where('cycleId', '==', cycleId).orderBy('totalScore', 'desc')`
 - 評核者提交表單後更新快照（arrayUnion）：直接 `updateDoc` by document ID
@@ -265,7 +265,7 @@ interface UserAttributeSnapshot {
   "queryScope": "COLLECTION",
   "fields": [
     { "fieldPath": "userId", "order": "ASCENDING" },
-    { "fieldPath": "cycleId", "order": "DESCENDING" }
+    { "fieldPath": "computedAt", "order": "DESCENDING" }
   ]
 },
 {

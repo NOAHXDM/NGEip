@@ -155,7 +155,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "cycleId", "order": "DESCENDING" }
+        { "fieldPath": "computedAt", "order": "DESCENDING" }
       ]
     },
     {
