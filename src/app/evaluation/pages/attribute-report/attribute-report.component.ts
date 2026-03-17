@@ -183,7 +183,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
                 </div>
                 <div class="info-item">
                   <span class="info-label">綜合總分</span>
-                  <span class="total-score">{{ currentSnapshot()!.totalScore.toFixed(2) }}</span>
+                  <span class="total-score">{{ (currentSnapshot()!.totalScore ?? 0).toFixed(2) }}</span>
                   <span class="total-score-max">/ 60</span>
                 </div>
                 <div class="info-item">
@@ -214,8 +214,8 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
                     <span class="attr-key">{{ key }}</span>
                     <span class="attr-label">{{ getAttributeLabel(key) }}</span>
                     <span class="attr-score"
-                      [class.below-passing]="currentSnapshot()!.attributes[key] < 6">
-                      {{ currentSnapshot()!.attributes[key].toFixed(2) }}
+                      [class.below-passing]="(currentSnapshot()!.attributes?.[key] ?? 0) < 6">
+                      {{ (currentSnapshot()!.attributes?.[key] ?? 0).toFixed(2) }}
                     </span>
                   </div>
                 }
