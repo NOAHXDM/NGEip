@@ -8,6 +8,10 @@
 
   <!-- Desktop nav -->
   <div class="d-none d-md-flex align-items-center">
+    <button mat-button [routerLink]="['/Users']">
+      <mat-icon>people</mat-icon>
+      使用者
+    </button>
     @if(isAdmin$ | async) {
     <button mat-button [matMenuTriggerFor]="systemMenu">
       系統
@@ -49,10 +53,6 @@
 
 <!-- System menu (Admin only) -->
 <mat-menu #systemMenu>
-  <button mat-menu-item [routerLink]="['/Users']">
-    <mat-icon>people</mat-icon>
-    <span>使用者管理</span>
-  </button>
   <button mat-menu-item [routerLink]="['/SystemConfig']">
     <mat-icon>settings</mat-icon>
     <span>系統設定</span>
@@ -107,11 +107,11 @@
 
 <!-- Mobile menu -->
 <mat-menu #mobileMenu>
-  @if(isAdmin$ | async) {
   <button mat-menu-item [routerLink]="['/Users']">
     <mat-icon>people</mat-icon>
-    <span>使用者管理</span>
+    <span>使用者</span>
   </button>
+  @if(isAdmin$ | async) {
   <button mat-menu-item [routerLink]="['/SystemConfig']">
     <mat-icon>settings</mat-icon>
     <span>系統設定</span>

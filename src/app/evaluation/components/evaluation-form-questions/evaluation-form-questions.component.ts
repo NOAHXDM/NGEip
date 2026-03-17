@@ -286,7 +286,13 @@ export class EvaluationFormQuestionsComponent {
   }
 
   onFeedbackChange(key: keyof EvaluationFormFeedbacks, value: string): void {
-    this.feedbacksChange.emit({ ...this.feedbacks, [key]: value || undefined });
+    const updated = { ...this.feedbacks };
+    if (value) {
+      updated[key] = value;
+    } else {
+      delete updated[key];
+    }
+    this.feedbacksChange.emit(updated);
   }
 
   // ── 分數工具方法 ─────────────────────────────────────────────────────────

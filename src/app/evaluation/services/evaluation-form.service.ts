@@ -260,6 +260,11 @@ export class EvaluationFormService {
       throw new Error('使用者未登入，無法提交評核表單');
     }
 
+    // Step 2b：防止自我評核（Security Rules 亦禁止，但提前拋出可提供明確訊息）
+    if (currentUser.uid === evaluateeUid) {
+      throw new Error('不允許對自己進行評核');
+    }
+
     // Step 3：讀取指派文件，檢查狀態
     const assignmentRef = this.firestoreDocRef(ASSIGNMENTS_COLLECTION, assignmentId);
     const assignmentSnap = await this.firestoreGet(assignmentRef);
@@ -284,6 +289,11 @@ export class EvaluationFormService {
     const formsColRef = this.firestoreCollectionRef(FORMS_COLLECTION);
     const formRef = this.firestoreNewDocRef(formsColRef);
 
+    // 過濾 feedbacks 中的 undefined / 空字串（防止 SDK 拋出 unsupported field value 錯誤）
+    const sanitizedFeedbacks = Object.fromEntries(
+      Object.entries(draft.feedbacks).filter(([, v]) => v !== undefined && v !== ''),
+    );
+
     batch.set(formRef, {
       id: formRef.id,
       assignmentId,
@@ -292,7 +302,7 @@ export class EvaluationFormService {
       evaluateeUid,
       submittedAt: this.firestoreServerTimestamp(),
       scores: draft.scores,
-      feedbacks: draft.feedbacks,
+      feedbacks: sanitizedFeedbacks,
       overallComment: draft.overallComment,
       anomalyFlags: {
         reciprocalHighScore: false,
