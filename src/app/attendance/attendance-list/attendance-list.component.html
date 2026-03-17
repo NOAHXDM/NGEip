@@ -12,19 +12,19 @@
       (click)="openFilterDialog()"
     >
       <mat-icon>filter_alt</mat-icon>
-      Requester
+      申請人
     </button>
 
     <mat-chip-listbox [value]="logsSearchOption">
-      <mat-chip-option aria-label="today" value="0">Today</mat-chip-option>
+      <mat-chip-option aria-label="today" value="0">今天</mat-chip-option>
       <mat-chip-option aria-label="this week" value="1"
-        >This Week</mat-chip-option
+        >本週</mat-chip-option
       >
       <mat-chip-option aria-label="this month" value="2"
-        >This Month</mat-chip-option
+        >本月</mat-chip-option
       >
       <mat-chip-option aria-label="prev month" value="3"
-        >Prev Month</mat-chip-option
+        >上個月</mat-chip-option
       >
       @if((license$ | async)?.timeFilterRange){
       <mat-chip-option value="4">
@@ -38,13 +38,13 @@
           >
             <input
               matStartDate
-              placeholder="Start date"
+              placeholder="開始日期"
               matStartDate
               formControlName="start"
             />
             <input
               matEndDate
-              placeholder="End date"
+              placeholder="結束日期"
               matEndDate
               formControlName="end"
             />
@@ -62,7 +62,7 @@
       <mat-table [dataSource]="(attendanceList$ | async)!" matSort>
         <!-- Status -->
         <ng-container matColumnDef="status" sticky>
-          <mat-header-cell *matHeaderCellDef>Status</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef>狀態</mat-header-cell>
           <mat-cell *matCellDef="let element">
             <button
               mat-icon-button
@@ -82,7 +82,7 @@
         <!-- UserId -->
         <ng-container matColumnDef="userId">
           <mat-header-cell *matHeaderCellDef mat-sort-header
-            >Requester</mat-header-cell
+            >申請人</mat-header-cell
           >
           <mat-cell *matCellDef="let element">{{
             element.userId | userName
@@ -91,7 +91,7 @@
         <!-- Type -->
         <ng-container matColumnDef="type">
           <mat-header-cell *matHeaderCellDef mat-sort-header
-            >Type</mat-header-cell
+            >類型</mat-header-cell
           >
           <mat-cell *matCellDef="let element">{{
             element.type | attendanceType
@@ -100,7 +100,7 @@
         <!-- Start DateTime -->
         <ng-container matColumnDef="startDateTime">
           <mat-header-cell *matHeaderCellDef mat-sort-header
-            >Start DateTime</mat-header-cell
+            >開始時間</mat-header-cell
           >
           <mat-cell *matCellDef="let element">
             {{ element.startDateTime | firestoreTimestamp }}
@@ -109,7 +109,7 @@
         <!-- End DateTime -->
         <ng-container matColumnDef="endDateTime">
           <mat-header-cell *matHeaderCellDef mat-sort-header
-            >End DateTime</mat-header-cell
+            >結束時間</mat-header-cell
           >
           <mat-cell *matCellDef="let element">
             {{ element.endDateTime | firestoreTimestamp }}
@@ -117,38 +117,38 @@
         </ng-container>
         <!-- Hours -->
         <ng-container matColumnDef="hours">
-          <mat-header-cell *matHeaderCellDef>Hours</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef>時數</mat-header-cell>
           <mat-cell *matCellDef="let element">{{ element.hours }}</mat-cell>
         </ng-container>
         <!-- Reason -->
         <ng-container matColumnDef="reason">
-          <mat-header-cell *matHeaderCellDef>Reason</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef>原因</mat-header-cell>
           <mat-cell *matCellDef="let element">{{ element.reason }}</mat-cell>
         </ng-container>
         <!-- Reason Priority -->
         <ng-container matColumnDef="reasonPriority">
-          <mat-header-cell *matHeaderCellDef>Reason Priority</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef>原因優先序</mat-header-cell>
           <mat-cell *matCellDef="let element">
             {{ element.reasonPriority | reasonPriority }}
           </mat-cell>
         </ng-container>
         <!-- Proxy UserId -->
         <ng-container matColumnDef="proxyUserId">
-          <mat-header-cell *matHeaderCellDef>Proxy UserName</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef>代理人</mat-header-cell>
           <mat-cell *matCellDef="let element">
             {{ element.proxyUserId | userName }}
           </mat-cell>
         </ng-container>
         <!-- Callout -->
         <ng-container matColumnDef="callout">
-          <mat-header-cell *matHeaderCellDef>Callout</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef>加班通報</mat-header-cell>
           <mat-cell *matCellDef="let element">{{
             element.callout | userName
           }}</mat-cell>
         </ng-container>
         <!-- Action -->
         <ng-container matColumnDef="history">
-          <mat-header-cell *matHeaderCellDef>History</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef>歷史記錄</mat-header-cell>
           <mat-cell *matCellDef="let element">
             <button
               mat-icon-button
@@ -177,18 +177,18 @@
       (click)="openAttendanceStatusChangeDialog(data, 'approved')"
     >
       <mat-icon [style.color]="'green'">recommend</mat-icon>
-      <span>Approved</span>
+      <span>核准</span>
     </button>
     <button
       mat-menu-item
       (click)="openAttendanceStatusChangeDialog(data, 'rejected')"
     >
       <mat-icon [style.color]="'red'">cancel</mat-icon>
-      <span>Rejected</span>
+      <span>拒絕</span>
     </button>
     <button mat-menu-item (click)="openEditAttendanceDialog(data)">
       <mat-icon [style.color]="'gray'">edit_square</mat-icon>
-      <span>Edit</span>
+      <span>編輯</span>
     </button>
     } @else {
     <button
@@ -196,7 +196,7 @@
       (click)="openAttendanceStatusChangeDialog(data, 'pending')"
     >
       <mat-icon [style.color]="'gray'">pending_actions</mat-icon>
-      <span>Pending</span>
+      <span>待審</span>
     </button>
     }
   </ng-template>

@@ -133,19 +133,19 @@ export class AttendanceStatsComponent {
 
   settlement() {
     if (!this.quickPickOption) {
-      return this.openSnackBar('Please select a month.');
+      return this.openSnackBar('請選擇月份。');
     }
 
     this.attendanceStatsService
       .updateAttendanceStatsMonthly(this.quickPickOption)
       .pipe(take(1))
       .subscribe({
-        next: () => this.openSnackBar('Settlement completed.'),
+        next: () => this.openSnackBar('結算完成。'),
       });
   }
 
   openSnackBar(message: string) {
-    this._snackBar.open(message, 'Close', {
+    this._snackBar.open(message, '關閉', {
       horizontalPosition: 'center',
       verticalPosition: 'top',
       duration: 5000,

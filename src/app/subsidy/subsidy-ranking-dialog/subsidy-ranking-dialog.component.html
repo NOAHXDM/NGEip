@@ -7,7 +7,7 @@
         <table mat-table [dataSource]="rankings" class="w-100">
           <!-- Rank Column -->
           <ng-container matColumnDef="rank">
-            <th mat-header-cell *matHeaderCellDef>Rank</th>
+            <th mat-header-cell *matHeaderCellDef>排名</th>
             <td mat-cell *matCellDef="let element; let i = index">
               <div class="rank-cell">
                 @if (i < 3) {
@@ -22,7 +22,7 @@
 
           <!-- User Column -->
           <ng-container matColumnDef="userId">
-            <th mat-header-cell *matHeaderCellDef>User</th>
+            <th mat-header-cell *matHeaderCellDef>使用者</th>
             <td mat-cell *matCellDef="let element">{{ element.userId | userName }}</td>
           </ng-container>
 
@@ -34,7 +34,7 @@
 
           <!-- Total Amount Column -->
           <ng-container matColumnDef="totalAmount">
-            <th mat-header-cell *matHeaderCellDef>Total Amount</th>
+            <th mat-header-cell *matHeaderCellDef>總金額</th>
             <td mat-cell *matCellDef="let element">{{ element.totalAmount | currency:'TWD':'symbol':'1.0-0' }}</td>
           </ng-container>
 
@@ -45,12 +45,12 @@
     } @else {
       <div class="text-center text-muted py-4">
         <mat-icon style="font-size: 48px; width: 48px; height: 48px;" color="disabled">leaderboard</mat-icon>
-        <p>No ranking data available</p>
+        <p>暫無排行資料</p>
       </div>
     }
   }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close>Close</button>
+  <button mat-button mat-dialog-close>關閉</button>
 </mat-dialog-actions>

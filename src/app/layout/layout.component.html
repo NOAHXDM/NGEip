@@ -2,7 +2,7 @@
 <mat-toolbar>
   <a mat-button [routerLink]="['/']">
     <span class="brand-logo"></span>
-    BRAND LOGO
+    品牌標誌
   </a>
   <span class="menu-spacer"></span>
 
@@ -10,12 +10,12 @@
   <div class="d-none d-md-flex align-items-center">
     @if(isAdmin$ | async) {
     <button mat-button [matMenuTriggerFor]="systemMenu">
-      System
+      系統
       <mat-icon>arrow_drop_down</mat-icon>
     </button>
     }
     <button mat-button [matMenuTriggerFor]="statisticsMenu">
-      Statistics
+      統計
       <mat-icon>arrow_drop_down</mat-icon>
     </button>
   </div>
@@ -30,7 +30,7 @@
     @if((currentUser$ | async)?.photoUrl) {
     <img
       [src]="(currentUser$ | async)?.photoUrl"
-      alt="User Avatar"
+      alt="使用者頭像"
       class="avator"
     />
     }
@@ -51,11 +51,11 @@
 <mat-menu #systemMenu>
   <button mat-menu-item [routerLink]="['/Users']">
     <mat-icon>people</mat-icon>
-    <span>Users</span>
+    <span>使用者管理</span>
   </button>
   <button mat-menu-item [routerLink]="['/SystemConfig']">
     <mat-icon>settings</mat-icon>
-    <span>Config</span>
+    <span>系統設定</span>
   </button>
   <mat-divider></mat-divider>
   <button mat-menu-item [routerLink]="['/evaluation/admin/cycles']">
@@ -72,15 +72,15 @@
 <mat-menu #statisticsMenu>
   <button mat-menu-item [routerLink]="['/Subsidy/List']">
     <mat-icon>request_quote</mat-icon>
-    <span>Subsidy Applications</span>
+    <span>補助申請</span>
   </button>
   <button mat-menu-item [routerLink]="['/Subsidy/Meals']">
     <mat-icon>restaurant</mat-icon>
-    <span>Meal Subsidy</span>
+    <span>餐費補助</span>
   </button>
   <button mat-menu-item [routerLink]="['/Subsidy/Stats']">
     <mat-icon>bar_chart</mat-icon>
-    <span>Subsidy Statistics</span>
+    <span>補助統計</span>
   </button>
 </mat-menu>
 
@@ -88,7 +88,7 @@
 <mat-menu #profileMenu>
   <button mat-menu-item [routerLink]="['/MyProfile']">
     <mat-icon>account_circle</mat-icon>
-    <span>Profile</span>
+    <span>個人資料</span>
   </button>
   <button mat-menu-item [routerLink]="['/evaluation/tasks']">
     <mat-icon>assignment</mat-icon>
@@ -101,7 +101,7 @@
   <mat-divider></mat-divider>
   <button mat-menu-item (click)="logout()">
     <mat-icon>logout</mat-icon>
-    <span>Logout</span>
+    <span>登出</span>
   </button>
 </mat-menu>
 
@@ -110,11 +110,11 @@
   @if(isAdmin$ | async) {
   <button mat-menu-item [routerLink]="['/Users']">
     <mat-icon>people</mat-icon>
-    <span>Users</span>
+    <span>使用者管理</span>
   </button>
   <button mat-menu-item [routerLink]="['/SystemConfig']">
     <mat-icon>settings</mat-icon>
-    <span>Config</span>
+    <span>系統設定</span>
   </button>
   <button mat-menu-item [routerLink]="['/evaluation/admin/cycles']">
     <mat-icon>manage_history</mat-icon>
@@ -128,20 +128,20 @@
   }
   <button mat-menu-item [routerLink]="['/Subsidy/List']">
     <mat-icon>request_quote</mat-icon>
-    <span>Subsidy Applications</span>
+    <span>補助申請</span>
   </button>
   <button mat-menu-item [routerLink]="['/Subsidy/Meals']">
     <mat-icon>restaurant</mat-icon>
-    <span>Meal Subsidy</span>
+    <span>餐費補助</span>
   </button>
   <button mat-menu-item [routerLink]="['/Subsidy/Stats']">
     <mat-icon>bar_chart</mat-icon>
-    <span>Subsidy Statistics</span>
+    <span>補助統計</span>
   </button>
   <mat-divider></mat-divider>
   <button mat-menu-item [routerLink]="['/MyProfile']">
     <mat-icon>account_circle</mat-icon>
-    <span>Profile</span>
+    <span>個人資料</span>
   </button>
   <button mat-menu-item [routerLink]="['/evaluation/tasks']">
     <mat-icon>assignment</mat-icon>
@@ -154,6 +154,6 @@
   <mat-divider></mat-divider>
   <button mat-menu-item (click)="logout()">
     <mat-icon>logout</mat-icon>
-    <span>Logout</span>
+    <span>登出</span>
   </button>
 </mat-menu>

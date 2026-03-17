@@ -31,11 +31,11 @@ export class SubsidyService {
 
   // 補助類型顯示名稱對應
   private readonly typeNameMap: Record<SubsidyType, string> = {
-    [SubsidyType.Laptop]: 'Laptop Subsidy',
-    [SubsidyType.HealthCheck]: 'Health Check',
-    [SubsidyType.Training]: 'Training Course',
-    [SubsidyType.AITool]: 'AI Tool',
-    [SubsidyType.Travel]: 'Travel Subsidy',
+    [SubsidyType.Laptop]: '筆電補助',
+    [SubsidyType.HealthCheck]: '健康檢查',
+    [SubsidyType.Training]: '訓練課程',
+    [SubsidyType.AITool]: '人工智能工具',
+    [SubsidyType.Travel]: '差旅補助',
   };
 
   readonly typeList = Object.keys(SubsidyType)
@@ -56,7 +56,7 @@ export class SubsidyService {
     };
 
     const auditTrail: SubsidyAuditTrail = {
-      action: 'create',
+      action: '建立',
       actionBy: formValue.userId,
       actionDateTime: serverTimestamp(),
     };
@@ -77,7 +77,7 @@ export class SubsidyService {
     }
 
     const auditTrail: SubsidyAuditTrail = {
-      action: 'update',
+      action: '更新',
       actionBy: formValue.userId,
       actionDateTime: serverTimestamp(),
       content: JSON.stringify(diff),
@@ -101,7 +101,7 @@ export class SubsidyService {
     }
 
     const auditTrail: SubsidyAuditTrail = {
-      action: 'status_change',
+      action: '狀態變更',
       actionBy: actionBy,
       actionDateTime: serverTimestamp(),
       previousStatus: data.status,
@@ -350,7 +350,8 @@ export interface LaptopInstallment {
 
 export interface SubsidyAuditTrail {
   id?: string;
-  action: 'create' | 'update' | 'status_change';
+  /** 舊資料（英文）與新資料（中文）皆合法，顯示層統一用 getActionLabel() 轉換 */
+  action: 'create' | 'update' | 'status_change' | '建立' | '更新' | '狀態變更';
   actionBy: string;
   actionDateTime: Timestamp | FieldValue;
   content?: string;

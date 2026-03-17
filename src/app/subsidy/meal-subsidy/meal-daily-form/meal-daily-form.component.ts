@@ -168,11 +168,11 @@ export class MealDailyFormComponent implements OnInit {
 
     this.mealService.saveDailyMeal(dateId, recordData).subscribe({
       next: () => {
-        this.dialogRef.close('Daily meal record saved successfully!');
+        this.dialogRef.close('每日餐費記錄已成功儲存！');
       },
       error: (error) => {
         console.error('Error saving meal record:', error);
-        this.dialogRef.close('Failed to save meal record.');
+        this.dialogRef.close('儲存餐費記錄失敗。');
       },
     });
   }

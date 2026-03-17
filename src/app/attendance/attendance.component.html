@@ -7,20 +7,20 @@
   >
     <!-- Requester -->
     <mat-form-field>
-      <mat-label>Requester</mat-label>
+      <mat-label>申請人</mat-label>
       <mat-select formControlName="userId">
-        <mat-option value="">Please select</mat-option>
+        <mat-option value="">請選擇</mat-option>
         @for (user of userList$ | async; track user.uid) {
         <mat-option [value]="user.uid">{{ user.name }}</mat-option>
         }
       </mat-select>
-      <mat-hint>The owner of the request</mat-hint>
+      <mat-hint>申請單的所有人</mat-hint>
     </mat-form-field>
     <!-- TYPE -->
     <mat-form-field>
-      <mat-label>Type</mat-label>
+      <mat-label>類型</mat-label>
       <mat-select formControlName="type">
-        <mat-option value="">Please select</mat-option>
+        <mat-option value="">請選擇</mat-option>
         @for (type of typeList; track type.value) {
         <mat-option [value]="type.value">{{ type.text }}</mat-option>
         }
@@ -28,7 +28,7 @@
     </mat-form-field>
     <!-- STARTDATETIME -->
     <mat-form-field>
-      <mat-label>Start DateTime</mat-label>
+      <mat-label>開始時間</mat-label>
       <mtx-datetimepicker
         #startDatetimePicker
         type="datetime"
@@ -49,7 +49,7 @@
     </mat-form-field>
     <!-- ENDDATETIME -->
     <mat-form-field>
-      <mat-label>End DateTime</mat-label>
+      <mat-label>結束時間</mat-label>
       <mtx-datetimepicker
         #endDatetimePicker
         type="datetime"
@@ -70,7 +70,7 @@
     </mat-form-field>
     <!-- HOURS -->
     <mat-form-field>
-      <mat-label>Hours</mat-label>
+      <mat-label>時數</mat-label>
       <input
         matInput
         type="number"
@@ -81,15 +81,15 @@
     </mat-form-field>
     <!-- REASON -->
     <mat-form-field>
-      <mat-label>Reason</mat-label>
+      <mat-label>原因</mat-label>
       <textarea matInput formControlName="reason"></textarea>
     </mat-form-field>
     <!-- REASON PRIORITY-->
     @if (reasonPriorityVisible()) {
     <mat-form-field>
-      <mat-label>Reason priority</mat-label>
+      <mat-label>原因優先序</mat-label>
       <mat-select formControlName="reasonPriority">
-        <mat-option value="">Please select</mat-option>
+        <mat-option value="">請選擇</mat-option>
         @for (reasonPriority of reasonPriorityList; track reasonPriority.value) {
         <mat-option [value]="reasonPriority.value">{{
           reasonPriority.text
@@ -101,24 +101,24 @@
     <!-- PROXY -->
     @if (proxyVisible()) {
     <mat-form-field>
-      <mat-label>Proxy</mat-label>
+      <mat-label>代理人</mat-label>
       <mat-select
         formControlName="proxyUserId"
       >
-        <mat-option value="">Please select</mat-option>
+        <mat-option value="">請選擇</mat-option>
         @for (user of userList$ | async; track user.uid) {
         <mat-option [value]="user.uid">{{ user.name }}</mat-option>
         }
       </mat-select>
-      <mat-hint>In case a proxy is provided, they will be contacted first. Otherwise, the responsibility will fall directly to the applicant.</mat-hint>
+      <mat-hint>若有代理人，將優先聯繫代理人；否則責任直接由申請人承擔。</mat-hint>
     </mat-form-field>
     }
     <!-- CALLOUT -->
     @if (calloutVisible()) {
     <mat-form-field>
-      <mat-label>Callout</mat-label>
+      <mat-label>加班通報</mat-label>
       <mat-select formControlName="callout">
-        <mat-option value="">Please select</mat-option>
+        <mat-option value="">請選擇</mat-option>
         @for (user of userList$ | async; track user.uid) {
         <mat-option [value]="user.uid">{{ user.name }}</mat-option>
         }
@@ -128,12 +128,12 @@
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close>Cancel</button>
+  <button mat-button mat-dialog-close>取消</button>
   <button
     mat-button
     (click)="save()"
     [disabled]="attendanceForm.invalid"
   >
-    Save
+    儲存
   </button>
 </mat-dialog-actions>

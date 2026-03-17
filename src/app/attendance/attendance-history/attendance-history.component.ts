@@ -38,10 +38,20 @@ import { UserNamePipe } from '../../pipes/user-name.pipe';
 export class AttendanceHistoryComponent {
   list$: Observable<any>;
 
+  private readonly actionLabelMap: Record<string, string> = {
+    'create': '建立',
+    'update': '更新',
+  };
+
   constructor(
     private attendanceService: AttendanceService,
     @Optional() @Inject(MAT_DIALOG_DATA) protected data: any
   ) {
     this.list$ = this.attendanceService.getAuditTrail(this.data.id);
+  }
+
+  /** 將舊英文值轉為中文顯示；新中文值直接回傳 */
+  getActionLabel(action: string): string {
+    return this.actionLabelMap[action] ?? action;
   }
 }

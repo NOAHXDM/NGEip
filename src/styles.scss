@@ -1,5 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
 @use '@angular/material' as mat;
+@use "bootstrap/scss/bootstrap";
 
 // Customize the entire app. Change :root to your selector if you want to scope the styles.
 :root {
@@ -41,4 +42,3 @@ body {
 }
 
 @import "@ng-matero/extensions/prebuilt-themes/azure-blue.css";
-@import "bootstrap/scss/bootstrap";

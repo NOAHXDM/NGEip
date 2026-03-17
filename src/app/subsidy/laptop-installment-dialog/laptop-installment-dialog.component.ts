@@ -84,7 +84,7 @@ export class LaptopInstallmentDialogComponent {
 
         // 檢查是否超過36期
         if (nextNumber > 36) {
-          this.openSnackBar('All 36 installment records have been completed');
+          this.openSnackBar('所有 36 期分期記錄已完成');
           return;
         }
 
@@ -93,7 +93,7 @@ export class LaptopInstallmentDialogComponent {
 
         // 如果該期金額為0，表示補助已領完
         if (installmentAmount === 0) {
-          this.openSnackBar('All subsidy amount has been received');
+          this.openSnackBar('所有補助金額已全數收取');
           return;
         }
 
@@ -111,10 +111,10 @@ export class LaptopInstallmentDialogComponent {
           )
           .subscribe({
             next: () => {
-              this.openSnackBar(`Period ${nextNumber} recorded ($${installmentAmount})`);
+              this.openSnackBar(`第 ${nextNumber} 期已記錄 ($${installmentAmount})`);
             },
             error: (error) => {
-              this.openSnackBar(`Failed to record: ${error.message}`);
+              this.openSnackBar(`記錄失敗：${error.message}`);
             },
           });
       },
@@ -128,13 +128,13 @@ export class LaptopInstallmentDialogComponent {
 
         // 檢查是否超過36期
         if (nextNumber > 36) {
-          this.openSnackBar('All 36 installment records have been completed');
+          this.openSnackBar('所有 36 期分期記錄已完成');
           return;
         }
 
         // 提示使用者輸入金額
         const amountInput = window.prompt(
-          `Enter the amount for Period ${nextNumber}:`,
+          `請輸入第 ${nextNumber} 期的金額:`,
           ''
         );
 
@@ -146,7 +146,7 @@ export class LaptopInstallmentDialogComponent {
         // 驗證輸入
         const amount = parseFloat(amountInput);
         if (isNaN(amount) || amount <= 0) {
-          this.openSnackBar('Please enter a valid amount (must be greater than 0)');
+          this.openSnackBar('請輸入有效金額（必須大於 0）');
           return;
         }
 
@@ -164,10 +164,10 @@ export class LaptopInstallmentDialogComponent {
           )
           .subscribe({
             next: () => {
-              this.openSnackBar(`Period ${nextNumber} recorded ($${amount})`);
+              this.openSnackBar(`第 ${nextNumber} 期已記錄 ($${amount})`);
             },
             error: (error) => {
-              this.openSnackBar(`Failed to record: ${error.message}`);
+              this.openSnackBar(`記錄失敗：${error.message}`);
             },
           });
       },
@@ -175,7 +175,7 @@ export class LaptopInstallmentDialogComponent {
   }
 
   openSnackBar(message: string) {
-    this.snackBar.open(message, 'Close', {
+    this.snackBar.open(message, '關閉', {
       horizontalPosition: 'center',
       verticalPosition: 'top',
       duration: 5000,

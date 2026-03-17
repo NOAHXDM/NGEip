@@ -96,7 +96,7 @@ export class UserService {
         ]);
 
         if (!emailSnapshot.empty) {
-          throw new Error('Email already exists');
+          throw new Error('電子郵件已存在');
         }
 
         totalUsers = countSnapshot.data().count;
@@ -112,7 +112,7 @@ export class UserService {
             const systemConfig = systemConfigDoc.data() as License;
             if (systemConfig.currentUsers >= systemConfig.maxUsers) {
               throw new Error(
-                'The maximum number of users has been reached. Please contact your administrator.'
+                '已達到最大使用者數量。請聯繫您的系統管理員。'
               );
             }
             // Create user

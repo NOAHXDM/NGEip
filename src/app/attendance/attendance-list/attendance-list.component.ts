@@ -242,14 +242,14 @@ export class AttendanceListComponent implements AfterViewInit {
 
   openNewAttendanceDialog() {
     const dialogRef = this._dialog.open(AttendanceComponent, {
-      data: { title: 'Create a new request' },
+      data: { title: '建立新申請' },
       width: '65vw',
     });
 
     dialogRef.afterClosed().subscribe({
       next: (result) => {
         if (result) {
-          this.openSnackBar('Request created successfully');
+          this.openSnackBar('申請已成功建立');
         }
       },
     });
@@ -257,7 +257,7 @@ export class AttendanceListComponent implements AfterViewInit {
 
   openEditAttendanceDialog(attendance: AttendanceLog) {
     const dialogRef = this._dialog.open(AttendanceComponent, {
-      data: { title: 'Edit request', attendance },
+      data: { title: '編輯申請', attendance },
       width: '65vw',
     });
 
@@ -320,7 +320,7 @@ export class AttendanceListComponent implements AfterViewInit {
   }
 
   openSnackBar(message: string) {
-    this._snackBar.open(message, 'Close', {
+    this._snackBar.open(message, '關閉', {
       horizontalPosition: 'center',
       verticalPosition: 'top',
       duration: 5000,
