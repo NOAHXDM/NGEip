@@ -485,8 +485,8 @@ export class EvaluationFormComponent implements OnInit {
     return c ? c.deadline.toDate() < new Date() : false;
   });
 
-  /** 整體評語目前字數 */
-  readonly commentLength = computed(() => this.overallComment().length);
+  /** 整體評語目前字數（以 trim 後為準，與 Firestore rules 一致） */
+  readonly commentLength = computed(() => this.overallComment().trim().length);
 
   /** 剩餘可用字數（500 - 已輸入） */
   readonly remainingChars = computed(() => this.commentMax - this.commentLength());
