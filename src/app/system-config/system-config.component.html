@@ -33,7 +33,7 @@
     >
 
     <section formArrayName="overtimePriorityReplacedByLeave">
-      <h6>加班優先級由特休取代</h6>
+      <h6>加班抵銷事假</h6> 
       @for (reasonPriority of reasonPriorityList; track reasonPriority.value) {
       <p>
         <mat-checkbox [formControlName]="$index">{{
