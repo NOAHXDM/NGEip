@@ -49,9 +49,9 @@ const QUESTIONS: QuestionDef[] = [
   { key: 'q5',  index: 5,  attribute: 'STB', text: '請評估此人對工作的責任心與承諾度' },
   { key: 'q6',  index: 6,  attribute: 'COL', text: '請評估此人與跨部門或不同背景同仁的團隊合作精神' },
   { key: 'q7',  index: 7,  attribute: 'INS', text: '請評估此人積極學習新知識或技能的態度' },
-  { key: 'q8',  index: 8,  attribute: 'EXE', text: '請評估此人將計畫或任務有效執行到位的能力' },
-  { key: 'q9',  index: 9,  attribute: 'EXE', text: '請評估此人在壓力或複雜情境下維持高效能的能力' },
-  { key: 'q10', index: 10, attribute: 'STB', text: '請評估此人在長期專案或任務中的穩定性與持續投入' },
+  { key: 'q8',  index: 8,  attribute: 'STB', text: '請評估此人對工作的專業態度與品質意識' },
+  { key: 'q9',  index: 9,  attribute: 'ADP', text: '請評估此人在高壓或緊急情況下保持冷靜、有效應對挑戰的能力' },
+  { key: 'q10', index: 10, attribute: 'EXE', text: '請評估此人的工作效率與結果導向（如期完成任務、達成目標）' },
 ];
 
 const SCORE_BUTTONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
