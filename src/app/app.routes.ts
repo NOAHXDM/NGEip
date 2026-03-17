@@ -7,6 +7,7 @@ import { RegisterComponent } from './register/register.component';
 import { SystemConfigComponent } from './system-config/system-config.component';
 import { UserProfileComponent } from './user-profile/user-profile.component';
 import { UserListComponent } from './user-list/user-list.component';
+import { EVALUATION_ROUTES } from './evaluation/evaluation.routes';
 
 export const routes: Routes = [
   {
@@ -52,6 +53,8 @@ export const routes: Routes = [
           },
         ],
       },
+      // 評量考核系統（evaluation module routes）
+      EVALUATION_ROUTES[0]
     ],
   },
   { path: 'Login', component: LoginComponent, canActivate: [noAuthGuard] },

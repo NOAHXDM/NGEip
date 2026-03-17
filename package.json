@@ -2,7 +2,7 @@
   "name": "angular-eip",
   "version": "2.2.4",
   "scripts": {
-    "start": "firebase emulators:start --config firebase.local.json",
+    "start": "firebase emulators:start --config firebase.local.json --import ./firestore-backup",
     "build": "ng build",
     "deploy": "npm run build && firebase deploy --config firebase.prod.json",
     "watch": "ng build --watch --configuration development",
@@ -35,7 +35,9 @@
     "@angular-devkit/build-angular": "^20.0.0",
     "@angular/cli": "^20.0.0",
     "@angular/compiler-cli": "^20.0.0",
+    "@firebase/rules-unit-testing": "^5.0.0",
     "@types/jasmine": "~5.1.0",
+    "@types/node": "^25.5.0",
     "cloudinary": "^2.6.1",
     "dotenv": "^16.5.0",
     "jasmine-core": "~5.2.0",

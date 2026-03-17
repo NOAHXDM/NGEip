@@ -13,6 +13,10 @@
       Subsidy
       <mat-icon>arrow_drop_down</mat-icon>
     </button>
+    <button mat-button [matMenuTriggerFor]="evaluationMenu">
+      評量考核
+      <mat-icon>arrow_drop_down</mat-icon>
+    </button>
     <a mat-button [routerLink]="['/Users']">Users</a>
   </div>
   <span
@@ -48,6 +52,29 @@
     <mat-icon>bar_chart</mat-icon>
     <span>Subsidy Statistics</span>
   </button>
+</mat-menu>
+
+<!-- Evaluation menu -->
+<mat-menu #evaluationMenu>
+  <button mat-menu-item [routerLink]="['/evaluation/tasks']">
+    <mat-icon>assignment</mat-icon>
+    <span>我的考評任務</span>
+  </button>
+  <button mat-menu-item [routerLink]="['/evaluation/my-report']">
+    <mat-icon>insights</mat-icon>
+    <span>我的屬性報告</span>
+  </button>
+  @if(isAdmin$ | async) {
+  <mat-divider></mat-divider>
+  <button mat-menu-item [routerLink]="['/evaluation/admin/cycles']">
+    <mat-icon>manage_history</mat-icon>
+    <span>週期管理</span>
+  </button>
+  <button mat-menu-item [routerLink]="['/evaluation/admin/overview']">
+    <mat-icon>dashboard</mat-icon>
+    <span>考評總覽</span>
+  </button>
+  }
 </mat-menu>
 
 <!-- Profile menu -->
