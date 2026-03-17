@@ -92,9 +92,13 @@ service cloud.firestore {
     // =============================================
 
     // 考核週期：所有已登入使用者可讀，僅管理者可寫
+    // 例外：一般使用者提交考評時可遞增 completedAssignments（原子性加一）
     match /evaluationCycles/{cycleId} {
       allow read: if isSignedIn();
-      allow create, update, delete: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() ||
+        (isSignedIn() &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['completedAssignments']));
     }
 
     // 評核指派：評核者讀自己的指派 or 管理者；建立/刪除僅管理者；更新評核者自己 or 管理者

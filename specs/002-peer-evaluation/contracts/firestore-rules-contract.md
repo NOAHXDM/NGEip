@@ -11,7 +11,7 @@
 
 | 集合 | Read | Create | Update | Delete |
 |------|------|--------|--------|--------|
-| `evaluationCycles` | 已登入使用者 | Admin only | Admin only | Admin only |
+| `evaluationCycles` | 已登入使用者 | Admin only | Admin or 已登入（僅限 `completedAssignments`） | Admin only |
 | `evaluationAssignments` | 相關評核者 or Admin | Admin only | 評核者（自己）or Admin | Admin only |
 | `evaluationForms` | **本人評核者** or Admin（**受評者拒絕讀取**） | 評核者（自己，提交一次） | Admin only（補充 anomalyFlags） | 禁止 |
 | `userAttributeSnapshots` | 本人受評者 or Admin | 評核者（建立預覽）or Admin | 評核者（更新預覽）or Admin | 禁止 |
@@ -26,8 +26,13 @@ match /evaluationCycles/{cycleId} {
   // 所有已登入使用者可讀（需要看週期清單）
   allow read: if isSignedIn();
 
-  // 僅管理者可建立/修改/刪除
-  allow create, update, delete: if isAdmin();
+  // 僅管理者可建立/刪除
+  allow create, delete: if isAdmin();
+
+  // 管理者可修改任何欄位；評核者提交表單的 batch 寫入可原子性遞增 completedAssignments
+  allow update: if isAdmin() ||
+    (isSignedIn() &&
+     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['completedAssignments']));
 }
 ```
 
@@ -133,6 +138,8 @@ match /userAttributeSnapshots/{snapshotId} {
 |------|-------|-------------------|--------------|-----------|
 | 讀取 evaluationCycles | ✅ | ✅ | ✅ | ✅ |
 | 建立 evaluationCycle | ✅ | ❌ | ❌ | ❌ |
+| 修改 evaluationCycles（任意欄位） | ✅ | ❌ | ❌ | ❌ |
+| 遞增 evaluationCycles.completedAssignments（僅此欄位） | ✅ | ✅ | ✅ | ✅ |
 | 讀取 evaluationAssignments（自己） | ✅ | ✅ | ❌ | ❌ |
 | 讀取自己的 evaluationForm | ✅ | ✅ | **❌（關鍵）** | ❌ |
 | 建立 evaluationForm | ✅ | ✅ | ❌ | ❌ |
@@ -149,7 +156,10 @@ match /userAttributeSnapshots/{snapshotId} {
 
 match /evaluationCycles/{cycleId} {
   allow read: if isSignedIn();
-  allow create, update, delete: if isAdmin();
+  allow create, delete: if isAdmin();
+  allow update: if isAdmin() ||
+    (isSignedIn() &&
+     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['completedAssignments']));
 }
 
 match /evaluationAssignments/{assignmentId} {
@@ -221,4 +231,6 @@ match /userAttributeSnapshots/{snapshotId} {
 | 評核者更新受評者的 snapshot（preview → preview） | ✅ ALLOWED |
 | 評核者更新受評者的 snapshot（preview → final） | ❌ DENIED |
 | 受評者更新自己的 snapshot | ❌ DENIED |
+| 已登入使用者遞增 evaluationCycles.completedAssignments | ✅ ALLOWED |
+| 已登入使用者修改 evaluationCycles 其他欄位（如 name） | ❌ DENIED |
 | 未登入使用者讀取任何集合 | ❌ DENIED |
