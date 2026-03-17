@@ -5,20 +5,22 @@
     BRAND LOGO
   </a>
   <span class="menu-spacer"></span>
-  <div class="d-none d-md-block">
+
+  <!-- Desktop nav -->
+  <div class="d-none d-md-flex align-items-center">
     @if(isAdmin$ | async) {
-    <a mat-button [routerLink]="['/SystemConfig']">System config</a>
+    <button mat-button [matMenuTriggerFor]="systemMenu">
+      System
+      <mat-icon>arrow_drop_down</mat-icon>
+    </button>
     }
-    <button mat-button [matMenuTriggerFor]="subsidyMenu">
-      Subsidy
+    <button mat-button [matMenuTriggerFor]="statisticsMenu">
+      Statistics
       <mat-icon>arrow_drop_down</mat-icon>
     </button>
-    <button mat-button [matMenuTriggerFor]="evaluationMenu">
-      評量考核
-      <mat-icon>arrow_drop_down</mat-icon>
-    </button>
-    <a mat-button [routerLink]="['/Users']">Users</a>
   </div>
+
+  <!-- Avatar -->
   <span
     class="avator"
     [style.margin.px]="'0 10'"
@@ -33,13 +35,41 @@
     />
     }
   </span>
+
+  <!-- Mobile hamburger -->
+  <button mat-icon-button class="d-md-none" [matMenuTriggerFor]="mobileMenu">
+    <mat-icon>menu</mat-icon>
+  </button>
 </mat-toolbar>
+
 <!-- Main content -->
 <div class="container-fluid pt-2">
   <router-outlet></router-outlet>
 </div>
-<!-- Subsidy menu -->
-<mat-menu #subsidyMenu>
+
+<!-- System menu (Admin only) -->
+<mat-menu #systemMenu>
+  <button mat-menu-item [routerLink]="['/Users']">
+    <mat-icon>people</mat-icon>
+    <span>Users</span>
+  </button>
+  <button mat-menu-item [routerLink]="['/SystemConfig']">
+    <mat-icon>settings</mat-icon>
+    <span>Config</span>
+  </button>
+  <mat-divider></mat-divider>
+  <button mat-menu-item [routerLink]="['/evaluation/admin/cycles']">
+    <mat-icon>manage_history</mat-icon>
+    <span>考評週期管理</span>
+  </button>
+  <button mat-menu-item [routerLink]="['/evaluation/admin/overview']">
+    <mat-icon>dashboard</mat-icon>
+    <span>考評總覽</span>
+  </button>
+</mat-menu>
+
+<!-- Statistics menu -->
+<mat-menu #statisticsMenu>
   <button mat-menu-item [routerLink]="['/Subsidy/List']">
     <mat-icon>request_quote</mat-icon>
     <span>Subsidy Applications</span>
@@ -54,8 +84,12 @@
   </button>
 </mat-menu>
 
-<!-- Evaluation menu -->
-<mat-menu #evaluationMenu>
+<!-- Profile menu -->
+<mat-menu #profileMenu>
+  <button mat-menu-item [routerLink]="['/MyProfile']">
+    <mat-icon>account_circle</mat-icon>
+    <span>Profile</span>
+  </button>
   <button mat-menu-item [routerLink]="['/evaluation/tasks']">
     <mat-icon>assignment</mat-icon>
     <span>我的考評任務</span>
@@ -64,25 +98,60 @@
     <mat-icon>insights</mat-icon>
     <span>我的屬性報告</span>
   </button>
-  @if(isAdmin$ | async) {
   <mat-divider></mat-divider>
+  <button mat-menu-item (click)="logout()">
+    <mat-icon>logout</mat-icon>
+    <span>Logout</span>
+  </button>
+</mat-menu>
+
+<!-- Mobile menu -->
+<mat-menu #mobileMenu>
+  @if(isAdmin$ | async) {
+  <button mat-menu-item [routerLink]="['/Users']">
+    <mat-icon>people</mat-icon>
+    <span>Users</span>
+  </button>
+  <button mat-menu-item [routerLink]="['/SystemConfig']">
+    <mat-icon>settings</mat-icon>
+    <span>Config</span>
+  </button>
   <button mat-menu-item [routerLink]="['/evaluation/admin/cycles']">
     <mat-icon>manage_history</mat-icon>
-    <span>週期管理</span>
+    <span>考評週期管理</span>
   </button>
   <button mat-menu-item [routerLink]="['/evaluation/admin/overview']">
     <mat-icon>dashboard</mat-icon>
     <span>考評總覽</span>
   </button>
+  <mat-divider></mat-divider>
   }
-</mat-menu>
-
-<!-- Profile menu -->
-<mat-menu #profileMenu>
+  <button mat-menu-item [routerLink]="['/Subsidy/List']">
+    <mat-icon>request_quote</mat-icon>
+    <span>Subsidy Applications</span>
+  </button>
+  <button mat-menu-item [routerLink]="['/Subsidy/Meals']">
+    <mat-icon>restaurant</mat-icon>
+    <span>Meal Subsidy</span>
+  </button>
+  <button mat-menu-item [routerLink]="['/Subsidy/Stats']">
+    <mat-icon>bar_chart</mat-icon>
+    <span>Subsidy Statistics</span>
+  </button>
+  <mat-divider></mat-divider>
   <button mat-menu-item [routerLink]="['/MyProfile']">
     <mat-icon>account_circle</mat-icon>
     <span>Profile</span>
   </button>
+  <button mat-menu-item [routerLink]="['/evaluation/tasks']">
+    <mat-icon>assignment</mat-icon>
+    <span>我的考評任務</span>
+  </button>
+  <button mat-menu-item [routerLink]="['/evaluation/my-report']">
+    <mat-icon>insights</mat-icon>
+    <span>我的屬性報告</span>
+  </button>
+  <mat-divider></mat-divider>
   <button mat-menu-item (click)="logout()">
     <mat-icon>logout</mat-icon>
     <span>Logout</span>
