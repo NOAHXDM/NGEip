@@ -5,6 +5,18 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.1] - 2026-03-17
+
+### 修復
+- 修正考評表單提交時 `feedbacks` 欄位含 `undefined` 值導致 Firestore SDK 拋出 TypeError 的問題
+- 修正自我評核情境下 Firestore Security Rules 拒絕 batch 寫入的問題；service 層加入提前偵測並拋出明確錯誤訊息
+- 修復評核總覽管理員頁面（`/evaluation/admin/overview`）`attributes` / `totalScore` 為 `undefined` 時呼叫 `.toFixed()` 導致渲染崩潰的問題
+- 更新 Firestore Security Rules：允許一般使用者在 batch 寫入中遞增 `completedAssignments`；`userAttributeSnapshots` create rule 補上 `status:preview` 驗證
+
+### 變更
+- 導覽列調整：「使用者」按鈕移至桌面版常駐區，所有人均可存取，管理員專屬選單移除重複項目
+- 加班優先順序設定區塊標題文字修正
+
 ## [3.0.0] - 2026-03-17
 
 ### 新增
