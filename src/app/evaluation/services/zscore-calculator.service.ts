@@ -55,6 +55,7 @@ const ATTRIBUTE_QUESTIONS: Record<keyof AttributeScores, (keyof import('../model
  * 1. Per-rater Z-score 校正（消除評核者系統性偏差）
  * 2. 六大屬性彙整（Q題目平均 → 屬性分數）
  * 3. 職業原型判定（勇者/初心者/8原型並列邏輯）
+ *    - 初心者判定使用原始平均分數（未經 Z-score 校正），門檻為任 3 項屬性 < 5
  * 4. 互惠高分對偵測（A→B ≥8 且 B→A ≥8）
  * 5. 離群評核者偵測（Tukey fence on SD）
  */
@@ -103,8 +104,9 @@ export class ZScoreCalculatorService {
 
     for (const [evaluateeUid, evaluateeForms] of formsByEvaluatee) {
       const attributes = this.computeAttributeScores(evaluateeForms, calibratedScores);
+      const rawAttributes = this.computeRawAttributeScores(evaluateeForms);
       const totalScore = Object.values(attributes).reduce((sum, v) => sum + v, 0);
-      const careerArchetypes = this.determineArchetypes(attributes);
+      const careerArchetypes = this.determineArchetypes(attributes, rawAttributes);
 
       snapshots.set(evaluateeUid, {
         attributes,
@@ -213,23 +215,62 @@ export class ZScoreCalculatorService {
   }
 
   /**
+   * 計算受評者的六大屬性原始平均分數（未經 Z-score 校正）
+   * 用於初心者判定（以原始分數為準，避免校正後分數偏移導致誤判）
+   */
+  private computeRawAttributeScores(
+    evaluateeForms: EvaluationForm[]
+  ): AttributeScores {
+    const attributeValues: Record<keyof AttributeScores, number[]> = {
+      EXE: [], INS: [], ADP: [], COL: [], STB: [], INN: [],
+    };
+
+    for (const form of evaluateeForms) {
+      for (const [attr, questions] of Object.entries(ATTRIBUTE_QUESTIONS) as [keyof AttributeScores, (keyof import('../models/evaluation.models').EvaluationFormScores)[]][]) {
+        const questionScores = questions.map((q) => form.scores[q] ?? 0);
+        const attrScore = this.mean(questionScores);
+        attributeValues[attr].push(attrScore);
+      }
+    }
+
+    const result: AttributeScores = {
+      EXE: 0, INS: 0, ADP: 0, COL: 0, STB: 0, INN: 0,
+    };
+
+    for (const attr of Object.keys(result) as (keyof AttributeScores)[]) {
+      const values = attributeValues[attr];
+      if (values.length === 0) {
+        result[attr] = 0;
+      } else {
+        result[attr] = Math.round(this.clamp(this.mean(values), 1, 10) * 100) / 100;
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * 判定職業原型
    *
    * 優先順序：
    * 1. 全部屬性 ≥ 8 → 🌟 勇者 Hero（特殊全能原型）
-   * 2. 任意 3 項以上屬性 < 6 → 🌱 初心者 Novice（待成長原型）
+   * 2. 任意 3 項以上屬性 < 5（使用原始平均分數） → 🌱 初心者 Novice（待成長原型）
    * 3. 取前兩高屬性的所有組合，查詢 ARCHETYPE_MAP，去重後輸出並列原型
+   *
+   * @param attributes 校正後屬性分數（用於勇者判定與一般原型判定）
+   * @param rawAttributes 原始平均屬性分數（用於初心者判定），未提供時以 attributes 代替
    */
-  determineArchetypes(attributes: AttributeScores): string[] {
+  determineArchetypes(attributes: AttributeScores, rawAttributes?: AttributeScores): string[] {
     const values = Object.values(attributes);
+    const rawValues = Object.values(rawAttributes ?? attributes);
 
     // 條件 1：全部 ≥ 8 → 勇者
     if (values.every((v) => v >= 8)) {
       return ['🌟 勇者 Hero'];
     }
 
-    // 條件 2：3 項以上 < 6 → 初心者（優先於一般原型判定）
-    if (values.filter((v) => v < 6).length >= 3) {
+    // 條件 2：3 項以上原始平均分數 < 5 → 初心者（優先於一般原型判定）
+    if (rawValues.filter((v) => v < 5).length >= 3) {
       return ['🌱 初心者 Novice'];
     }
 

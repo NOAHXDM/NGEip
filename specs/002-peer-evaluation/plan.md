@@ -200,7 +200,7 @@ function calibrateCycleScores(forms: EvaluationForm[]): CalibratedScores {
 
 **判定優先序**（FR-016）：
 1. 全部屬性 ≥ 8 → 🌟 勇者 Hero
-2. 任三項以上 < 6 → 🌱 初心者 Novice（優先於第 3 條）
+2. 任三項以上原始平均分數 < 5 → 🌱 初心者 Novice（優先於第 3 條，使用未經 Z-score 校正的原始平均分數）
 3. 前兩高屬性組合 → 對應原型（並列時輸出多個）
 
 | 組合 | 原型 |
@@ -320,7 +320,7 @@ get duration(): string {
 | 測試目標 | 測試內容 |
 |---------|---------|
 | `ZScoreCalculatorService.compute()` | sd=0 邊界；多評核者校正；分數夾縮(clamp)；滿分60計算 |
-| `ZScoreCalculatorService.determineArchetypes()` | 勇者(全≥8)、初心者(3項<6)、並列輸出多個、各原型組合 |
+| `ZScoreCalculatorService.determineArchetypes()` | 勇者(全≥8)、初心者(原始平均分數 3項<5)、並列輸出多個、各原型組合 |
 | `ZScoreCalculatorService.detectReciprocalHighScores()` | A→B高+B→A高 → 標記；單向高分 → 不標記 |
 | `RadarChartComponent` | 6 軸幾何計算；warn 色觸發條件；空資料不崩潰 |
 | `MarqueeCommentsComponent` | 空陣列不渲染；切換 comments 重新動畫 |
