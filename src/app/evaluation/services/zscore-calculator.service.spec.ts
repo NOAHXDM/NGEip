@@ -7,7 +7,7 @@
  * 3. 屬性分數 clamp(1,10)
  * 4. 6 種單一原型（EXE+STB=劍士, INS+INN=法師, ADP+COL=弓手, COL+STB=牧師, ADP+INN=盜賊, EXE+INS=商人）
  * 5. 勇者判定（全部屬性 ≥ 8）
- * 6. 初心者判定（3 項以上 < 6，優先）
+ * 6. 初心者判定（3 項以上原始平均分數 < 5，優先）
  * 7. 並列輸出多原型
  * 8. 互惠高分對偵測
  * 9. 離群評核者偵測
@@ -209,26 +209,51 @@ describe('ZScoreCalculatorService', () => {
   });
 
   // =====================
-  // 測試 6：初心者判定（3 項以上 < 6，優先於一般原型）
+  // 測試 6：初心者判定（3 項以上原始平均分數 < 5，優先於一般原型）
   // =====================
-  describe('初心者判定（優先邏輯）', () => {
-    it('3 項屬性 < 6 → 🌱 初心者 Novice', () => {
-      // 明確設定 3 個屬性 < 6（ADP=5, COL=5, STB=5），其餘 ≥ 6
+  describe('初心者判定（原始平均分數 < 5，優先邏輯）', () => {
+    it('3 項原始平均屬性 < 5 → 🌱 初心者 Novice', () => {
+      // 明確設定 3 個原始屬性 < 5（ADP=4, COL=4, STB=4），其餘 ≥ 5
       // EXE+INS 雖然是最高 pair → 商人，但初心者規則優先
-      const attrs: AttributeScores = { EXE: 9, INS: 9, ADP: 5, COL: 5, STB: 5, INN: 7 };
-      const result = service.determineArchetypes(attrs);
+      const attrs: AttributeScores = { EXE: 9, INS: 9, ADP: 6, COL: 6, STB: 6, INN: 7 };
+      const rawAttrs: AttributeScores = { EXE: 9, INS: 9, ADP: 4, COL: 4, STB: 4, INN: 7 };
+      const result = service.determineArchetypes(attrs, rawAttrs);
       expect(result).toEqual(['🌱 初心者 Novice']);
     });
 
-    it('4 項屬性 < 6 → 🌱 初心者 Novice', () => {
-      const attrs: AttributeScores = { EXE: 8, INS: 8, ADP: 5, COL: 4, STB: 5, INN: 3 };
-      expect(service.determineArchetypes(attrs)).toEqual(['🌱 初心者 Novice']);
+    it('4 項原始平均屬性 < 5 → 🌱 初心者 Novice', () => {
+      const attrs: AttributeScores = { EXE: 8, INS: 8, ADP: 6, COL: 5, STB: 6, INN: 5 };
+      const rawAttrs: AttributeScores = { EXE: 8, INS: 8, ADP: 4, COL: 3, STB: 4, INN: 2 };
+      expect(service.determineArchetypes(attrs, rawAttrs)).toEqual(['🌱 初心者 Novice']);
     });
 
-    it('剛好 2 項屬性 < 6 → 不是初心者（正常原型判定）', () => {
+    it('剛好 2 項原始平均屬性 < 5 → 不是初心者（正常原型判定）', () => {
       const attrs: AttributeScores = { EXE: 9, INS: 8, ADP: 5, COL: 5, STB: 7, INN: 7 };
-      const result = service.determineArchetypes(attrs);
+      const rawAttrs: AttributeScores = { EXE: 9, INS: 8, ADP: 4, COL: 4, STB: 7, INN: 7 };
+      const result = service.determineArchetypes(attrs, rawAttrs);
       expect(result).not.toContain('🌱 初心者 Novice');
+    });
+
+    it('原始分數 3 項 < 5 但校正後分數 ≥ 5 → 仍判定為初心者（以原始分數為準）', () => {
+      // 校正後分數全部 ≥ 5，但原始分數有 3 項 < 5
+      const attrs: AttributeScores = { EXE: 7, INS: 7, ADP: 5.5, COL: 5.5, STB: 5.5, INN: 7 };
+      const rawAttrs: AttributeScores = { EXE: 7, INS: 7, ADP: 4, COL: 4, STB: 4, INN: 7 };
+      const result = service.determineArchetypes(attrs, rawAttrs);
+      expect(result).toEqual(['🌱 初心者 Novice']);
+    });
+
+    it('原始分數全部 ≥ 5 但校正後 3 項 < 5 → 不是初心者（以原始分數為準）', () => {
+      // 校正後分數有 3 項 < 5，但原始分數全部 ≥ 5
+      const attrs: AttributeScores = { EXE: 7, INS: 7, ADP: 4, COL: 4, STB: 4, INN: 7 };
+      const rawAttrs: AttributeScores = { EXE: 7, INS: 7, ADP: 5, COL: 5, STB: 5, INN: 7 };
+      const result = service.determineArchetypes(attrs, rawAttrs);
+      expect(result).not.toContain('🌱 初心者 Novice');
+    });
+
+    it('未提供 rawAttributes 時 fallback 使用 attributes 判定', () => {
+      const attrs: AttributeScores = { EXE: 9, INS: 9, ADP: 4, COL: 4, STB: 4, INN: 7 };
+      const result = service.determineArchetypes(attrs);
+      expect(result).toEqual(['🌱 初心者 Novice']);
     });
   });
 

@@ -185,8 +185,8 @@ interface ZScoreCalculatorService {
   // 輸出：每位受評者的校正後屬性分數 + 職業原型 + 異常標記
   compute(forms: EvaluationForm[]): ComputedCycleResults;
 
-  // 計算職業原型
-  determineArchetypes(attributes: AttributeScores): string[];
+  // 計算職業原型（初心者判定使用原始平均分數，門檻 < 5）
+  determineArchetypes(attributes: AttributeScores, rawAttributes?: AttributeScores): string[];
 
   // 偵測互惠高分對
   detectReciprocalHighScores(forms: EvaluationForm[]): Set<string>;  // Set of formId

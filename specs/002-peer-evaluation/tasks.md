@@ -34,7 +34,7 @@
 - [X] T006 [P] 更新 `firestore.indexes.json`，新增依 `data-model.md` 定義的 6 個複合索引：evaluationAssignments(evaluatorUid+status)、(cycleId+evaluateeUid)、(evaluatorUid+cycleId)；evaluationForms(evaluatorUid+cycleId)、(cycleId+evaluateeUid)；userAttributeSnapshots(userId+cycleId DESC)、(cycleId+totalScore DESC)
 - [X] T007 建立 Security Rules 整合測試於 `src/app/evaluation/testing/firestore-rules.spec.ts`，驗證 10 個關鍵案例（evaluatee 讀 evaluationForms → DENIED、評核者讀他人表單 → DENIED、Admin 讀任何集合 → ALLOWED、受評者讀自己 snapshot → ALLOWED、評核者試圖寫 final snapshot → DENIED、評核者更新自己 snapshot → DENIED 等）
 - [X] T008 [P] 建立 ZScoreCalculatorService（純計算服務，無 Firestore 依賴）於 `src/app/evaluation/services/zscore-calculator.service.ts`，實作 per-rater Z-score 校正（TARGET_MEAN=5.5, SD=1.5, clamp 1–10）、六大屬性彙整（FR-009 公式）、determineArchetypes（勇者/初心者/8原型並列邏輯）、detectReciprocalHighScores、detectOutlierEvaluators
-- [X] T009 [P] 建立 ZScoreCalculatorService 完整單元測試於 `src/app/evaluation/services/zscore-calculator.service.spec.ts`，覆蓋：sd=0 邊界（不校正）、多評核者 Z-score 結果正確、属性分數 clamp(1,10)、職業原型六種單一原型、勇者判定（全≥8）、初心者判定（三項<6 優先）、並列輸出多原型、互惠高分對偵測、離群評核者偵測
+- [X] T009 [P] 建立 ZScoreCalculatorService 完整單元測試於 `src/app/evaluation/services/zscore-calculator.service.spec.ts`，覆蓋：sd=0 邊界（不校正）、多評核者 Z-score 結果正確、属性分數 clamp(1,10)、職業原型六種單一原型、勇者判定（全≥8）、初心者判定（原始平均分數三項<5 優先）、並列輸出多原型、互惠高分對偵測、離群評核者偵測
 
 **Checkpoint**：T005–T009 完成後，US1–US4 可開始平行開發
 

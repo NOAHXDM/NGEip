@@ -113,9 +113,11 @@ const ARCHETYPE_MAP: Record<string, string> = {
   'EXE+INS': '🔨 商人', 'INS+EXE': '🔨 商人',
 };
 
-function determineArchetypes(attrs: AttributeScores): string[] {
+function determineArchetypes(attrs: AttributeScores, rawAttrs?: AttributeScores): string[] {
   if (Object.values(attrs).every(v => v >= 8)) return ['🌟 勇者 Hero'];
-  if (Object.values(attrs).filter(v => v < 6).length >= 3) return ['🌱 初心者 Novice'];
+  // 初心者判定使用原始平均分數（未經 Z-score 校正），門檻 < 5
+  const raw = rawAttrs ?? attrs;
+  if (Object.values(raw).filter(v => v < 5).length >= 3) return ['🌱 初心者 Novice'];
 
   const sorted = Object.entries(attrs).sort((a, b) => b[1] - a[1]);
   const top2Score = sorted[1][1]; // 第二高的分數
