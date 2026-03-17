@@ -5,6 +5,14 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.2] - 2026-03-18
+
+### 新增
+- 指派管理視窗排除已離職使用者；使用者清單欄位標頭中文化
+
+### 修復
+- 修正考評表單評語字數驗證邏輯，與 Firestore Security Rules 保持一致
+
 ## [3.0.1] - 2026-03-17
 
 ### 修復
