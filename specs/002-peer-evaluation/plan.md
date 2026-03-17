@@ -292,6 +292,7 @@ get duration(): string {
 - `evaluationForms` 的 `read` 規則完全排除 `evaluateeUid == request.auth.uid` 的判斷，確保匿名性在 DB 層面強制執行。
 - `userAttributeSnapshots` 的 write 規則限制：evaluator 只能在 `status == 'preview'` 時 update，且不能修改 `status`；防止受評者自己修改快照。
 - `evaluationForms` 的 `delete` 規則設為 `if false`，永久保留考評數據。
+- `evaluationCycles` 的 `update` 開放已登入使用者僅限修改 `completedAssignments` 欄位，允許評核者提交表單的原子性 batch 寫入（遞增完成計數）；其餘欄位付管理者操作。
 
 ---
 
