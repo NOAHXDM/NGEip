@@ -92,4 +92,21 @@ export class UserAttributeSnapshotService {
     );
     return collectionData(q, { idField: 'id' }) as Observable<UserAttributeSnapshot[]>;
   }
+
+  /**
+   * 取得指定使用者的所有快照，依 cycleId 倒序排列（管理者專用）
+   *
+   * @param userId 目標使用者 UID
+   */
+  getSnapshotsByUserId(userId: string): Observable<UserAttributeSnapshot[]> {
+    const colRef = collection(this.firestore, SNAPSHOTS_COLLECTION);
+    const q = query(
+      colRef,
+      where('userId', '==', userId),
+      orderBy('cycleId', 'desc'),
+    );
+    return (collectionData(q, { idField: 'id' }) as Observable<UserAttributeSnapshot[]>).pipe(
+      shareReplay(1),
+    );
+  }
 }

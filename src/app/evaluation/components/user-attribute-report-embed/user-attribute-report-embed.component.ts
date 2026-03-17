@@ -1,23 +1,11 @@
 /**
- * AttributeReportComponent（T029）
+ * UserAttributeReportEmbedComponent
  *
- * 受評者個人職場屬性報告頁面。
- * 路由：/evaluation/my-report
- *
- * 功能：
- *  - 頂部 MarqueeCommentsComponent（顯示本週期的 overallComments）
- *  - 週期選擇器 MatSelect（切換後跑馬燈同步更新）
- *  - FR-015：評核人數不足警示（validEvaluatorCount < 3）
- *  - 基本資訊卡：CareerArchetypeBadgeComponent、totalScore、validEvaluatorCount
- *  - RadarChartComponent（6 軸分數，小數兩位）
- *  - FR-017：職等及格行為標準說明（依 jobRank J/M/S）
- *  - TrendLineChartComponent（歷史折線圖）
- *  - 「最終結果尚未發布」banner（status=preview 時）
- *  - 空狀態（無快照資料）
+ * 可嵌入版本的職場屬性報告，供管理者在 UserProfileDialog 中檢視指定使用者的報告。
+ * 接受 userId 作為 Input，直接查詢該使用者的快照資料。
  */
 
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, Input, OnInit, computed, inject, signal } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -32,10 +20,10 @@ import {
   UserAttributeSnapshot,
 } from '../../models/evaluation.models';
 import { UserAttributeSnapshotService } from '../../services/user-attribute-snapshot.service';
-import { RadarChartComponent } from '../../components/radar-chart/radar-chart.component';
-import { TrendLineChartComponent } from '../../components/trend-line-chart/trend-line-chart.component';
-import { MarqueeCommentsComponent } from '../../components/marquee-comments/marquee-comments.component';
-import { CareerArchetypeBadgeComponent } from '../../components/career-archetype-badge/career-archetype-badge.component';
+import { RadarChartComponent } from '../radar-chart/radar-chart.component';
+import { TrendLineChartComponent } from '../trend-line-chart/trend-line-chart.component';
+import { MarqueeCommentsComponent } from '../marquee-comments/marquee-comments.component';
+import { CareerArchetypeBadgeComponent } from '../career-archetype-badge/career-archetype-badge.component';
 
 // ── 職等及格說明 ──────────────────────────────────────────────────────────────
 
@@ -62,8 +50,6 @@ const JOB_RANK_DESCRIPTIONS: Record<string, { title: string; description: string
   },
 };
 
-// ── 屬性 key → 中文標籤 ───────────────────────────────────────────────────────
-
 const ATTRIBUTE_DISPLAY: Record<AttributeKey, string> = {
   EXE: '執行力',
   INS: '洞察力',
@@ -75,10 +61,8 @@ const ATTRIBUTE_DISPLAY: Record<AttributeKey, string> = {
 
 const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'];
 
-// ── 元件 ──────────────────────────────────────────────────────────────────────
-
 @Component({
-  selector: 'app-attribute-report',
+  selector: 'app-user-attribute-report-embed',
   standalone: true,
   imports: [
     MatCardModule,
@@ -93,37 +77,25 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
     CareerArchetypeBadgeComponent,
   ],
   template: `
-    <div class="page-container">
+    <div class="embed-container">
 
-      <!-- 頁面標題 -->
-      <div class="page-header">
-        <h1 class="page-title">
-          <mat-icon class="title-icon">insights</mat-icon>
-          我的職場屬性報告
-        </h1>
-      </div>
-
-      <!-- 載入中 -->
       @if (isLoading()) {
         <div class="loading-state">
-          <mat-spinner diameter="48"></mat-spinner>
+          <mat-spinner diameter="40"></mat-spinner>
           <p>載入報告資料中…</p>
         </div>
       } @else if (!hasSnapshots()) {
-
-        <!-- 空狀態：尚無考核歷史資料 -->
         <mat-card class="empty-state-card">
           <mat-card-content>
             <div class="empty-state">
               <mat-icon class="empty-icon">bar_chart</mat-icon>
-              <p class="empty-title">尚無考核歷史資料，您的屬性報告將在第一次考核結束後顯示。</p>
+              <p class="empty-title">尚無考核歷史資料，屬性報告將在第一次考核結束後顯示。</p>
             </div>
           </mat-card-content>
         </mat-card>
-
       } @else {
 
-        <!-- 跑馬燈：顯示本週期的 overallComments -->
+        <!-- 跑馬燈 -->
         <div class="marquee-section">
           <app-marquee-comments [comments]="currentComments()" />
         </div>
@@ -151,7 +123,6 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
 
         @if (currentSnapshot()) {
 
-          <!-- preview 狀態 banner -->
           @if (currentSnapshot()!.status === 'preview') {
             <div class="status-banner preview-banner">
               <mat-icon>warning</mat-icon>
@@ -159,7 +130,6 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
             </div>
           }
 
-          <!-- FR-015：評核人數不足警示 -->
           @if (currentSnapshot()!.validEvaluatorCount < 3) {
             <div class="status-banner warning-banner">
               <mat-icon>info</mat-icon>
@@ -194,7 +164,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
             </mat-card-content>
           </mat-card>
 
-          <!-- 雷達圖區域 -->
+          <!-- 雷達圖 -->
           <mat-card class="chart-card radar-card">
             <mat-card-header>
               <mat-card-title>六大職場屬性雷達圖</mat-card-title>
@@ -204,10 +174,8 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
               <app-radar-chart
                 [axes]="currentRadarAxes()"
                 [maxValue]="10"
-                [size]="320"
+                [size]="300"
                 [showWarning]="true" />
-
-              <!-- 屬性分數明細 -->
               <div class="attribute-details">
                 @for (key of attributeKeys; track key) {
                   <div class="attribute-row">
@@ -223,7 +191,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
             </mat-card-content>
           </mat-card>
 
-          <!-- FR-017：職等達標說明 -->
+          <!-- 職等達標說明 -->
           <mat-card class="chart-card rank-card">
             <mat-card-header>
               <mat-card-title>職等達標行為標準</mat-card-title>
@@ -252,8 +220,8 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
             <mat-card-content>
               <app-trend-line-chart
                 [data]="trendData()"
-                [width]="560"
-                [height]="280"
+                [width]="520"
+                [height]="260"
                 [selectedCycleLabel]="selectedCycleId() ?? ''" />
             </mat-card-content>
           </mat-card>
@@ -266,75 +234,47 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
       display: block;
     }
 
-    .page-container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 24px 16px;
+    .embed-container {
+      padding: 16px 8px;
       display: flex;
       flex-direction: column;
       gap: 16px;
-    }
-
-    .page-header {
-      margin-bottom: 8px;
-    }
-
-    .page-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 24px;
-      font-weight: 500;
-      margin: 0;
-      color: #1a1a1a;
-    }
-
-    .title-icon {
-      font-size: 28px;
-      height: 28px;
-      width: 28px;
-      color: #4285F4;
     }
 
     .loading-state {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 16px;
-      padding: 48px;
+      gap: 12px;
+      padding: 32px;
       color: #666;
     }
 
     .empty-state-card {
-      margin: 24px 0;
+      margin: 16px 0;
     }
 
     .empty-state {
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 32px;
+      padding: 24px;
       gap: 8px;
       color: #666;
     }
 
     .empty-icon {
-      font-size: 48px;
-      height: 48px;
-      width: 48px;
+      font-size: 40px;
+      height: 40px;
+      width: 40px;
       color: #ccc;
     }
 
     .empty-title {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 500;
       margin: 0;
-    }
-
-    .empty-desc {
-      font-size: 14px;
-      color: #999;
-      margin: 0;
+      text-align: center;
     }
 
     .marquee-section {
@@ -345,11 +285,10 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
     .cycle-selector-section {
       display: flex;
       align-items: center;
-      gap: 12px;
     }
 
     .cycle-selector {
-      min-width: 240px;
+      min-width: 220px;
     }
 
     .status-banner {
@@ -379,14 +318,11 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
       border: 1px solid #FFCCBC;
     }
 
-    .info-card mat-card-content {
-      padding-top: 8px;
-    }
-
     .info-grid {
       display: flex;
       flex-wrap: wrap;
       gap: 24px;
+      padding-top: 8px;
     }
 
     .info-item {
@@ -403,18 +339,18 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
     }
 
     .total-score {
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 700;
       color: #1A73E8;
     }
 
     .total-score-max {
-      font-size: 14px;
+      font-size: 13px;
       color: #999;
     }
 
     .evaluator-count {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 500;
       color: #333;
     }
@@ -434,7 +370,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
       display: flex;
       flex-direction: column;
       gap: 6px;
-      min-width: 200px;
+      min-width: 180px;
     }
 
     .attribute-row {
@@ -497,44 +433,32 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
     }
   `],
 })
-export class AttributeReportComponent implements OnInit {
+export class UserAttributeReportEmbedComponent implements OnInit {
+  @Input({ required: true }) userId!: string;
+
   private readonly snapshotService = inject(UserAttributeSnapshotService);
 
   readonly attributeKeys = ATTRIBUTE_KEYS;
 
-  // ── 狀態 ──────────────────────────────────────────────────────────────────
-
   isLoading = signal(true);
   selectedCycleId = signal<string | null>(null);
-
-  // ── 快照資料（來自 service） ──────────────────────────────────────────────
-
-  private readonly snapshots$ = this.snapshotService.getMySnapshots();
-  allSnapshots = toSignal(this.snapshots$, { initialValue: [] as UserAttributeSnapshot[] });
-
-  // ── 衍生計算值 ────────────────────────────────────────────────────────────
+  allSnapshots = signal<UserAttributeSnapshot[]>([]);
 
   hasSnapshots = computed(() => this.allSnapshots().length > 0);
 
-  /** 目前選中的快照 */
   currentSnapshot = computed<UserAttributeSnapshot | null>(() => {
     const cycleId = this.selectedCycleId();
     if (!cycleId) return null;
     return this.allSnapshots().find((s) => s.cycleId === cycleId) ?? null;
   });
 
-  /** 目前跑馬燈評語 */
   currentComments = computed<string[]>(() => {
-    const snapshot = this.currentSnapshot();
-    if (!snapshot) return [];
-    return snapshot.overallComments ?? [];
+    return this.currentSnapshot()?.overallComments ?? [];
   });
 
-  /** 目前雷達圖 axes */
   currentRadarAxes = computed<RadarAxis[]>(() => {
     const snapshot = this.currentSnapshot();
     if (!snapshot) return [];
-
     return ATTRIBUTE_KEYS.map((key) => ({
       key,
       label: `${key} ${ATTRIBUTE_DISPLAY[key]}`,
@@ -543,36 +467,28 @@ export class AttributeReportComponent implements OnInit {
     }));
   });
 
-  /** 歷史趨勢資料 */
-  trendData = computed<PeriodDataPoint[]>(() => {
-    const snapshots = [...this.allSnapshots()].reverse(); // 由舊到新
-    return snapshots.map((s) => ({
+  trendData = computed<PeriodDataPoint[]>(() =>
+    [...this.allSnapshots()].reverse().map((s) => ({
       cycleLabel: s.cycleId,
       scores: s.attributes ?? { EXE: 0, INS: 0, ADP: 0, COL: 0, STB: 0, INN: 0 },
-    }));
-  });
+    }))
+  );
 
-  /** 職等達標說明 */
   rankDescription = computed(() => {
-    const snapshot = this.currentSnapshot();
-    if (!snapshot) return null;
-    const rank = snapshot.jobRank;
+    const rank = this.currentSnapshot()?.jobRank;
+    if (!rank) return null;
     return JOB_RANK_DESCRIPTIONS[rank] ?? null;
   });
 
-  // ── 生命週期 ──────────────────────────────────────────────────────────────
-
   ngOnInit(): void {
-    // 監聽快照，自動選擇最新週期
-    this.snapshots$.subscribe((snapshots) => {
+    this.snapshotService.getSnapshotsByUserId(this.userId).subscribe((snapshots) => {
       this.isLoading.set(false);
+      this.allSnapshots.set(snapshots);
       if (snapshots.length > 0 && !this.selectedCycleId()) {
         this.selectedCycleId.set(snapshots[0].cycleId);
       }
     });
   }
-
-  // ── 事件處理 ──────────────────────────────────────────────────────────────
 
   onCycleChange(cycleId: string): void {
     this.selectedCycleId.set(cycleId);

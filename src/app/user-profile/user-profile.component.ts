@@ -48,6 +48,7 @@ import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
 import { TimezoneService } from '../services/timezone.service';
 import { SystemConfigService } from '../services/system-config.service';
 import { SubsidyLimitService, UserSubsidyLimitStatus } from '../services/subsidy-limit.service';
+import { UserAttributeReportEmbedComponent } from '../evaluation/components/user-attribute-report-embed/user-attribute-report-embed.component';
 declare var cloudinary: any;
 @Component({
   selector: 'app-user-profile',
@@ -72,6 +73,7 @@ declare var cloudinary: any;
     MatTableModule,
     MatTabsModule,
     MtxDatetimepickerModule,
+    UserAttributeReportEmbedComponent,
   ],
   providers: [
     provideDateFnsDatetimeAdapter({

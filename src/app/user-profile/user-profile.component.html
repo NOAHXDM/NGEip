@@ -16,6 +16,11 @@
     <mat-tab label="補助上限">
       <ng-container *ngTemplateOutlet="subsidyLimitContent"></ng-container>
     </mat-tab>
+    @if (!myProfileMode && (isAdmin$ | async)) {
+      <mat-tab label="職場屬性報告">
+        <ng-container *ngTemplateOutlet="evaluationReportContent"></ng-container>
+      </mat-tab>
+    }
   </mat-tab-group>
 </div>
 
@@ -251,6 +256,10 @@
     </form>
     }
   </div>
+</ng-template>
+
+<ng-template #evaluationReportContent>
+  <app-user-attribute-report-embed [userId]="data.user.uid" />
 </ng-template>
 
 <ng-template #confirmationDialog let-data>
