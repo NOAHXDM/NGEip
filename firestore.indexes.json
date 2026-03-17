@@ -109,6 +109,62 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "evaluationAssignments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "evaluatorUid", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "evaluationAssignments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "cycleId", "order": "ASCENDING" },
+        { "fieldPath": "evaluateeUid", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "evaluationAssignments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "evaluatorUid", "order": "ASCENDING" },
+        { "fieldPath": "cycleId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "evaluationForms",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "evaluatorUid", "order": "ASCENDING" },
+        { "fieldPath": "cycleId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "evaluationForms",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "cycleId", "order": "ASCENDING" },
+        { "fieldPath": "evaluateeUid", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "userAttributeSnapshots",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "cycleId", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "userAttributeSnapshots",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "cycleId", "order": "ASCENDING" },
+        { "fieldPath": "totalScore", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
