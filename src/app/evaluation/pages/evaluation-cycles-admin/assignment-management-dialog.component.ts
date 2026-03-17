@@ -6,6 +6,7 @@
  *  - 新增指派：選擇受評者 + 一或多名評核者
  *  - 刪除 pending 狀態的指派
  *  - 截止日已過時停用新增功能
+ *  - 受評者與評核者選單僅列出在職使用者（exitDate 未設定者）
  *
  * 對話框輸入（MAT_DIALOG_DATA）：
  *  { cycleId: string; cycleName: string; deadline: Timestamp }
@@ -34,6 +35,8 @@ import {
   collection,
   collectionData,
 } from '@angular/fire/firestore';
+
+import { map } from 'rxjs';
 
 import { EvaluationAssignment } from '../../models/evaluation.models';
 import { EvaluationAssignmentService } from '../../services/evaluation-assignment.service';
@@ -358,16 +361,14 @@ export class AssignmentManagementDialogComponent {
   // ── 資料訊號 ──
 
   /**
-   * 使用者清單，由 Firestore users 集合即時串流
-   * 未發出前初始值為空陣列
+   * 在職使用者清單，由 Firestore users 集合即時串流，
+   * 自動排除已離職使用者（exitDate 已設定者）。
+   * 未發出前初始值為空陣列。
    */
-  private readonly rawUsers$ = collectionData(
-    collection(this.firestore, 'users'),
-    { idField: 'uid' },
-  ) as ReturnType<typeof collectionData> & { __type: User[] };
-
   readonly users = toSignal(
-    collectionData(collection(this.firestore, 'users'), { idField: 'uid' }) as unknown as import('rxjs').Observable<User[]>,
+    (collectionData(collection(this.firestore, 'users'), { idField: 'uid' }) as unknown as import('rxjs').Observable<User[]>).pipe(
+      map(users => users.filter(u => !u.exitDate)),
+    ),
     { initialValue: [] as User[] },
   );
 
