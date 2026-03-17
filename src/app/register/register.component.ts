@@ -61,7 +61,7 @@ export class RegisterComponent {
   register() {
     if (!this.license) {
       this.openSnackBar(
-        'Your license has not been activated yet. Please activate it to continue.'
+        '您的授權尚未啟用，請先啟用後再繼續。'
       );
       return;
     }
@@ -79,7 +79,7 @@ export class RegisterComponent {
   }
 
   openSnackBar(message: string) {
-    this._snackBar.open(message, 'Close', {
+    this._snackBar.open(message, '關閉', {
       horizontalPosition: 'center',
       verticalPosition: 'top',
       duration: 5000,

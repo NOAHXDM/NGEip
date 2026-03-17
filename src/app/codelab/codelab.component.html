@@ -1,34 +1,34 @@
 <div class="content">
   @if(loggedIn()) {
-  <h3>feature: logout</h3>
-  <button type="button" (click)="logout()">Logout</button>
+  <h3>功能：登出</h3>
+  <button type="button" (click)="logout()">登出</button>
   } @else {
-  <h3>feature: register</h3>
+  <h3>功能：註冊</h3>
   <form [formGroup]="registerForm" (ngSubmit)="register()">
-    <label for="email">Email: </label>
+    <label for="email">電子郵件： </label>
     <input id="email" type="text" formControlName="email" />
-    <label for="password">Password: </label>
+    <label for="password">密碼： </label>
     <input id="password" type="password" formControlName="password" />
-    <p>Complete the form to enable button.</p>
-    <button type="submit" [disabled]="!registerForm.valid">Send</button>
+    <p>完成表單以啟用按鈕。</p>
+    <button type="submit" [disabled]="!registerForm.valid">發送</button>
   </form>
 
-  <h3>feature: login</h3>
+  <h3>功能：登入</h3>
   <form [formGroup]="loginForm" (ngSubmit)="login()">
-    <label for="email">Email: </label>
+    <label for="email">電子郵件： </label>
     <input id="email" type="text" formControlName="email" />
-    <label for="password">Password: </label>
+    <label for="password">密碼： </label>
     <input id="password" type="password" formControlName="password" />
-    <p>Complete the form to enable button.</p>
-    <button type="submit" [disabled]="!loginForm.valid">Send</button>
+    <p>完成表單以啟用按鈕。</p>
+    <button type="submit" [disabled]="!loginForm.valid">發送</button>
   </form>
 
-  <h3>feature: forgot password</h3>
+  <h3>功能：忘記密碼</h3>
   <form [formGroup]="forgotPasswordForm" (ngSubmit)="forgotPassword()">
-    <label for="email">Email: </label>
+    <label for="email">電子郵件： </label>
     <input id="email" type="text" formControlName="email" />
-    <p>Complete the form to enable button.</p>
-    <button type="submit" [disabled]="!forgotPasswordForm.valid">Send</button>
+    <p>完成表單以啟用按鈕。</p>
+    <button type="submit" [disabled]="!forgotPasswordForm.valid">發送</button>
   </form>
   }
 </div>

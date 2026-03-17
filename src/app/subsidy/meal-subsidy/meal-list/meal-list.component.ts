@@ -128,7 +128,7 @@ export class MealListComponent {
 
   openNewMealDialog() {
     const dialogRef = this.dialog.open(MealDailyFormComponent, {
-      data: { title: 'New Daily Meal Record' },
+      data: { title: '新增每日餐費記錄' },
       width: '800px',
     });
 
@@ -143,7 +143,7 @@ export class MealListComponent {
 
   openViewMealDialog(record: DailyMealRecord) {
     const dialogRef = this.dialog.open(MealDailyFormComponent, {
-      data: { title: 'View Daily Meal Record', record, readOnly: true },
+      data: { title: '查看每日餐費記錄', record, readOnly: true },
       width: '800px',
     });
 
@@ -158,7 +158,7 @@ export class MealListComponent {
 
   openEditMealDialog(record: DailyMealRecord) {
     const dialogRef = this.dialog.open(MealDailyFormComponent, {
-      data: { title: 'Edit Daily Meal Record', record, readOnly: false },
+      data: { title: '編輯每日餐費記錄', record, readOnly: false },
       width: '800px',
     });
 
@@ -176,12 +176,12 @@ export class MealListComponent {
   }
 
   getDayOfWeekName(dayOfWeek: number): string {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
     return days[dayOfWeek] || '';
   }
 
   openSnackBar(message: string) {
-    this.snackBar.open(message, 'Close', {
+    this.snackBar.open(message, '關閉', {
       horizontalPosition: 'center',
       verticalPosition: 'top',
       duration: 5000,

@@ -5,15 +5,15 @@
     novalidate
     (ngSubmit)="register()"
   >
-    <h3>Register</h3>
+    <h3>註冊</h3>
     <mat-form-field appearance="outline">
-      <mat-label>Email</mat-label>
+      <mat-label>電子郵件</mat-label>
       <input type="email" matInput formControlName="email" />
       <mat-icon matSuffix>mail</mat-icon>
-      <mat-hint>Enter you email</mat-hint>
+      <mat-hint>請輸入電子郵件</mat-hint>
     </mat-form-field>
     <mat-form-field appearance="outline">
-      <mat-label>Password</mat-label>
+      <mat-label>密碼</mat-label>
       <input
         [type]="passwordVisible() ? 'text' : 'password'"
         matInput
@@ -24,28 +24,28 @@
         mat-icon-button
         matSuffix
         (click)="passwordVisibleToggle($event)"
-        [attr.aria-label]="'Hide password'"
+        [attr.aria-label]="'隱藏密碼'"
         [attr.aria-pressed]="!passwordVisible()"
       >
         <mat-icon>{{ passwordVisible() ? "visibility" : "visibility_off" }}</mat-icon>
       </button>
-      <mat-hint>Enter you password</mat-hint>
+      <mat-hint>請輸入密碼</mat-hint>
     </mat-form-field>
     <mat-form-field appearance="outline">
-      <mat-label>Name</mat-label>
+      <mat-label>姓名</mat-label>
       <input type="text" matInput formControlName="name" />
-      <mat-hint>Enter you name</mat-hint>
+      <mat-hint>請輸入姓名</mat-hint>
     </mat-form-field>
     <button type="submit" mat-flat-button [disabled]="registerForm.invalid">
-      CREATE
+      建立帳號
     </button>
     <mat-divider></mat-divider>
     <p>
-      Already a member?
+      已有帳號？
       <a
         class="link-offset-2 link-underline link-underline-opacity-0"
         [routerLink]="['/Login']"
-        >SIGN IN</a
+        >立即登入</a
       >
     </p>
   </form>

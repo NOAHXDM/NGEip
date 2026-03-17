@@ -51,7 +51,7 @@ export class SubsidyRankingDialogComponent {
   constructor(@Inject(MAT_DIALOG_DATA) public data: RankingDialogData) {
     // 根據類型設定標題和標籤
     this.title = this.getTitle(data.type);
-    this.countLabel = data.type === 'meal' ? 'Meal Count' : 'Count';
+    this.countLabel = data.type === 'meal' ? '餐數' : '筆數';
 
     // 獲取完整排行資料
     this.rankings$ = this.getRankings(data.type, data.year);
@@ -59,14 +59,14 @@ export class SubsidyRankingDialogComponent {
 
   private getTitle(type: string): string {
     const titles: Record<string, string> = {
-      laptop: 'Laptop Subsidy Rankings',
-      healthCheck: 'Health Check Subsidy Rankings',
-      training: 'Training Course Subsidy Rankings',
-      aiTool: 'AI Tool Subsidy Rankings',
-      travel: 'Travel Subsidy Rankings',
-      meal: 'Meal Subsidy Rankings',
+      laptop: '筆電補助排行榜',
+      healthCheck: '健康檢查補助排行榜',
+      training: '訓練課程補助排行榜',
+      aiTool: 'AI 工具補助排行榜',
+      travel: '差旅補助排行榜',
+      meal: '餐費補助排行榜',
     };
-    return titles[type] || 'Rankings';
+    return titles[type] || '排行榜';
   }
 
   private getRankings(type: string, year: number): Observable<UserRanking[]> {

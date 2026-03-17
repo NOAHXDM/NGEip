@@ -5,35 +5,35 @@
     (ngSubmit)="updateLicense()"
     novalidate
   >
-    <h3 class="pt-3 text-center">System config</h3>
-    <!-- Current users -->
+    <h3 class="pt-3 text-center">系統設定</h3>
+    <!-- 當前使用者數 -->
     <mat-form-field appearance="outline">
-      <mat-label>Current Users</mat-label>
+      <mat-label>當前使用者數</mat-label>
       <input type="number" matInput formControlName="currentUsers" />
       <mat-icon matSuffix>person</mat-icon>
-      <mat-hint>Amount of users</mat-hint>
+      <mat-hint>使用者數量</mat-hint>
     </mat-form-field>
-    <!-- Max users -->
+    <!-- 最大使用者數 -->
     <mat-form-field appearance="outline">
-      <mat-label>Max Users</mat-label>
+      <mat-label>最大使用者數</mat-label>
       <input type="number" matInput formControlName="maxUsers" />
       <mat-icon matSuffix>person</mat-icon>
-      <mat-hint>Maximize</mat-hint>
+      <mat-hint>上限</mat-hint>
     </mat-form-field>
-    <!-- Initial settlement year -->
+    <!-- 初始結算年份 -->
     <mat-form-field appearance="outline">
-      <mat-label>Initial Settlement Year</mat-label>
+      <mat-label>初始結算年份</mat-label>
       <input type="number" matInput formControlName="initialSettlementYear" />
       <mat-icon matSuffix>123</mat-icon>
-      <mat-hint>Enter the year</mat-hint>
+      <mat-hint>請輸入年份</mat-hint>
     </mat-form-field>
 
     <mat-slide-toggle formControlName="timeFilterRange"
-      >Time Filter Range</mat-slide-toggle
+      >時間篩選範圍</mat-slide-toggle
     >
 
     <section formArrayName="overtimePriorityReplacedByLeave">
-      <h6>Overtime priority replaced by leave</h6>
+      <h6>加班優先級由特休取代</h6>
       @for (reasonPriority of reasonPriorityList; track reasonPriority.value) {
       <p>
         <mat-checkbox [formControlName]="$index">{{
@@ -54,11 +54,11 @@
       />
     </a>
     <mat-form-field appearance="outline">
-      <mat-label>Cloud Name</mat-label>
+      <mat-label>雲端名稱</mat-label>
       <input type="text" matInput formControlName="cloudinaryCloudName" />
     </mat-form-field>
     <mat-form-field appearance="outline">
-      <mat-label>Upload Preset</mat-label>
+      <mat-label>上傳預設</mat-label>
       <input type="text" matInput formControlName="cloudinaryUploadPreset" />
     </mat-form-field>
     <button
@@ -66,12 +66,12 @@
       mat-raised-button
       (click)="downloadUsersPhotoPublicId()"
     >
-      Download User Photo PublicId
+      下載使用者頭像 PublicId
     </button>
     <hr />
 
     <button type="submit" mat-flat-button [disabled]="configForm.invalid">
-      Update
+      更新
     </button>
   </form>
 </div>

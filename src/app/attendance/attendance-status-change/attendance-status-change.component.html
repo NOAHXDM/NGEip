@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>Change status to {{ data.newStatus }}</h2>
+<h2 mat-dialog-title>變更狀態為 {{ data.newStatus }}</h2>
 <mat-dialog-content class="mat-typography">
   <div class="d-flex align-items-center my-3">
     <mat-icon [style.color]="sourceStatusIcon.color" [fontIcon]="sourceStatusIcon.name"></mat-icon>
@@ -7,11 +7,11 @@
   </div>
   @if(warningVisible()) {
     <div class="alert alert-warning" role="alert">
-      <strong>Warning!</strong> Changing the status will add/deduct the user's leave hours.
+      <strong>注意！</strong> 變更狀態將會增加或扣除該使用者的假時數。
     </div>
   }
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button type="button" mat-button mat-dialog-close>Discard</button>
-  <button type="button" mat-button (click)="updateStatus()">Save</button>
+  <button type="button" mat-button mat-dialog-close>放棄</button>
+  <button type="button" mat-button (click)="updateStatus()">儲存</button>
 </mat-dialog-actions>

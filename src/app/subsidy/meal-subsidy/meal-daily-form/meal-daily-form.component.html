@@ -4,7 +4,7 @@
   <form [formGroup]="mealForm">
     <!-- 日期選擇 -->
     <mat-form-field appearance="outline" class="w-100">
-      <mat-label>Date</mat-label>
+      <mat-label>日期</mat-label>
       <input matInput [matDatepicker]="datePicker" formControlName="date" required />
       <mat-datepicker-toggle matIconSuffix [for]="datePicker"></mat-datepicker-toggle>
       <mat-datepicker #datePicker></mat-datepicker>
@@ -13,25 +13,25 @@
     <!-- 餐點列表 -->
     <div class="meals-section">
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="section-title mb-0">Meal Entries</h6>
+        <h6 class="section-title mb-0">餐點項目</h6>
         @if ((isAdmin$ | async) && !data.readOnly) {
-        <button type="button" mat-mini-fab color="primary" (click)="addMeal()" title="Add Meal Entry">
+        <button type="button" mat-mini-fab color="primary" (click)="addMeal()" title="新增餐點">
           <mat-icon>add</mat-icon>
         </button>
         }
       </div>
 
       @if (mealsArray.length === 0) {
-      <p class="text-muted">No meal entries yet. Click the + button to add one.</p>
+      <p class="text-muted">尚無餐點項目，請點擊 + 按鈕新增。</p>
       }
 
       <div formArrayName="meals">
         @for (mealControl of mealsArray.controls; track mealControl; let i = $index) {
         <div [formGroupName]="i" class="meal-entry-card mb-3">
           <div class="d-flex justify-content-between align-items-start">
-            <div class="entry-label">Entry #{{ i + 1 }}</div>
+            <div class="entry-label">項目 #{{ i + 1 }}</div>
             @if ((isAdmin$ | async) && !data.readOnly) {
-            <button type="button" mat-icon-button color="warn" (click)="removeMeal(i)" title="Remove Entry">
+            <button type="button" mat-icon-button color="warn" (click)="removeMeal(i)" title="移除項目">
               <mat-icon>delete</mat-icon>
             </button>
             }
@@ -41,7 +41,7 @@
             <!-- 員工選擇 -->
             <div class="col-md-4">
               <mat-form-field appearance="outline" class="w-100">
-                <mat-label>Employee</mat-label>
+                <mat-label>員工</mat-label>
                 <mat-select formControlName="userId" required>
                   @for (user of userList$ | async; track user.uid) {
                   <mat-option [value]="user.uid!">
@@ -50,7 +50,7 @@
                   }
                 </mat-select>
                 @if (mealControl.get('userId')?.hasError('required')) {
-                <mat-error>Employee is required</mat-error>
+                <mat-error>員工為必填</mat-error>
                 }
               </mat-form-field>
             </div>
@@ -58,10 +58,10 @@
             <!-- 點餐內容 -->
             <div class="col-md-5">
               <mat-form-field appearance="outline" class="w-100">
-                <mat-label>Order Content</mat-label>
-                <input matInput formControlName="orderContent" required placeholder="e.g., Lunch box A" />
+                <mat-label>訂購內容</mat-label>
+                <input matInput formControlName="orderContent" required placeholder="例如：便當 A" />
                 @if (mealControl.get('orderContent')?.hasError('required')) {
-                <mat-error>Order content is required</mat-error>
+                <mat-error>訂購內容為必填</mat-error>
                 }
               </mat-form-field>
             </div>
@@ -69,14 +69,14 @@
             <!-- 金額 -->
             <div class="col-md-3">
               <mat-form-field appearance="outline" class="w-100">
-                <mat-label>Amount</mat-label>
+                <mat-label>金額</mat-label>
                 <input matInput type="number" formControlName="amount" required min="0" />
                 <span matTextPrefix>$&nbsp;</span>
                 @if (mealControl.get('amount')?.hasError('required')) {
-                <mat-error>Amount is required</mat-error>
+                <mat-error>金額為必填</mat-error>
                 }
                 @if (mealControl.get('amount')?.hasError('min')) {
-                <mat-error>Amount must be positive</mat-error>
+                <mat-error>金額必須為正數</mat-error>
                 }
               </mat-form-field>
             </div>
@@ -88,7 +88,7 @@
       <!-- 總計 -->
       @if (mealsArray.length > 0) {
       <div class="total-section mt-3">
-        <div class="total-label">Daily Total: <strong>${{ calculateTotal() }}</strong></div>
+        <div class="total-label">當日合計：<strong>${{ calculateTotal() }}</strong></div>
       </div>
       }
     </div>
@@ -98,20 +98,20 @@
 <mat-dialog-actions align="end">
   @if (!data.readOnly) {
   <button type="button" mat-stroked-button color="primary" (click)="onImportFromSheet(true)"
-    title="Import from Google Sheets (with $150 limit)">
+    title="從 Google Sheets 匯入（限制 $150）">
     <mat-icon>file_upload</mat-icon>
-    Import
+    匯入
   </button>
   <button type="button" mat-stroked-button color="accent" (click)="onImportFromSheet(false)"
-    title="Import from Google Sheets (without limit)">
+    title="從 Google Sheets 匯入（無限制）">
     <mat-icon>file_upload</mat-icon>
-    Import without limit
+    無限制匯入
   </button>
   }
-  <button mat-button (click)="onCancel()">{{ data.readOnly ? 'Close' : 'Cancel' }}</button>
+  <button mat-button (click)="onCancel()">{{ data.readOnly ? '關閉' : '取消' }}</button>
   @if (!data.readOnly) {
   <button mat-raised-button color="primary" (click)="onSave()" [disabled]="mealForm.invalid || mealsArray.length === 0">
-    Save
+    儲存
   </button>
   }
 </mat-dialog-actions>

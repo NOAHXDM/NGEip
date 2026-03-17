@@ -58,7 +58,7 @@ export class AttendanceService {
     };
 
     const auditTrail: AttendanceLogAuditTrail = {
-      action: 'create',
+      action: '建立',
       actionBy: actionBy,
       actionDateTime: serverTimestamp(),
     };
@@ -80,7 +80,7 @@ export class AttendanceService {
     }
 
     const auditTrail: AttendanceLogAuditTrail = {
-      action: 'update',
+      action: '更新',
       actionBy: actionBy,
       actionDateTime: serverTimestamp(),
       content: this.maskCotent(diff),
@@ -99,7 +99,7 @@ export class AttendanceService {
   ) {
     const diff = { status };
     const auditTrail: AttendanceLogAuditTrail = {
-      action: 'update',
+      action: '更新',
       actionBy: actionBy,
       actionDateTime: serverTimestamp(),
       content: this.maskCotent(diff),
@@ -114,7 +114,7 @@ export class AttendanceService {
           const userSnapshot = await transaction.get(userRef);
           const { remainingLeaveHours } = userSnapshot.data() as User;
           if (remainingLeaveHours + leaveTransactionHistory.hours < 0) {
-            throw new Error('Insufficient leave hours');
+            throw new Error('特休時數不足');
           }
 
           const leaveTransactionHistoryCollectionRef = collection(
@@ -160,7 +160,7 @@ export class AttendanceService {
         actionBy: actionBy,
         date: serverTimestamp(),
         hours: deduct ? 0 - data.hours : data.hours,
-        reason: `From attendance#${data.id}`,
+        reason: `來自出勤申請#${data.id}`,
       };
     }
 
@@ -342,7 +342,8 @@ enum ReasonPriority {
 }
 
 interface AttendanceLogAuditTrail {
-  action: 'create' | 'update';
+  /** 舊資料（英文）與新資料（中文）皆合法，顯示層統一用 getActionLabel() 轉換 */
+  action: 'create' | 'update' | '建立' | '更新';
   actionBy: string;
   actionDateTime: Timestamp | FieldValue;
   content?: string;

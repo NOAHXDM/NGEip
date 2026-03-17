@@ -250,8 +250,10 @@ const OVERALL_COMMENT_MAX = 500;
                     <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
                     提交中…
                   } @else {
-                    <mat-icon>send</mat-icon>
-                    提交考評表單
+                    <ng-container>
+                      <mat-icon>send</mat-icon>
+                      提交考評表單
+                    </ng-container>
                   }
                 </button>
               </mat-card-actions>

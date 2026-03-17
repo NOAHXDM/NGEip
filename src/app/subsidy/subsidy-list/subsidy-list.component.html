@@ -20,7 +20,7 @@
 
     <div class="filter-panel mat-elevation-z4">
       <div class="filter-panel-header">
-        <h3>Filter</h3>
+        <h3>篩選</h3>
         <button type="button" mat-icon-button (click)="toggleFilterPanel()">
           <mat-icon>close</mat-icon>
         </button>
@@ -29,9 +29,9 @@
       <div class="filter-panel-content">
         <!-- 類型過濾器 -->
         <mat-form-field appearance="outline" class="w-100">
-          <mat-label>Subsidy Type</mat-label>
+          <mat-label>補助類型</mat-label>
           <mat-select [(value)]="selectedType" (selectionChange)="onTypeFilterChange($event.value)">
-            <mat-option [value]="null">All Types</mat-option>
+            <mat-option [value]="null">所有類型</mat-option>
             @for (type of typeList; track type.value) {
             <mat-option [value]="type.value">{{ type.text }}</mat-option>
             }
@@ -41,14 +41,14 @@
         <!-- 日期範圍過濾器 -->
         <form [formGroup]="dateRangeForm" class="d-flex flex-column gap-3">
           <mat-form-field appearance="outline" class="w-100">
-            <mat-label>Start Date</mat-label>
+            <mat-label>開始日期</mat-label>
             <input matInput [matDatepicker]="startPicker" formControlName="start" (dateChange)="onDateRangeChange()">
             <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
             <mat-datepicker #startPicker></mat-datepicker>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-100">
-            <mat-label>End Date</mat-label>
+            <mat-label>結束日期</mat-label>
             <input matInput [matDatepicker]="endPicker" formControlName="end" (dateChange)="onDateRangeChange()">
             <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
             <mat-datepicker #endPicker></mat-datepicker>
@@ -56,7 +56,7 @@
 
           <button type="button" mat-raised-button color="warn" (click)="clearFilters()" class="w-100">
             <mat-icon>clear</mat-icon>
-            Clear Filters
+            清除篩選
           </button>
         </form>
       </div>
@@ -68,23 +68,23 @@
       <!-- Tab 切換 -->
       <mat-tab-group (selectedIndexChange)="onTabChange($event)" [selectedIndex]="selectedTabIndex">
         <!-- 全部申請 -->
-        <mat-tab label="All Applications">
+        <mat-tab label="所有申請">
           @if (allApplicationsList$ | async; as dataSource) {
           <div class="table-container mat-elevation-z2">
             <table mat-table [dataSource]="dataSource" matSort class="w-100">
               <!-- 狀態 -->
               <ng-container matColumnDef="status">
-                <th mat-header-cell *matHeaderCellDef>Status</th>
+                <th mat-header-cell *matHeaderCellDef>狀態</th>
                 <td mat-cell *matCellDef="let element">
                   @switch (element.status) {
                   @case ('pending') {
-                  <mat-icon title="Pending">pending_actions</mat-icon>
+                  <mat-icon title="待審核">pending_actions</mat-icon>
                   }
                   @case ('approved') {
-                  <mat-icon style="color: green" title="Approved">check_circle</mat-icon>
+                  <mat-icon style="color: green" title="核准">check_circle</mat-icon>
                   }
                   @case ('rejected') {
-                  <mat-icon color="warn" title="Rejected">cancel</mat-icon>
+                  <mat-icon color="warn" title="拒絕">cancel</mat-icon>
                   }
                   }
                 </td>
@@ -92,19 +92,19 @@
 
               <!-- 類型 -->
               <ng-container matColumnDef="type">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>類型</th>
                 <td mat-cell *matCellDef="let element">{{ element.type | subsidyType }}</td>
               </ng-container>
 
               <!-- 申請人 -->
               <ng-container matColumnDef="userId">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Applicant</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>申請人</th>
                 <td mat-cell *matCellDef="let element">{{ element.userId | userName }}</td>
               </ng-container>
 
               <!-- 申請日期 -->
               <ng-container matColumnDef="applicationDate">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Application Date</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>申請日期</th>
                 <td mat-cell *matCellDef="let element">
                   {{ element.applicationDate | firestoreTimestamp : 'yyyy-MM-dd' }}
                 </td>
@@ -112,13 +112,13 @@
 
               <!-- 內容 -->
               <ng-container matColumnDef="content">
-                <th mat-header-cell *matHeaderCellDef>Content</th>
+                <th mat-header-cell *matHeaderCellDef>內容</th>
                 <td mat-cell *matCellDef="let element">{{ element.content || '-' }}</td>
               </ng-container>
 
               <!-- 發票金額 -->
               <ng-container matColumnDef="invoiceAmount">
-                <th mat-header-cell *matHeaderCellDef>Invoice Amount</th>
+                <th mat-header-cell *matHeaderCellDef>發票金額</th>
                 <td mat-cell *matCellDef="let element">
                   {{ element.invoiceAmount ? '$' + element.invoiceAmount : '-' }}
                 </td>
@@ -126,7 +126,7 @@
 
               <!-- 核准金額 -->
               <ng-container matColumnDef="approvedAmount">
-                <th mat-header-cell *matHeaderCellDef>Approved Amount</th>
+                <th mat-header-cell *matHeaderCellDef>核准金額</th>
                 <td mat-cell *matCellDef="let element">
                   {{ element.approvedAmount ? '$' + element.approvedAmount : '-' }}
                 </td>
@@ -134,7 +134,7 @@
 
               <!-- 操作 -->
               <ng-container matColumnDef="actions">
-                <th mat-header-cell *matHeaderCellDef>Actions</th>
+                <th mat-header-cell *matHeaderCellDef>操作</th>
                 <td mat-cell *matCellDef="let element">
                   <button mat-icon-button [matMenuTriggerFor]="allActionMenu">
                     <mat-icon>more_vert</mat-icon>
@@ -142,26 +142,26 @@
                   <mat-menu #allActionMenu="matMenu">
                     <button mat-menu-item (click)="openHistoryDialog(element)">
                       <mat-icon>history</mat-icon>
-                      <span>View History</span>
+                      <span>查看歷史</span>
                     </button>
                     @if (element.type === 1 && element.status === 'approved') {
                     <button mat-menu-item (click)="openInstallmentDialog(element)">
                       <mat-icon>payments</mat-icon>
-                      <span>Installment Records</span>
+                      <span>分期記錄</span>
                     </button>
                     }
                     @if ((isAdmin$ | async) && element.status === 'pending') {
                     <button mat-menu-item (click)="openEditApplicationDialog(element)">
                       <mat-icon>edit</mat-icon>
-                      <span>Edit</span>
+                      <span>編輯</span>
                     </button>
                     <button mat-menu-item (click)="openStatusChangeDialog(element, 'approved')">
                       <mat-icon style="color: green">check_circle</mat-icon>
-                      <span>Approve</span>
+                      <span>核准</span>
                     </button>
                     <button mat-menu-item (click)="openStatusChangeDialog(element, 'rejected')">
                       <mat-icon color="warn">cancel</mat-icon>
-                      <span>Reject</span>
+                      <span>拒絕</span>
                     </button>
                     }
                   </mat-menu>
@@ -176,23 +176,23 @@
         </mat-tab>
 
         <!-- 我的申請 -->
-        <mat-tab label="My Applications">
+        <mat-tab label="我的申請">
           @if (myApplicationsList$ | async; as dataSource) {
           <div class="table-container mat-elevation-z2">
             <table mat-table [dataSource]="dataSource" matSort class="w-100">
               <!-- 狀態 -->
               <ng-container matColumnDef="status">
-                <th mat-header-cell *matHeaderCellDef>Status</th>
+                <th mat-header-cell *matHeaderCellDef>狀態</th>
                 <td mat-cell *matCellDef="let element">
                   @switch (element.status) {
                   @case ('pending') {
-                  <mat-icon title="Pending">pending_actions</mat-icon>
+                  <mat-icon title="待審核">pending_actions</mat-icon>
                   }
                   @case ('approved') {
-                  <mat-icon style="color: green" title="Approved">check_circle</mat-icon>
+                  <mat-icon style="color: green" title="核准">check_circle</mat-icon>
                   }
                   @case ('rejected') {
-                  <mat-icon color="warn" title="Rejected">cancel</mat-icon>
+                  <mat-icon color="warn" title="拒絕">cancel</mat-icon>
                   }
                   }
                 </td>
@@ -200,19 +200,19 @@
 
               <!-- 類型 -->
               <ng-container matColumnDef="type">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>類型</th>
                 <td mat-cell *matCellDef="let element">{{ element.type | subsidyType }}</td>
               </ng-container>
 
               <!-- 申請人 -->
               <ng-container matColumnDef="userId">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Applicant</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>申請人</th>
                 <td mat-cell *matCellDef="let element">{{ element.userId | userName }}</td>
               </ng-container>
 
               <!-- 申請日期 -->
               <ng-container matColumnDef="applicationDate">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Application Date</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>申請日期</th>
                 <td mat-cell *matCellDef="let element">
                   {{ element.applicationDate | firestoreTimestamp : 'yyyy-MM-dd' }}
                 </td>
@@ -220,13 +220,13 @@
 
               <!-- 內容 -->
               <ng-container matColumnDef="content">
-                <th mat-header-cell *matHeaderCellDef>Content</th>
+                <th mat-header-cell *matHeaderCellDef>內容</th>
                 <td mat-cell *matCellDef="let element">{{ element.content || '-' }}</td>
               </ng-container>
 
               <!-- 發票金額 -->
               <ng-container matColumnDef="invoiceAmount">
-                <th mat-header-cell *matHeaderCellDef>Invoice Amount</th>
+                <th mat-header-cell *matHeaderCellDef>發票金額</th>
                 <td mat-cell *matCellDef="let element">
                   {{ element.invoiceAmount ? '$' + element.invoiceAmount : '-' }}
                 </td>
@@ -234,7 +234,7 @@
 
               <!-- 核准金額 -->
               <ng-container matColumnDef="approvedAmount">
-                <th mat-header-cell *matHeaderCellDef>Approved Amount</th>
+                <th mat-header-cell *matHeaderCellDef>核准金額</th>
                 <td mat-cell *matCellDef="let element">
                   {{ element.approvedAmount ? '$' + element.approvedAmount : '-' }}
                 </td>
@@ -242,7 +242,7 @@
 
               <!-- 操作 -->
               <ng-container matColumnDef="actions">
-                <th mat-header-cell *matHeaderCellDef>Actions</th>
+                <th mat-header-cell *matHeaderCellDef>操作</th>
                 <td mat-cell *matCellDef="let element">
                   <button mat-icon-button [matMenuTriggerFor]="actionMenu">
                     <mat-icon>more_vert</mat-icon>
@@ -250,18 +250,18 @@
                   <mat-menu #actionMenu="matMenu">
                     <button mat-menu-item (click)="openHistoryDialog(element)">
                       <mat-icon>history</mat-icon>
-                      <span>View History</span>
+                      <span>查看歷史</span>
                     </button>
                     @if (element.status === 'pending') {
                     <button mat-menu-item (click)="openEditApplicationDialog(element)">
                       <mat-icon>edit</mat-icon>
-                      <span>Edit</span>
+                      <span>編輯</span>
                     </button>
                     }
                     @if (element.type === 1 && element.status === 'approved') {
                     <button mat-menu-item (click)="openInstallmentDialog(element)">
                       <mat-icon>payments</mat-icon>
-                      <span>Installment Records</span>
+                      <span>分期記錄</span>
                     </button>
                     }
                   </mat-menu>
@@ -277,56 +277,56 @@
 
         <!-- 待審核（僅管理員可見） -->
         @if (isAdmin$ | async) {
-        <mat-tab label="Pending Review">
+        <mat-tab label="待審核">
           @if (pendingApplicationsList$ | async; as dataSource) {
           <div class="table-container mat-elevation-z2">
             <table mat-table [dataSource]="dataSource" matSort class="w-100">
               <!-- 重用相同的欄位定義 -->
               <ng-container matColumnDef="status">
-                <th mat-header-cell *matHeaderCellDef>Status</th>
+                <th mat-header-cell *matHeaderCellDef>狀態</th>
                 <td mat-cell *matCellDef="let element">
-                  <mat-icon title="Pending">pending_actions</mat-icon>
+                  <mat-icon title="待審核">pending_actions</mat-icon>
                 </td>
               </ng-container>
 
               <ng-container matColumnDef="type">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>類型</th>
                 <td mat-cell *matCellDef="let element">{{ element.type | subsidyType }}</td>
               </ng-container>
 
               <ng-container matColumnDef="userId">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Applicant</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>申請人</th>
                 <td mat-cell *matCellDef="let element">{{ element.userId | userName }}</td>
               </ng-container>
 
               <ng-container matColumnDef="applicationDate">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Application Date</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>申請日期</th>
                 <td mat-cell *matCellDef="let element">
                   {{ element.applicationDate | firestoreTimestamp : 'yyyy-MM-dd' }}
                 </td>
               </ng-container>
 
               <ng-container matColumnDef="content">
-                <th mat-header-cell *matHeaderCellDef>Content</th>
+                <th mat-header-cell *matHeaderCellDef>內容</th>
                 <td mat-cell *matCellDef="let element">{{ element.content || '-' }}</td>
               </ng-container>
 
               <ng-container matColumnDef="invoiceAmount">
-                <th mat-header-cell *matHeaderCellDef>Invoice Amount</th>
+                <th mat-header-cell *matHeaderCellDef>發票金額</th>
                 <td mat-cell *matCellDef="let element">
                   {{ element.invoiceAmount ? '$' + element.invoiceAmount : '-' }}
                 </td>
               </ng-container>
 
               <ng-container matColumnDef="approvedAmount">
-                <th mat-header-cell *matHeaderCellDef>Approved Amount</th>
+                <th mat-header-cell *matHeaderCellDef>核准金額</th>
                 <td mat-cell *matCellDef="let element">
                   {{ element.approvedAmount ? '$' + element.approvedAmount : '-' }}
                 </td>
               </ng-container>
 
               <ng-container matColumnDef="actions">
-                <th mat-header-cell *matHeaderCellDef>Actions</th>
+                <th mat-header-cell *matHeaderCellDef>操作</th>
                 <td mat-cell *matCellDef="let element">
                   <button mat-icon-button [matMenuTriggerFor]="adminActionMenu">
                     <mat-icon>more_vert</mat-icon>
@@ -334,19 +334,19 @@
                   <mat-menu #adminActionMenu="matMenu">
                     <button mat-menu-item (click)="openEditApplicationDialog(element)">
                       <mat-icon>edit</mat-icon>
-                      <span>Edit</span>
+                      <span>編輯</span>
                     </button>
                     <button mat-menu-item (click)="openStatusChangeDialog(element, 'approved')">
                       <mat-icon style="color: green">check_circle</mat-icon>
-                      <span>Approve</span>
+                      <span>核准</span>
                     </button>
                     <button mat-menu-item (click)="openStatusChangeDialog(element, 'rejected')">
                       <mat-icon color="warn">cancel</mat-icon>
-                      <span>Reject</span>
+                      <span>拒絕</span>
                     </button>
                     <button mat-menu-item (click)="openHistoryDialog(element)">
                       <mat-icon>history</mat-icon>
-                      <span>View History</span>
+                      <span>查看歷史</span>
                     </button>
                   </mat-menu>
                 </td>

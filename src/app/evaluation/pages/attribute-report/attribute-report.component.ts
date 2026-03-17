@@ -160,7 +160,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
           }
 
           <!-- FR-015：評核人數不足警示 -->
-          @if ((currentSnapshot()!.validEvaluatorCount ?? 0) < 3) {
+          @if (currentSnapshot()!.validEvaluatorCount < 3) {
             <div class="status-banner warning-banner">
               <mat-icon>info</mat-icon>
               <span>
@@ -214,8 +214,8 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
                     <span class="attr-key">{{ key }}</span>
                     <span class="attr-label">{{ getAttributeLabel(key) }}</span>
                     <span class="attr-score"
-                      [class.below-passing]="(currentSnapshot()!.attributes[key] ?? 0) < 6">
-                      {{ (currentSnapshot()!.attributes[key] ?? 0).toFixed(2) }}
+                      [class.below-passing]="currentSnapshot()!.attributes[key] < 6">
+                      {{ currentSnapshot()!.attributes[key].toFixed(2) }}
                     </span>
                   </div>
                 }

@@ -8,7 +8,7 @@
       }}</mat-chip-option>
       }
       <mat-chip-option aria-label="current" value="CURRENT"
-        >Current</mat-chip-option
+        >本期</mat-chip-option
       >
     </mat-chip-listbox>
     }
@@ -16,13 +16,13 @@
   <mat-card-content class="pt-2">
     <div class="button-container">
       @if (isAdmin$ | async) {
-        <button mat-raised-button (click)="settlement()" [disabled]="settlementDisabled()">Settlement</button>
+        <button mat-raised-button (click)="settlement()" [disabled]="settlementDisabled()">結算</button>
       }
-      <button mat-raised-button (click)="downloadCsv()">Download</button>
+      <button mat-raised-button (click)="downloadCsv()">下載</button>
       @if (listLastUpdated) {
-        <button mat-button disabled>Last updated: {{ listLastUpdated | firestoreTimestamp }}</button>
+        <button mat-button disabled>最後更新：{{ listLastUpdated | firestoreTimestamp }}</button>
       } @else {
-        <button mat-button disabled>Statistics not yet settled</button>
+        <button mat-button disabled>尚未結算</button>
       }
     </div>
 
@@ -30,7 +30,7 @@
       <mat-table [dataSource]="(list$ | async)!">
         <!-- Name -->
         <ng-container matColumnDef="Name" sticky>
-          <mat-header-cell *matHeaderCellDef>Name</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef>姓名</mat-header-cell>
           <mat-cell *matCellDef="let element">
             {{ element.userId | userName }}
           </mat-cell>

@@ -57,7 +57,7 @@ export class LoginComponent {
   }
 
   openSnackBar(message: string) {
-    this._snackBar.open(message, 'Close', {
+    this._snackBar.open(message, '關閉', {
       horizontalPosition: 'center',
       verticalPosition: 'top',
       duration: 5000,

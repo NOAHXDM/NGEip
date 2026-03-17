@@ -260,7 +260,7 @@ export class SubsidyListComponent {
 
   openNewApplicationDialog() {
     const dialogRef = this.dialog.open(SubsidyApplicationComponent, {
-      data: { title: 'New Subsidy Application' },
+      data: { title: '新增補助申請' },
       width: '600px',
     });
 
@@ -275,7 +275,7 @@ export class SubsidyListComponent {
 
   openEditApplicationDialog(application: SubsidyApplication) {
     const dialogRef = this.dialog.open(SubsidyApplicationComponent, {
-      data: { title: 'Edit Subsidy Application', application },
+      data: { title: '編輯補助申請', application },
       width: '600px',
     });
 
@@ -322,7 +322,7 @@ export class SubsidyListComponent {
   }
 
   openSnackBar(message: string) {
-    this.snackBar.open(message, 'Close', {
+    this.snackBar.open(message, '關閉', {
       horizontalPosition: 'center',
       verticalPosition: 'top',
       duration: 5000,

@@ -62,17 +62,17 @@ export class SubsidyStatusChangeComponent {
     this.statusIconMap.set('pending', {
       color: 'gray',
       name: 'pending_actions',
-      text: 'Pending',
+      text: '待審核',
     });
     this.statusIconMap.set('approved', {
       color: 'green',
       name: 'check_circle',
-      text: 'Approved',
+      text: '核准',
     });
     this.statusIconMap.set('rejected', {
       color: 'red',
       name: 'cancel',
-      text: 'Rejected',
+      text: '拒絕',
     });
 
     const originalStatus = this.data.application.status;
@@ -111,7 +111,7 @@ export class SubsidyStatusChangeComponent {
         )
       )
       .subscribe({
-        next: () => this.dialogRef.close('Status updated successfully'),
+        next: () => this.dialogRef.close('狀態已成功更新'),
         error: (error) => this.dialogRef.close(error.message),
       });
   }

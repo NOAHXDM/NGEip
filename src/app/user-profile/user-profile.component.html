@@ -1,19 +1,19 @@
 <div class="container d-flex justify-content-center align-items-center py-2">
   <mat-tab-group dynamicHeight>
-    <mat-tab label="Normal">
+    <mat-tab label="基本資料">
       <ng-container *ngTemplateOutlet="normalContent"></ng-container>
     </mat-tab>
     @if (isAdmin$ | async) {
-      <mat-tab label="Advanced">
+      <mat-tab label="進階資料">
         <ng-container *ngTemplateOutlet="advancedContent"></ng-container>
       </mat-tab>
     }
-    <mat-tab label="Remaining Leave Hours">
+    <mat-tab label="剩餘特休時數">
       <ng-container
         *ngTemplateOutlet="remainingLeaveHoursContent"
       ></ng-container>
     </mat-tab>
-    <mat-tab label="Subsidy Limit">
+    <mat-tab label="補助上限">
       <ng-container *ngTemplateOutlet="subsidyLimitContent"></ng-container>
     </mat-tab>
   </mat-tab-group>
@@ -42,22 +42,22 @@
 
     <!-- Name -->
     <mat-form-field appearance="outline">
-      <mat-label>Name</mat-label>
+      <mat-label>姓名</mat-label>
       <input type="text" matInput formControlName="name" />
       <mat-icon matSuffix>title</mat-icon>
-      <mat-hint>Enter you name</mat-hint>
+      <mat-hint>請輸入您的姓名</mat-hint>
     </mat-form-field>
     <!-- Phone -->
     <mat-form-field appearance="outline">
-      <mat-label>Phone</mat-label>
+      <mat-label>電話</mat-label>
       <input type="text" matInput formControlName="phone" />
       <mat-icon matSuffix>call</mat-icon>
-      <mat-hint>Enter you phone</mat-hint>
+      <mat-hint>請輸入您的電話</mat-hint>
     </mat-form-field>
 
     <!-- Remote Work Eligibility -->
     <mat-form-field appearance="outline">
-      <mat-label>Remote Work Eligibility</mat-label>
+      <mat-label>遠距工作資格</mat-label>
       <mat-select formControlName="remoteWorkEligibility">
         @for (value of remoteWorkEligibilityOptions; track value) {
         <mat-option [value]="value">{{ value }}</mat-option>
@@ -66,7 +66,7 @@
     </mat-form-field>
     <!-- Remote Work Recommender -->
     <mat-form-field appearance="outline">
-      <mat-label>Remote Work Recommender</mat-label>
+      <mat-label>遠距工作推薦人</mat-label>
       <mat-select formControlName="remoteWorkRecommender" multiple>
         @for (user of userList$ | async; track user.uid) {
         <mat-option [value]="user.uid">{{ user.name }}</mat-option>
@@ -75,7 +75,7 @@
     </mat-form-field>
     <!-- Birthday -->
     <mat-form-field appearance="outline">
-      <mat-label>Birthday</mat-label>
+      <mat-label>生日</mat-label>
       <mtx-datetimepicker
         #birthdayPicker
         type="date"
@@ -94,7 +94,7 @@
       ></mtx-datetimepicker-toggle>
     </mat-form-field>
     <button type="submit" mat-flat-button [disabled]="profileForm.invalid">
-      Update
+      更新
     </button>
   </form>
 </ng-template>
@@ -107,32 +107,32 @@
     novalidate
   >
     <h3 class="pt-3 text-center">{{ title }}</h3>
-    <!-- Job Title -->
+    <!-- 職位 -->
     <mat-form-field appearance="outline">
-      <mat-label>Job Title</mat-label>
+      <mat-label>職位</mat-label>
       <input type="text" matInput formControlName="jobTitle" />
       <mat-icon matSuffix>badge</mat-icon>
-      <mat-hint>Enter you job title</mat-hint>
+      <mat-hint>請輸入您的職位</mat-hint>
     </mat-form-field>
-    <!-- Job Rank -->
+    <!-- 職級 -->
     <mat-form-field appearance="outline">
-      <mat-label>Job Rank</mat-label>
+      <mat-label>職級</mat-label>
       <input type="text" matInput formControlName="jobRank" />
       <mat-icon matSuffix>military_tech</mat-icon>
-      <mat-hint>Enter you job rank</mat-hint>
+      <mat-hint>請輸入您的職級</mat-hint>
     </mat-form-field>
-    <!-- Role -->
+    <!-- 角色 -->
     <mat-form-field appearance="outline">
-      <mat-label>Role</mat-label>
+      <mat-label>角色</mat-label>
       <mat-select formControlName="role">
         @for (role of roleOptions; track role) {
         <mat-option [value]="role">{{ role }}</mat-option>
         }
       </mat-select>
     </mat-form-field>
-    <!-- Start Date -->
+    <!-- 到職日期 -->
     <mat-form-field appearance="outline">
-      <mat-label>Start Date</mat-label>
+      <mat-label>到職日期</mat-label>
       <mtx-datetimepicker
         #startDatePicker
         type="date"
@@ -150,9 +150,9 @@
         matSuffix
       ></mtx-datetimepicker-toggle>
     </mat-form-field>
-    <!-- Exit Date -->
+    <!-- 離職日期 -->
     <mat-form-field appearance="outline">
-      <mat-label>Exit Date</mat-label>
+      <mat-label>離職日期</mat-label>
       <mtx-datetimepicker
         #exitDatePicker
         type="date"
@@ -172,7 +172,7 @@
     </mat-form-field>
 
     <button type="submit" mat-flat-button [disabled]="advancedForm.invalid">
-      Update
+      更新
     </button>
   </form>
 </ng-template>
@@ -181,38 +181,38 @@
   <div class="d-flex flex-column gap-3">
     <button type="button" mat-button disabled>
       <mat-icon>local_cafe</mat-icon>
-      Remaining {{ remainingLeaveHours() }} hours
+      剩餘 {{ remainingLeaveHours() }} 小時
     </button>
 
     @if(isAdmin$ | async) {
     <button type="button" mat-fab extended (click)="settlement()">
       <mat-icon>favorite</mat-icon>
-      Settlement
+      結算
     </button>
     }
 
     <section class="table-container mat-elevation-z8">
       <mat-table [dataSource]="(leaveTransactionHistory$ | async)!">
-        <!-- Date -->
+        <!-- 日期 -->
         <ng-container matColumnDef="date">
-          <mat-header-cell *matHeaderCellDef>Date</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef>日期</mat-header-cell>
           <mat-cell *matCellDef="let element">{{
             element.date | firestoreTimestamp
           }}</mat-cell>
         </ng-container>
-        <!-- Hours -->
+        <!-- 時數 -->
         <ng-container matColumnDef="hours">
-          <mat-header-cell *matHeaderCellDef>Hours</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef>時數</mat-header-cell>
           <mat-cell *matCellDef="let element">{{ element.hours }}</mat-cell>
         </ng-container>
-        <!-- Reason -->
+        <!-- 原因 -->
         <ng-container matColumnDef="reason">
-          <mat-header-cell *matHeaderCellDef>Reason</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef>原因</mat-header-cell>
           <mat-cell *matCellDef="let element">{{ element.reason }}</mat-cell>
         </ng-container>
-        <!-- Action by -->
+        <!-- 操作者 -->
         <ng-container matColumnDef="actionBy">
-          <mat-header-cell *matHeaderCellDef>Action by</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef>操作者</mat-header-cell>
           <mat-cell *matCellDef="let element">{{
             element.actionBy | userName
           }}</mat-cell>
@@ -230,15 +230,15 @@
       (ngSubmit)="leaveTransaction()"
       novalidate
     >
-      <h6 class="text-center">Add/Deduct</h6>
-      <!-- HOURS -->
+      <h6 class="text-center">新增/扣除</h6>
+      <!-- 時數 -->
       <mat-form-field appearance="outline">
-        <mat-label>Hours</mat-label>
+        <mat-label>時數</mat-label>
         <input matInput type="number" step="0.5" formControlName="hours" />
       </mat-form-field>
-      <!-- REASON -->
+      <!-- 原因 -->
       <mat-form-field appearance="outline">
-        <mat-label>Reason</mat-label>
+        <mat-label>原因</mat-label>
         <textarea matInput formControlName="reason"></textarea>
       </mat-form-field>
       <button
@@ -246,7 +246,7 @@
         mat-flat-button
         [disabled]="remainingLeaveHoursForm.invalid"
       >
-        Submit
+        提交
       </button>
     </form>
     }
@@ -254,13 +254,13 @@
 </ng-template>
 
 <ng-template #confirmationDialog let-data>
-  <h2 mat-dialog-title>Full {{ data.yearCompleted }} years</h2>
+  <h2 mat-dialog-title>滿 {{ data.yearCompleted }} 年</h2>
   <mat-dialog-content class="mat-typography">
-    <p>Add hours: {{ data.leaveDays * 8 }}</p>
+    <p>新增時數：{{ data.leaveDays * 8 }}</p>
   </mat-dialog-content>
   <mat-dialog-actions>
-    <button mat-button mat-dialog-close>No Thanks</button>
-    <button mat-button [mat-dialog-close]="true">Ok</button>
+    <button mat-button mat-dialog-close>不用了</button>
+    <button mat-button [mat-dialog-close]="true">確認</button>
   </mat-dialog-actions>
 </ng-template>
 
@@ -269,7 +269,7 @@
     @if (subsidyLimitStatus$ | async; as status) {
       <!-- 期間資訊卡片 -->
       <div class="period-info mb-4">
-        <h5 class="text-center mb-2">Subsidy Period (Anniversary)</h5>
+        <h5 class="text-center mb-2">補助期間（週年紀念日）</h5>
         <div class="text-center text-muted">
           {{ status.period.periodStart | date: 'yyyy/MM/dd' }} -
           {{ status.period.periodEnd | date: 'yyyy/MM/dd' }}
@@ -277,12 +277,12 @@
         <div class="text-center mt-2">
           <mat-chip-set>
             <mat-chip [highlighted]="status.probationPassed">
-              {{ status.probationPassed ? '✓' : '✗' }} Probation
+              {{ status.probationPassed ? '✓' : '✗' }} 試用期
             </mat-chip>
             <mat-chip [highlighted]="status.oneYearCompleted">
-              {{ status.oneYearCompleted ? '✓' : '✗' }} 1 Year
+              {{ status.oneYearCompleted ? '✓' : '✗' }} 1 年
             </mat-chip>
-            <mat-chip>Tenure: {{ status.yearsOfService | number: '1.1-1' }} yrs</mat-chip>
+            <mat-chip>年資：{{ status.yearsOfService | number: '1.1-1' }} 年</mat-chip>
           </mat-chip-set>
         </div>
       </div>
@@ -302,7 +302,7 @@
               <span class="badge"
                     [class.bg-success]="subsidy.eligible"
                     [class.bg-secondary]="!subsidy.eligible">
-                {{ subsidy.eligible ? 'Eligible' : 'Ineligible' }}
+                {{ subsidy.eligible ? '符合資格' : '不符合資格' }}
               </span>
             </div>
 
@@ -319,11 +319,11 @@
               <!-- 筆電補助：顯示領取進度 -->
               <div class="laptop-info mb-2">
                 <div class="d-flex justify-content-between text-sm mb-1">
-                  <span>Received: {{ subsidy.usedAmount | number: '1.0-0' }}</span>
-                  <span>Approved: {{ subsidy.laptopInstallmentInfo.approvedAmount | number: '1.0-0' }}</span>
+                  <span>已領取：{{ subsidy.usedAmount | number: '1.0-0' }}</span>
+                  <span>核准：{{ subsidy.laptopInstallmentInfo.approvedAmount | number: '1.0-0' }}</span>
                 </div>
                 <div class="text-muted small">
-                  Progress: {{ subsidy.laptopInstallmentInfo.receivedCount }}/36 installments
+                  進度：{{ subsidy.laptopInstallmentInfo.receivedCount }}/36 期
                 </div>
               </div>
 
@@ -336,20 +336,20 @@
 
               <!-- 領取率 -->
               <div class="text-end text-muted small mt-1">
-                Completion: {{ getProgressPercentage(subsidy.laptopInstallmentInfo.receivedCount, 36) | number: '1.0-0' }}%
+                完成度：{{ getProgressPercentage(subsidy.laptopInstallmentInfo.receivedCount, 36) | number: '1.0-0' }}%
               </div>
             } @else if (subsidy.type === 1) {
               <!-- 筆電補助：沒有正在領取的申請 -->
               <div class="text-muted small">
-                No ongoing laptop subsidy
+                沒有進行中的筆電補助
               </div>
             } @else {
               <!-- 其他補助：顯示一般額度資訊 -->
               <div class="amount-info mb-2">
                 <div class="d-flex justify-content-between text-sm">
-                  <span>Used: {{ subsidy.usedAmount | number: '1.0-0' }}</span>
-                  <span>Available: {{ subsidy.availableAmount | number: '1.0-0' }}</span>
-                  <span>Total: {{ subsidy.totalLimit | number: '1.0-0' }}</span>
+                  <span>已使用：{{ subsidy.usedAmount | number: '1.0-0' }}</span>
+                  <span>可用：{{ subsidy.availableAmount | number: '1.0-0' }}</span>
+                  <span>總額：{{ subsidy.totalLimit | number: '1.0-0' }}</span>
                 </div>
               </div>
 
@@ -362,7 +362,7 @@
 
               <!-- 使用率 -->
               <div class="text-end text-muted small mt-1">
-                Usage: {{ getProgressPercentage(subsidy.usedAmount, subsidy.totalLimit) | number: '1.0-0' }}%
+                使用率：{{ getProgressPercentage(subsidy.usedAmount, subsidy.totalLimit) | number: '1.0-0' }}%
               </div>
             }
           </div>
@@ -371,7 +371,7 @@
     } @else {
       <div class="text-center text-muted p-4">
         <mat-icon>info</mat-icon>
-        <p>Start date not set. Cannot calculate subsidy limits.</p>
+        <p>未設定到職日期。無法計算補助上限。</p>
       </div>
     }
   </div>

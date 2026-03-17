@@ -238,11 +238,11 @@ export class SubsidyApplicationComponent implements OnInit {
         .pipe(take(1))
         .subscribe({
           next: () => {
-            this.dialogRef.close('Subsidy application updated');
+            this.dialogRef.close('申請已成功更新');
           },
           error: (error) => {
             console.error('更新失敗：', error);
-            this.dialogRef.close('Update failed');
+            this.dialogRef.close('更新失敗');
           },
         });
     } else {
@@ -252,11 +252,11 @@ export class SubsidyApplicationComponent implements OnInit {
         .pipe(take(1))
         .subscribe({
           next: () => {
-            this.dialogRef.close('Subsidy application created');
+            this.dialogRef.close('申請已成功建立');
           },
           error: (error) => {
             console.error('建立失敗：', error);
-            this.dialogRef.close('Creation failed');
+            this.dialogRef.close('建立失敗');
           },
         });
     }
