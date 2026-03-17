@@ -55,7 +55,7 @@
 - [X] T012 [P] [US1] 建立 EvaluationCycleService 於 `src/app/evaluation/services/evaluation-cycle.service.ts`，實作 getCycles()（orderBy createdAt DESC）、getCycleById()、createCycle()（寫入 totalAssignments/completedAssignments 初始值）、updateDeadline()、closeAndPublish()（stub，Phase 6 完整實作）
 - [X] T013 [P] [US1] 建立 EvaluationAssignmentService 於 `src/app/evaluation/services/evaluation-assignment.service.ts`，實作 getMyAssignments()（where evaluatorUid + shareReplay(1)）、getAssignmentsByCycle()、createAssignments()（批次 setDoc 以確定性鍵防重複）、deleteAssignment()
 - [X] T014 [US1] 建立 EvaluationCyclesAdminComponent 頁面於 `src/app/evaluation/pages/evaluation-cycles-admin/`（週期卡片清單含完成率、新增週期 Dialog 含年份/H1 H2/截止日欄位、截止日修改 inline 或 Dialog、「結束並發布」按鈕，截止日已過時顯示「已截止，待確認」標籤）
-- [X] T015 [US1] 建立指派管理子頁面或 Dialog 於 `src/app/evaluation/pages/evaluation-cycles-admin/`（從使用者清單選擇受評者，為每位受評者選擇一到多位評核者，呈現已指派清單，支援刪除未提交的指派，截止日已過後禁用新增指派）
+- [X] T015 [US1] 建立指派管理子頁面或 Dialog 於 `src/app/evaluation/pages/evaluation-cycles-admin/`（從使用者清單選擇受評者，為每位受評者選擇一到多位評核者，呈現已指派清單，支援刪除未提交的指派，截止日已過後禁用新增指派，受評者與評核者選單排除已離職使用者即 exitDate 已設定者）
 
 **Checkpoint**：US1 可獨立展示：管理者建立週期 + 指派 → 評核者看到待辦任務
 
