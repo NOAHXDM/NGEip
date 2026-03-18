@@ -34,8 +34,8 @@ export class SubsidyService {
     [SubsidyType.Laptop]: '筆電補助',
     [SubsidyType.HealthCheck]: '健康檢查',
     [SubsidyType.Training]: '訓練課程',
-    [SubsidyType.AITool]: '人工智能工具',
-    [SubsidyType.Travel]: '差旅補助',
+    [SubsidyType.AITool]: 'AI 工具',
+    [SubsidyType.Travel]: '旅遊補助',
   };
 
   readonly typeList = Object.keys(SubsidyType)
