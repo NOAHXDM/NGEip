@@ -39,19 +39,20 @@ interface QuestionDef {
   index: number;
   attribute: string;
   text: string;
+  hint: string;
 }
 
 const QUESTIONS: QuestionDef[] = [
-  { key: 'q1',  index: 1,  attribute: 'COL', text: '請評估此人與團隊成員的溝通與協作能力' },
-  { key: 'q2',  index: 2,  attribute: 'INS', text: '請評估此人分析問題並找到有效解決方案的能力' },
-  { key: 'q3',  index: 3,  attribute: 'ADP', text: '請評估此人的自我管理與工作組織能力' },
-  { key: 'q4',  index: 4,  attribute: 'INN', text: '請評估此人主動提出創新想法或改善流程的積極性' },
-  { key: 'q5',  index: 5,  attribute: 'STB', text: '請評估此人對工作的責任心與承諾度' },
-  { key: 'q6',  index: 6,  attribute: 'COL', text: '請評估此人與跨部門或不同背景同仁的團隊合作精神' },
-  { key: 'q7',  index: 7,  attribute: 'INS', text: '請評估此人積極學習新知識或技能的態度' },
-  { key: 'q8',  index: 8,  attribute: 'STB', text: '請評估此人對工作的專業態度與品質意識' },
-  { key: 'q9',  index: 9,  attribute: 'ADP', text: '請評估此人在高壓或緊急情況下保持冷靜、有效應對挑戰的能力' },
-  { key: 'q10', index: 10, attribute: 'EXE', text: '請評估此人的工作效率與結果導向（如期完成任務、達成目標）' },
+  { key: 'q1',  index: 1,  attribute: 'COL', text: '請評估此人與團隊成員的溝通與協作能力', hint: '能清晰有效地與團隊成員及跨部門同仁溝通，積極參與協作，促進資訊透明與共識形成。' },
+  { key: 'q2',  index: 2,  attribute: 'INS', text: '請評估此人分析問題並找到有效解決方案的能力', hint: '能主動識別問題、分析根本原因，並在有限時間內提出可行且有效的解決方案。' },
+  { key: 'q3',  index: 3,  attribute: 'ADP', text: '請評估此人的自我管理與工作組織能力', hint: '能有效規劃自身工作、管理時間與任務優先順序，在無需過多指導的情況下達成目標。' },
+  { key: 'q4',  index: 4,  attribute: 'INN', text: '請評估此人主動提出創新想法或改善流程的積極性', hint: '能主動提出改善想法或流程優化建議，不待指示即採取行動，推動工作品質或效率提升。' },
+  { key: 'q5',  index: 5,  attribute: 'STB', text: '請評估此人對工作的責任心與承諾度', hint: '對承擔的工作任務認真可靠地執行，對團隊目標保持高度承諾，不推卸責任。' },
+  { key: 'q6',  index: 6,  attribute: 'COL', text: '請評估此人與跨部門或不同背景同仁的團隊合作精神', hint: '樂於協助同事解決困難，主動分享知識與經驗，共同促進團隊成功。' },
+  { key: 'q7',  index: 7,  attribute: 'INS', text: '請評估此人積極學習新知識或技能的態度', hint: '主動學習職能相關的新知識與技術，持續尋求成長機會，並將所學應用於實際工作中。' },
+  { key: 'q8',  index: 8,  attribute: 'STB', text: '請評估此人對工作的專業態度與品質意識', hint: '對工作保持認真負責的態度，注重交付品質，堅持高標準並追求卓越。' },
+  { key: 'q9',  index: 9,  attribute: 'ADP', text: '請評估此人在高壓或緊急情況下保持冷靜、有效應對挑戰的能力', hint: '在高壓或緊急情況下能保持冷靜，有效應對挑戰，不影響工作品質與團隊氛圍。' },
+  { key: 'q10', index: 10, attribute: 'EXE', text: '請評估此人的工作效率與結果導向', hint: '能有效利用時間與資源，如期完成任務並持續達成個人及團隊預期目標。' },
 ];
 
 const SCORE_BUTTONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
@@ -84,6 +85,9 @@ const SCORE_BUTTONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
             </span>
             <span class="question-text">{{ question.text }}</span>
           </div>
+
+          <!-- 題目行為說明提示 -->
+          <p class="question-hint">{{ question.hint }}</p>
 
           <!-- 分數按鈕列 -->
           <div class="score-row">
@@ -199,6 +203,18 @@ const SCORE_BUTTONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
       font-size: 0.95rem;
       color: #333;
       line-height: 1.5;
+    }
+
+    /* ── 題目行為說明 ────────────────────────────────────────── */
+    .question-hint {
+      margin: -8px 0 14px;
+      padding: 8px 12px;
+      background: #f8f9fa;
+      border-left: 3px solid #bdbdbd;
+      border-radius: 0 4px 4px 0;
+      font-size: 0.82rem;
+      color: #757575;
+      line-height: 1.6;
     }
 
     /* ── 分數列 ──────────────────────────────────────────────── */
