@@ -155,7 +155,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
           @if (currentSnapshot()!.status === 'preview') {
             <div class="status-banner preview-banner">
               <mat-icon>warning</mat-icon>
-              <span>⚠️ 最終結果尚未發布，目前顯示為預覽資料</span>
+              <span>最終結果尚未發布，目前顯示為預覽資料</span>
             </div>
           }
 
