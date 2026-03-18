@@ -63,7 +63,7 @@ export class SubsidyRankingDialogComponent {
       healthCheck: '健康檢查補助排行榜',
       training: '訓練課程補助排行榜',
       aiTool: 'AI 工具補助排行榜',
-      travel: '差旅補助排行榜',
+      travel: '旅遊補助排行榜',
       meal: '餐費補助排行榜',
     };
     return titles[type] || '排行榜';
