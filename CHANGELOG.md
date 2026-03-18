@@ -5,6 +5,17 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.3] - 2026-03-18
+
+### 新增
+- 評核題目新增行為觀察 hint 說明，協助評核者理解各題目的觀察重點
+
+### 修復
+- 修正評核者提交表單時 `userAttributeSnapshots` preview 快照缺少 `computedAt` 欄位，導致 `getMySnapshots()` 回傳空陣列的問題
+
+### 變更
+- 移除評鑑屬性報告頁面與嵌入式元件中的 ⚠️ 警告符號，簡化預覽狀態通知的視覺表達
+
 ## [3.0.2] - 2026-03-18
 
 ### 新增
