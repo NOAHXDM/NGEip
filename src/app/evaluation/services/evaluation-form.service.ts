@@ -320,6 +320,7 @@ export class EvaluationFormService {
         cycleId,
         userId: evaluateeUid,
         status: 'preview' as const,
+        computedAt: this.firestoreServerTimestamp(),
         overallComments: this.firestoreArrayUnion(draft.overallComment),
         attributes: previewAttributes,
         validEvaluatorCount: this.firestoreIncrement(1),

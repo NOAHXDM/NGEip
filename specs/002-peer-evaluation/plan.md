@@ -126,7 +126,7 @@ userAttributeSnapshots/{cycleId}_{userId}
 [評核者提交表單]
   → Firestore batch():
     1. evaluationForms 建立（含 scores, feedbacks, overallComment）
-    2. userAttributeSnapshots upsert（status: 'preview'，arrayUnion overallComment，更新原始平均分）
+    2. userAttributeSnapshots upsert（status: 'preview'，computedAt: serverTimestamp()，arrayUnion overallComment，更新原始平均分）
     3. evaluationAssignments 更新（status: 'completed', completedAt）
     4. evaluationCycles.completedAssignments += 1
 
