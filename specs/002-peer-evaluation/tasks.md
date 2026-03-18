@@ -76,7 +76,7 @@
 - [X] T018 [P] [US2] 建立 EvaluationFormService 於 `src/app/evaluation/services/evaluation-form.service.ts`，實作 submitForm()（Firestore batch：寫入 evaluationForms、arrayUnion overallComment + 更新 preview 屬性分數至 snapshot、assignment status→completed + completedAt、cycle completedAssignments +1）、getMyForm()、getAllFormsByCycle()、getFormsByEvaluatee()
 - [X] T019 [P] [US2] 建立 EvaluationTasksComponent 於 `src/app/evaluation/pages/evaluation-tasks/`（「待填寫」/「已填寫」分頁，顯示受評者姓名與截止日，截止日已過顯示「考核截止日期已過」提示，已提交顯示唯讀標籤）
 - [X] T020 [US2] 建立 EvaluationFormComponent 於 `src/app/evaluation/pages/evaluation-form/`（完整表單：10 題評分器含行為說明、各題選填回饋（分數 ≥9 或 ≤3 自動轉必填）、表單末尾整體評價必填欄含即時字數計數器、「已提交」唯讀視圖模式、截止日已過拒絕填寫提示）
-- [X] T021 [P] [US2] 建立 EvaluationFormQuestionsComponent 於 `src/app/evaluation/components/evaluation-form-questions/`（10 道固定題目重用片段：題目文字、1–10 評分器 with 分數行為說明 tooltip、選填/必填文字回饋欄）
+- [X] T021 [P] [US2] 建立 EvaluationFormQuestionsComponent 於 `src/app/evaluation/components/evaluation-form-questions/`（10 道固定題目重用片段：題目文字、題目行為觀察說明（hint，inline 顯示於題目下方）、1–10 評分器含分數區間說明、選填/必填文字回饋欄）
 
 **Checkpoint**：US2 可獨立展示：填寫並提交考評表 → 任務移至已填寫 → 受評者看不到評核者身份
 
