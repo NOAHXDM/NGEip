@@ -258,25 +258,38 @@ function toSvgPoint(value: number, max: number, index: number, radius: number, c
 .marquee-wrapper {
   overflow: hidden;
   white-space: nowrap;
+  cursor: pointer;
 }
-.marquee-content {
-  display: inline-block;
-  animation: marquee var(--duration, 30s) linear infinite;
+.marquee-wrapper:hover .marquee-track {
+  animation-play-state: paused;
 }
-@keyframes marquee {
-  from { transform: translateX(100%); }
-  to   { transform: translateX(-100%); }
+.marquee-track {
+  display: flex;
+  white-space: nowrap;
+  animation: marquee-scroll linear infinite;
+}
+@keyframes marquee-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 ```
 
 ```typescript
-// 動畫速度依文字總長度動態計算
+// 動畫速度依文字像素寬度與目標速率計算（恆定滾動速率，適合閱讀）
+private readonly charWidthPx = 14;  // 中文字元預估寬度（font-size 14px）
+
 get duration(): string {
-  const totalChars = this.comments.join('　|　').length;
-  const seconds = Math.max(10, totalChars / this.speedPx * 8);
+  const totalChars = this.joinedText.length;
+  const estimatedPixelWidth = totalChars * this.charWidthPx;
+  const seconds = Math.max(8, estimatedPixelWidth / this.speedPx); // speedPx 預設 120
   return `${seconds}s`;
 }
 ```
+
+**互動行為**：
+- hover 暫停動畫，背景色微變（#f5f5f5 → #ebebeb），方便定點閱讀。
+- 點擊開啟 MatDialog 彈窗（MarqueeCommentsDialogComponent），以帶編號列表顯示所有評語完整內容。
+- 支援鍵盤 Enter 觸發，加了 `role="button"` 和 `tabindex="0"` 確保無障礙可及性。
 
 **週期切換**：父元件更新 `comments` input → Angular 重新渲染 `@if (comments.length > 0)` 區塊 → 動畫重新啟動。
 

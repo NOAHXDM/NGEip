@@ -31,7 +31,7 @@
 **目的**：完成所有使用者故事共同依賴的 Security Rules、Firestore 索引與核心計算服務；Phase 2 完成前，US1–US4 不得進入整合測試。
 
 - [X] T005 更新 `firestore.rules`，新增 evaluationCycles（read: isSignedIn, create/delete: isAdmin, update: isAdmin 或已登入使用者僅限 completedAssignments 欄位）、evaluationAssignments（read: evaluator 本人 or admin, create: admin, update: evaluator 本人 or admin, delete: admin）、evaluationForms（read: evaluator 本人 or admin, create: evaluator 本人 含分數範圍與字數驗證, update: admin only, delete: if false）、userAttributeSnapshots（read: 本人 or admin, create/update: admin or evaluator-preview 限制, delete: if false）的完整安全規則
-- [X] T006 [P] 更新 `firestore.indexes.json`，新增依 `data-model.md` 定義的 6 個複合索引：evaluationAssignments(evaluatorUid+status)、(cycleId+evaluateeUid)、(evaluatorUid+cycleId)；evaluationForms(evaluatorUid+cycleId)、(cycleId+evaluateeUid)；userAttributeSnapshots(userId+cycleId DESC)、(cycleId+totalScore DESC)
+- [X] T006 [P] 更新 `firestore.indexes.json`，新增依 `data-model.md` 定義的 6 個複合索引：evaluationAssignments(evaluatorUid+status)、(cycleId+evaluateeUid)、(evaluatorUid+cycleId)；evaluationForms(evaluatorUid+cycleId)、(cycleId+evaluateeUid)；userAttributeSnapshots(userId+computedAt DESC)、(cycleId+totalScore DESC)
 - [X] T007 建立 Security Rules 整合測試於 `src/app/evaluation/testing/firestore-rules.spec.ts`，驗證 10 個關鍵案例（evaluatee 讀 evaluationForms → DENIED、評核者讀他人表單 → DENIED、Admin 讀任何集合 → ALLOWED、受評者讀自己 snapshot → ALLOWED、評核者試圖寫 final snapshot → DENIED、評核者更新自己 snapshot → DENIED 等）
 - [X] T008 [P] 建立 ZScoreCalculatorService（純計算服務，無 Firestore 依賴）於 `src/app/evaluation/services/zscore-calculator.service.ts`，實作 per-rater Z-score 校正（TARGET_MEAN=5.5, SD=1.5, clamp 1–10）、六大屬性彙整（FR-009 公式）、determineArchetypes（勇者/初心者/8原型並列邏輯）、detectReciprocalHighScores、detectOutlierEvaluators
 - [X] T009 [P] 建立 ZScoreCalculatorService 完整單元測試於 `src/app/evaluation/services/zscore-calculator.service.spec.ts`，覆蓋：sd=0 邊界（不校正）、多評核者 Z-score 結果正確、属性分數 clamp(1,10)、職業原型六種單一原型、勇者判定（全≥8）、初心者判定（原始平均分數三項<5 優先）、並列輸出多原型、互惠高分對偵測、離群評核者偵測
@@ -94,7 +94,7 @@
 
 ### 實作
 
-- [X] T024 [P] [US3] 建立 UserAttributeSnapshotService 於 `src/app/evaluation/services/user-attribute-snapshot.service.ts`，實作 getMySnapshots()（where userId==uid, orderBy cycleId DESC, shareReplay(1)）、getMySnapshot(cycleId)、getAllSnapshotsByCycle(cycleId)
+- [X] T024 [P] [US3] 建立 UserAttributeSnapshotService 於 `src/app/evaluation/services/user-attribute-snapshot.service.ts`，實作 getMySnapshots()（where userId==uid, orderBy computedAt DESC, shareReplay(1)）、getMySnapshot(cycleId)、getAllSnapshotsByCycle(cycleId)
 - [X] T025 [P] [US3] 建立 RadarChartComponent 於 `src/app/evaluation/components/radar-chart/`（純 SVG 六角雷達圖：5 層背景六角 2/4/6/8/10、6 條軸線、橘色虛線及格線（6/10）、半透明藍資料六角、低於及格線頂點紅色警示點、軸標籤含屬性代號+分數小數兩位）
 - [X] T026 [P] [US3] 建立 TrendLineChartComponent 於 `src/app/evaluation/components/trend-line-chart/`（純 SVG 趨勢折線圖：X 軸週期名稱、Y 軸 0–10 刻度、6 色折線各代表一屬性、選中週期以垂直虛線高亮）
 - [X] T027 [P] [US3] 建立 MarqueeCommentsComponent 於 `src/app/evaluation/components/marquee-comments/`（CSS @keyframes translateX 跑馬燈、空陣列時 @if 不渲染、速度依文字總長度動態計算、輪播時不顯示評核者識別資訊）

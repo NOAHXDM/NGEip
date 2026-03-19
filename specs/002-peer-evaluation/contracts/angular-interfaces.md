@@ -247,8 +247,10 @@ export class TrendLineChartComponent {
 @Component({...})
 export class MarqueeCommentsComponent {
   @Input() comments: string[] = [];
-  @Input() speedPx: number = 80;   // pixels/second
+  @Input() speedPx: number = 120;   // pixels/second（約每秒 8–9 個中文字，適合一般閱讀速率）
   // 若 comments 為空陣列，元件自身不渲染
+  // 點擊跑馬燈可開啟完整評語彈窗（MarqueeCommentsDialogComponent）
+  // hover 時暫停動畫
 }
 ```
 
