@@ -160,7 +160,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
           }
 
           <!-- FR-015：評核人數不足警示 -->
-          @if (currentSnapshot()!.validEvaluatorCount < 3) {
+          @if (currentSnapshot()!.validEvaluatorCount < 5) {
             <div class="status-banner warning-banner">
               <mat-icon>info</mat-icon>
               <span>

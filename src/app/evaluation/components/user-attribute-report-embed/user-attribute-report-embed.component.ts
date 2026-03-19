@@ -130,7 +130,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
             </div>
           }
 
-          @if (currentSnapshot()!.validEvaluatorCount < 3) {
+          @if (currentSnapshot()!.validEvaluatorCount < 5) {
             <div class="status-banner warning-banner">
               <mat-icon>info</mat-icon>
               <span>
