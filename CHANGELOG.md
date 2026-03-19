@@ -5,6 +5,17 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.4] - 2026-03-19
+
+### 修復
+- 修正跑馬燈評語元件（`MarqueeCommentsComponent`）滾動速率異常問題：將 `marquee-track` 的 `display: flex` 改為 `display: inline-flex`，使元素寬度由文字內容撐開，恢復恆定 120px/s 滾動速率
+- 修正評核人數不足警示門檻（FR-015）：`attribute-report` 與 `user-attribute-report-embed` 兩個元件由 `validEvaluatorCount < 3` 改為 `< 5`，與功能規格一致
+- 優化補助類型（subsidy type）標籤中文顯示文字，提升可讀性
+
+### 文件
+- 更新 README.md 評量考核系統說明文件
+- 同步規格文件衝突修正：`tasks.md` 索引描述（userId+cycleId DESC → userId+computedAt DESC）、`angular-interfaces.md` 跑馬燈契約更新、`plan.md` 跑馬燈設計章節更新
+
 ## [3.0.3] - 2026-03-18
 
 ### 新增

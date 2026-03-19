@@ -1,6 +1,6 @@
 {
   "name": "angular-eip",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "scripts": {
     "start": "firebase emulators:start --config firebase.local.json --import ./firestore-backup",
     "build": "ng build",
