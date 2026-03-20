@@ -5,6 +5,11 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.5] - 2026-03-20
+
+### 文件
+- 同步規格文件與程式碼邏輯，修正 6 處衝突：JSDoc `validEvaluatorCount` 門檻（< 3 → < 5, FR-015）、新增 `getSnapshotsByUserId` 介面、新增 `UserAttributeReportEmbedComponent` 契約、Firestore 寫入成本（3 → 4 writes）、`plan.md` 補充 rawAttributes/rawTotalScore 更新說明與元件結構（5 → 6 components）
+
 ## [3.0.4] - 2026-03-19
 
 ### 修復
