@@ -314,6 +314,9 @@ export class EvaluationFormService {
     const snapshotId = `${cycleId}_${evaluateeUid}`;
     const snapshotRef = this.firestoreDocRef(SNAPSHOTS_COLLECTION, snapshotId);
 
+    // 計算原始平均分數的加總
+    const rawTotalScore = Object.values(previewAttributes).reduce((sum, v) => sum + v, 0);
+
     batch.set(
       snapshotRef,
       {
@@ -323,6 +326,8 @@ export class EvaluationFormService {
         computedAt: this.firestoreServerTimestamp(),
         overallComments: this.firestoreArrayUnion(draft.overallComment),
         attributes: previewAttributes,
+        rawAttributes: previewAttributes,
+        rawTotalScore: Math.round(rawTotalScore * 100) / 100,
         validEvaluatorCount: this.firestoreIncrement(1),
       },
       { merge: true },

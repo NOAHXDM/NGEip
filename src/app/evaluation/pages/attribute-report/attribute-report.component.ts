@@ -7,7 +7,7 @@
  * 功能：
  *  - 頂部 MarqueeCommentsComponent（顯示本週期的 overallComments）
  *  - 週期選擇器 MatSelect（切換後跑馬燈同步更新）
- *  - FR-015：評核人數不足警示（validEvaluatorCount < 3）
+ *  - FR-015：評核人數不足警示（validEvaluatorCount < 5）
  *  - 基本資訊卡：CareerArchetypeBadgeComponent、totalScore、validEvaluatorCount
  *  - RadarChartComponent（6 軸分數，小數兩位）
  *  - FR-017：職等及格行為標準說明（依 jobRank J/M/S）
@@ -24,9 +24,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 import {
   AttributeKey,
+  AttributeScores,
   PeriodDataPoint,
   RadarAxis,
   UserAttributeSnapshot,
@@ -87,6 +89,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
     MatIconModule,
     MatProgressSpinnerModule,
     MatDividerModule,
+    MatSlideToggleModule,
     RadarChartComponent,
     TrendLineChartComponent,
     MarqueeCommentsComponent,
@@ -169,10 +172,22 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
             </div>
           }
 
+          <!-- 分數模式切換 -->
+          <div class="score-mode-toggle">
+            <mat-slide-toggle
+              [checked]="showRawScores()"
+              (change)="showRawScores.set($event.checked)">
+              {{ showRawScores() ? '顯示加總平均分數（原始）' : '顯示 Z-score 校正分數' }}
+            </mat-slide-toggle>
+            @if (showRawScores() && !hasRawData()) {
+              <span class="no-raw-hint">⚠ 此週期尚無加總平均分數資料，請聯繫管理者進行結算</span>
+            }
+          </div>
+
           <!-- 基本資訊卡 -->
           <mat-card class="info-card">
             <mat-card-header>
-              <mat-card-title>本期概覽</mat-card-title>
+              <mat-card-title>本期概覽{{ showRawScores() ? '（加總平均）' : '（Z-score 校正）' }}</mat-card-title>
             </mat-card-header>
             <mat-card-content>
               <div class="info-grid">
@@ -183,7 +198,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
                 </div>
                 <div class="info-item">
                   <span class="info-label">綜合總分</span>
-                  <span class="total-score">{{ safeScore(currentSnapshot()!.totalScore) }}</span>
+                  <span class="total-score">{{ safeScore(displayTotalScore()) }}</span>
                   <span class="total-score-max">/ 60</span>
                 </div>
                 <div class="info-item">
@@ -197,7 +212,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
           <!-- 雷達圖區域 -->
           <mat-card class="chart-card radar-card">
             <mat-card-header>
-              <mat-card-title>六大職場屬性雷達圖</mat-card-title>
+              <mat-card-title>六大職場屬性雷達圖{{ showRawScores() ? '（加總平均）' : '' }}</mat-card-title>
               <mat-card-subtitle>及格線（橘色虛線）= 6 分；紅色圓點 = 低於及格</mat-card-subtitle>
             </mat-card-header>
             <mat-card-content class="radar-content">
@@ -214,8 +229,8 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
                     <span class="attr-key">{{ key }}</span>
                     <span class="attr-label">{{ getAttributeLabel(key) }}</span>
                     <span class="attr-score"
-                      [class.below-passing]="safeNum(currentSnapshot()!.attributes[key]) < 6">
-                      {{ safeScore(currentSnapshot()!.attributes[key]) }}
+                      [class.below-passing]="safeNum(displayAttributes()[key]) < 6">
+                      {{ safeScore(displayAttributes()[key]) }}
                     </span>
                   </div>
                 }
@@ -246,7 +261,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
         @if (trendData().length > 0) {
           <mat-card class="chart-card trend-card">
             <mat-card-header>
-              <mat-card-title>歷史成長趨勢</mat-card-title>
+              <mat-card-title>歷史成長趨勢{{ showRawScores() ? '（加總平均）' : '' }}</mat-card-title>
               <mat-card-subtitle>各週期六大屬性分數變化</mat-card-subtitle>
             </mat-card-header>
             <mat-card-content>
@@ -350,6 +365,18 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
 
     .cycle-selector {
       min-width: 240px;
+    }
+
+    .score-mode-toggle {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .no-raw-hint {
+      font-size: 12px;
+      color: #E65100;
     }
 
     .status-banner {
@@ -506,6 +533,7 @@ export class AttributeReportComponent implements OnInit {
 
   isLoading = signal(true);
   selectedCycleId = signal<string | null>(null);
+  showRawScores = signal(false);
 
   // ── 快照資料（來自 service） ──────────────────────────────────────────────
 
@@ -530,15 +558,43 @@ export class AttributeReportComponent implements OnInit {
     return snapshot.overallComments ?? [];
   });
 
+  /** 是否有原始加總平均分數資料 */
+  hasRawData = computed<boolean>(() => {
+    const snapshot = this.currentSnapshot();
+    if (!snapshot) return false;
+    return !!snapshot.rawAttributes;
+  });
+
+  /** 目前顯示的屬性分數（依 toggle 切換） */
+  displayAttributes = computed<AttributeScores>(() => {
+    const snapshot = this.currentSnapshot();
+    if (!snapshot) return { EXE: 0, INS: 0, ADP: 0, COL: 0, STB: 0, INN: 0 };
+    if (this.showRawScores() && snapshot.rawAttributes) {
+      return snapshot.rawAttributes;
+    }
+    return snapshot.attributes ?? { EXE: 0, INS: 0, ADP: 0, COL: 0, STB: 0, INN: 0 };
+  });
+
+  /** 目前顯示的總分（依 toggle 切換） */
+  displayTotalScore = computed<number>(() => {
+    const snapshot = this.currentSnapshot();
+    if (!snapshot) return 0;
+    if (this.showRawScores() && snapshot.rawTotalScore != null) {
+      return snapshot.rawTotalScore;
+    }
+    return snapshot.totalScore ?? 0;
+  });
+
   /** 目前雷達圖 axes */
   currentRadarAxes = computed<RadarAxis[]>(() => {
     const snapshot = this.currentSnapshot();
     if (!snapshot) return [];
 
+    const attrs = this.displayAttributes();
     return ATTRIBUTE_KEYS.map((key) => ({
       key,
       label: `${key} ${ATTRIBUTE_DISPLAY[key]}`,
-      value: snapshot.attributes?.[key] ?? 0,
+      value: attrs[key] ?? 0,
       passingMark: 6,
     }));
   });
@@ -546,9 +602,12 @@ export class AttributeReportComponent implements OnInit {
   /** 歷史趨勢資料 */
   trendData = computed<PeriodDataPoint[]>(() => {
     const snapshots = [...this.allSnapshots()].reverse(); // 由舊到新
+    const useRaw = this.showRawScores();
     return snapshots.map((s) => ({
       cycleLabel: s.cycleId,
-      scores: s.attributes ?? { EXE: 0, INS: 0, ADP: 0, COL: 0, STB: 0, INN: 0 },
+      scores: (useRaw && s.rawAttributes)
+        ? s.rawAttributes
+        : (s.attributes ?? { EXE: 0, INS: 0, ADP: 0, COL: 0, STB: 0, INN: 0 }),
     }));
   });
 

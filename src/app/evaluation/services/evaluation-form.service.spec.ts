@@ -573,6 +573,32 @@ describe('EvaluationFormService', () => {
       );
     });
 
+    it('快照更新應包含 rawAttributes（與 attributes 相同的預覽原始分數）', async () => {
+      await service.submitForm(MOCK_CYCLE_ID, MOCK_ASSIGNMENT_ID, MOCK_EVALUATEE_UID, VALID_DRAFT);
+
+      const [, snapshotData] = mockBatch.set.calls.argsFor(1);
+
+      // EXE=7, INS=6, ADP=6.5, COL=7, STB=7.5, INN=6
+      expect(snapshotData).toEqual(
+        jasmine.objectContaining({
+          rawAttributes: { EXE: 7, INS: 6, ADP: 6.5, COL: 7, STB: 7.5, INN: 6 },
+        }),
+      );
+    });
+
+    it('快照更新應包含 rawTotalScore（六大屬性分數加總，四捨五入至小數點後兩位）', async () => {
+      await service.submitForm(MOCK_CYCLE_ID, MOCK_ASSIGNMENT_ID, MOCK_EVALUATEE_UID, VALID_DRAFT);
+
+      const [, snapshotData] = mockBatch.set.calls.argsFor(1);
+
+      // EXE=7, INS=6, ADP=6.5, COL=7, STB=7.5, INN=6 → 加總 = 40
+      expect(snapshotData).toEqual(
+        jasmine.objectContaining({
+          rawTotalScore: 40,
+        }),
+      );
+    });
+
     it('指派更新（batch.update 第一次呼叫）應設 status=completed 並帶有 completedAt 時間戳', async () => {
       await service.submitForm(MOCK_CYCLE_ID, MOCK_ASSIGNMENT_ID, MOCK_EVALUATEE_UID, VALID_DRAFT);
 
@@ -598,10 +624,10 @@ describe('EvaluationFormService', () => {
       );
     });
 
-    it('應呼叫 firestoreServerTimestamp() 兩次（submittedAt + completedAt）', async () => {
+    it('應呼叫 firestoreServerTimestamp() 三次（表單 submittedAt + 快照 computedAt + 指派 completedAt）', async () => {
       await service.submitForm(MOCK_CYCLE_ID, MOCK_ASSIGNMENT_ID, MOCK_EVALUATEE_UID, VALID_DRAFT);
 
-      expect(firestoreServerTimestampSpy).toHaveBeenCalledTimes(2);
+      expect(firestoreServerTimestampSpy).toHaveBeenCalledTimes(3);
     });
 
     it('快照 ID 應為 {cycleId}_{evaluateeUid} 格式', async () => {

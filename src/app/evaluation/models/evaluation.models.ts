@@ -110,6 +110,8 @@ export interface UserAttributeSnapshot {
   careerArchetypes: string[]; // 職業原型，可能多個並列
   overallComments: string[];  // 匿名整體評價（arrayUnion），跑馬燈顯示
   rankingScore?: number;      // final 後由 Z-score 計算寫入
+  rawAttributes?: AttributeScores;  // 不經 Z-score 校正的加總平均分數
+  rawTotalScore?: number;           // rawAttributes 六大屬性加總，最大 60
 }
 
 // 評核表單填寫用的 DTO（前端表單狀態）
