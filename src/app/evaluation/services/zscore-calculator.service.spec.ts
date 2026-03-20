@@ -382,4 +382,84 @@ describe('ZScoreCalculatorService', () => {
       expect(result.snapshots.get('T2')!.validEvaluatorCount).toBe(1);
     });
   });
+
+  // =====================
+  // 測試 10：compute() 輸出應包含 rawAttributes 和 rawTotalScore
+  // =====================
+  describe('compute() 加總平均分數（rawAttributes / rawTotalScore）', () => {
+    it('單一表單 → 快照包含 rawAttributes 與 rawTotalScore', () => {
+      const form = makeForm('f1', 'E1', 'T1', makeScores(7));
+      const result = service.compute([form]);
+
+      const snapshot = result.snapshots.get('T1');
+      expect(snapshot).toBeDefined();
+      expect(snapshot!.rawAttributes).toBeDefined();
+      expect(snapshot!.rawTotalScore).toBeDefined();
+      // 所有題目都是 7，每個屬性的原始平均分也是 7
+      expect(snapshot!.rawAttributes!.EXE).toBeCloseTo(7, 1);
+      expect(snapshot!.rawAttributes!.INS).toBeCloseTo(7, 1);
+      expect(snapshot!.rawAttributes!.ADP).toBeCloseTo(7, 1);
+      expect(snapshot!.rawAttributes!.COL).toBeCloseTo(7, 1);
+      expect(snapshot!.rawAttributes!.STB).toBeCloseTo(7, 1);
+      expect(snapshot!.rawAttributes!.INN).toBeCloseTo(7, 1);
+      expect(snapshot!.rawTotalScore).toBeCloseTo(42, 0);
+    });
+
+    it('rawAttributes 不受 Z-score 校正影響', () => {
+      // 評核者 HIGH 習慣給高分，評核者 LOW 習慣給低分
+      // 校正後分數會向 5.5 靠攏，但 rawAttributes 保持原始平均
+      const highForm = makeForm('f-high', 'E-HIGH', 'T1', { q1: 10, q2: 10, q3: 9, q4: 10, q5: 10, q6: 9, q7: 10, q8: 10, q9: 9, q10: 10 });
+      const lowForm = makeForm('f-low', 'E-LOW', 'T1', { q1: 2, q2: 2, q3: 3, q4: 2, q5: 2, q6: 3, q7: 2, q8: 2, q9: 3, q10: 2 });
+
+      const result = service.compute([highForm, lowForm]);
+      const snapshot = result.snapshots.get('T1');
+
+      // rawAttributes 應為兩位評核者的原始平均
+      // EXE = avg of (10, 2) = 6, COL = avg of ((10+9)/2, (2+3)/2) = avg(9.5, 2.5) = 6
+      expect(snapshot!.rawAttributes).toBeDefined();
+      expect(snapshot!.rawAttributes!.EXE).toBeCloseTo(6, 0);
+      // Z-score attributes 會不同於 rawAttributes
+      // 重要的是：rawAttributes 確實存在且是原始平均
+      expect(snapshot!.rawTotalScore).toBeDefined();
+    });
+
+    it('sd=0 時，rawAttributes 和 attributes 皆為原分', () => {
+      const form = makeForm('f1', 'E1', 'T1', makeScores(7));
+      const result = service.compute([form]);
+      const snapshot = result.snapshots.get('T1');
+
+      // sd=0 時不校正，attributes 和 rawAttributes 應相同
+      expect(snapshot!.rawAttributes!.EXE).toBeCloseTo(snapshot!.attributes!.EXE, 2);
+      expect(snapshot!.rawTotalScore).toBeCloseTo(snapshot!.totalScore!, 2);
+    });
+  });
+
+  // =====================
+  // 測試 11：computeRawAttributeScores 公開方法
+  // =====================
+  describe('computeRawAttributeScores()', () => {
+    it('應為公開方法且計算正確的原始平均屬性分數', () => {
+      const form = makeForm('f1', 'E1', 'T1', {
+        q1: 8, q2: 6, q3: 7, q4: 9, q5: 5, q6: 8, q7: 6, q8: 5, q9: 7, q10: 10,
+      });
+      const raw = service.computeRawAttributeScores([form]);
+
+      expect(raw.EXE).toBeCloseTo(10, 2);        // q10=10
+      expect(raw.INS).toBeCloseTo(6, 2);          // (q2=6 + q7=6) / 2 = 6
+      expect(raw.ADP).toBeCloseTo(7, 2);          // (q3=7 + q9=7) / 2 = 7
+      expect(raw.COL).toBeCloseTo(8, 2);          // (q1=8 + q6=8) / 2 = 8
+      expect(raw.STB).toBeCloseTo(5, 2);          // (q5=5 + q8=5) / 2 = 5
+      expect(raw.INN).toBeCloseTo(9, 2);          // q4=9
+    });
+
+    it('多位評核者的原始平均分數為各評核者屬性分數的平均', () => {
+      const form1 = makeForm('f1', 'E1', 'T1', makeScores(8));
+      const form2 = makeForm('f2', 'E2', 'T1', makeScores(4));
+      const raw = service.computeRawAttributeScores([form1, form2]);
+
+      // 每個屬性應為 (8 + 4) / 2 = 6
+      expect(raw.EXE).toBeCloseTo(6, 2);
+      expect(raw.INS).toBeCloseTo(6, 2);
+    });
+  });
 });

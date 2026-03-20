@@ -287,6 +287,8 @@ export class EvaluationCycleService {
             status: 'final',
             attributes: computed.attributes ?? snapData['attributes'],
             totalScore: computed.totalScore ?? snapData['totalScore'],
+            rawAttributes: computed.rawAttributes ?? snapData['rawAttributes'] ?? snapData['attributes'],
+            rawTotalScore: computed.rawTotalScore ?? snapData['rawTotalScore'] ?? snapData['totalScore'],
             careerArchetypes: computed.careerArchetypes ?? snapData['careerArchetypes'],
             rankingScore: computed.rankingScore ?? computed.totalScore ?? snapData['totalScore'],
             validEvaluatorCount: computed.validEvaluatorCount ?? snapData['validEvaluatorCount'],
@@ -323,6 +325,81 @@ export class EvaluationCycleService {
     }
 
     // ── Step 6：提交所有 batches ──────────────────────────────────────────────
+    for (const batch of batches) {
+      await batch.commit();
+    }
+  }
+
+  /**
+   * 重新計算指定週期所有受評者的加總平均分數（rawAttributes / rawTotalScore）
+   *
+   * 適用情境：舊週期資料在新增 rawAttributes 欄位前已結算，
+   * 管理者可透過此方法回填缺失的原始平均分數。
+   *
+   * @param cycleId 目標週期 ID
+   * @throws Error 週期不存在時
+   */
+  async recalculateRawScores(cycleId: string): Promise<void> {
+    // Step 1：讀取本週期所有已提交考評表
+    const formsQuery = this._fn.query(
+      this._fn.collection(this.firestore, FORMS_COLLECTION),
+      this._fn.where('cycleId', '==', cycleId),
+    );
+    const formsSnap = await this._fn.getDocs(formsQuery);
+    const forms: EvaluationForm[] = formsSnap.docs.map(
+      (d) => ({ ...d.data(), id: d.id } as EvaluationForm),
+    );
+
+    // Step 2：依受評者分組
+    const formsByEvaluatee = new Map<string, EvaluationForm[]>();
+    for (const form of forms) {
+      const arr = formsByEvaluatee.get(form.evaluateeUid) ?? [];
+      arr.push(form);
+      formsByEvaluatee.set(form.evaluateeUid, arr);
+    }
+
+    // Step 3：讀取本週期所有快照
+    const snapshotsQuery = this._fn.query(
+      this._fn.collection(this.firestore, SNAPSHOTS_COLLECTION),
+      this._fn.where('cycleId', '==', cycleId),
+    );
+    const snapshotsSnap = await this._fn.getDocs(snapshotsQuery);
+
+    if (snapshotsSnap.docs.length === 0) return;
+
+    // Step 4：Batch 更新每份快照的 rawAttributes / rawTotalScore
+    let currentBatch = this._fn.writeBatch(this.firestore);
+    let opCount = 0;
+    const batches: ReturnType<typeof writeBatch>[] = [currentBatch];
+
+    const addOp = (fn: (b: ReturnType<typeof writeBatch>) => void) => {
+      if (opCount >= BATCH_SIZE_LIMIT) {
+        currentBatch = this._fn.writeBatch(this.firestore);
+        batches.push(currentBatch);
+        opCount = 0;
+      }
+      fn(currentBatch);
+      opCount++;
+    };
+
+    for (const existingSnap of snapshotsSnap.docs) {
+      const snapData = existingSnap.data();
+      const userId = snapData['userId'] as string;
+      const snapshotRef = this._fn.doc(this.firestore, SNAPSHOTS_COLLECTION, existingSnap.id);
+
+      const evaluateeForms = formsByEvaluatee.get(userId);
+      if (evaluateeForms && evaluateeForms.length > 0) {
+        const rawAttributes = this.zScoreCalculator.computeRawAttributeScores(evaluateeForms);
+        const rawTotalScore = Math.round(
+          Object.values(rawAttributes).reduce((sum, v) => sum + v, 0) * 100,
+        ) / 100;
+
+        addOp((b) => {
+          b.update(snapshotRef, { rawAttributes, rawTotalScore });
+        });
+      }
+    }
+
     for (const batch of batches) {
       await batch.commit();
     }

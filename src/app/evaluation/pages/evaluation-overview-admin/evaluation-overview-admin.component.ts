@@ -138,6 +138,20 @@ interface EvaluateeCard {
                 }
                 {{ selectedCycle()!.status === 'closed' ? '已發布' : '結束並發布' }}
               </button>
+
+              <!-- 重新計算加總平均分數 -->
+              <button
+                mat-stroked-button
+                color="primary"
+                [disabled]="isRecalculating()"
+                (click)="recalculateRawScores()">
+                @if (isRecalculating()) {
+                  <mat-spinner diameter="16" />
+                } @else {
+                  <mat-icon>calculate</mat-icon>
+                }
+                重新結算加總平均分數
+              </button>
             }
           </div>
 
@@ -194,6 +208,12 @@ interface EvaluateeCard {
                 [checked]="rankingViewEnabled()"
                 (change)="rankingViewEnabled.set($event.checked)">
                 開啟排名視圖
+              </mat-slide-toggle>
+
+              <mat-slide-toggle
+                [checked]="showRawScores()"
+                (change)="showRawScores.set($event.checked)">
+                {{ showRawScores() ? '加總平均分數' : 'Z-score 校正分數' }}
               </mat-slide-toggle>
 
               @if (rankingViewEnabled()) {
@@ -263,8 +283,8 @@ interface EvaluateeCard {
 
                   <!-- 總分 -->
                   <div class="score-row">
-                    <span class="score-label">總分</span>
-                    <span class="score-value">{{ (card.snapshot.totalScore ?? 0).toFixed(2) }}</span>
+                    <span class="score-label">總分{{ showRawScores() ? '（加總平均）' : '' }}</span>
+                    <span class="score-value">{{ getDisplayTotalScore(card).toFixed(2) }}</span>
                   </div>
 
                   <!-- 六大屬性分數 -->
@@ -273,8 +293,8 @@ interface EvaluateeCard {
                       <div class="attr-item">
                         <span class="attr-key">{{ key }}</span>
                         <span class="attr-score"
-                          [class.below-passing]="(card.snapshot.attributes?.[key] ?? 0) < 6">
-                          {{ (card.snapshot.attributes?.[key] ?? 0).toFixed(2) }}
+                          [class.below-passing]="getDisplayAttrValue(card, key) < 6">
+                          {{ getDisplayAttrValue(card, key).toFixed(2) }}
                         </span>
                       </div>
                     }
@@ -667,7 +687,9 @@ export class EvaluationOverviewAdminComponent implements OnInit {
   selectedCycleId = signal<string | null>(null);
   isLoadingSnapshots = signal(false);
   isClosing = signal(false);
+  isRecalculating = signal(false);
   rankingViewEnabled = signal(false);
+  showRawScores = signal(false);
   sortField = signal<SortField>('totalScore');
   sortOrder = signal<'asc' | 'desc'>('desc');
 
@@ -702,13 +724,16 @@ export class EvaluationOverviewAdminComponent implements OnInit {
     return cards.sort((a, b) => {
       let aVal: number;
       let bVal: number;
+      const useRaw = this.showRawScores();
 
       if (field === 'totalScore') {
-        aVal = a.snapshot.totalScore ?? 0;
-        bVal = b.snapshot.totalScore ?? 0;
+        aVal = useRaw ? (a.snapshot.rawTotalScore ?? a.snapshot.totalScore ?? 0) : (a.snapshot.totalScore ?? 0);
+        bVal = useRaw ? (b.snapshot.rawTotalScore ?? b.snapshot.totalScore ?? 0) : (b.snapshot.totalScore ?? 0);
       } else {
-        aVal = a.snapshot.attributes?.[field] ?? 0;
-        bVal = b.snapshot.attributes?.[field] ?? 0;
+        const aAttrs = useRaw ? (a.snapshot.rawAttributes ?? a.snapshot.attributes) : a.snapshot.attributes;
+        const bAttrs = useRaw ? (b.snapshot.rawAttributes ?? b.snapshot.attributes) : b.snapshot.attributes;
+        aVal = aAttrs?.[field] ?? 0;
+        bVal = bAttrs?.[field] ?? 0;
       }
 
       return order === 'desc' ? bVal - aVal : aVal - bVal;
@@ -810,6 +835,46 @@ export class EvaluationOverviewAdminComponent implements OnInit {
     return card.forms.some(
       (f) => f.anomalyFlags.reciprocalHighScore || f.anomalyFlags.outlierEvaluator,
     );
+  }
+
+  /** 依 toggle 取得卡片的顯示總分 */
+  getDisplayTotalScore(card: EvaluateeCard): number {
+    if (this.showRawScores()) {
+      return card.snapshot.rawTotalScore ?? card.snapshot.totalScore ?? 0;
+    }
+    return card.snapshot.totalScore ?? 0;
+  }
+
+  /** 依 toggle 取得卡片的單一屬性分數 */
+  getDisplayAttrValue(card: EvaluateeCard, key: AttributeKey): number {
+    if (this.showRawScores()) {
+      return card.snapshot.rawAttributes?.[key] ?? card.snapshot.attributes?.[key] ?? 0;
+    }
+    return card.snapshot.attributes?.[key] ?? 0;
+  }
+
+  /** 觸發重新結算加總平均分數 */
+  async recalculateRawScores(): Promise<void> {
+    const cycleId = this.selectedCycleId();
+    if (!cycleId) return;
+
+    const confirmed = window.confirm(
+      `確定要重新結算週期「${this.selectedCycle()?.name}」的加總平均分數嗎？\n` +
+      `此操作將從考評表重新計算所有受評者的原始平均分數。`,
+    );
+    if (!confirmed) return;
+
+    this.isRecalculating.set(true);
+    try {
+      await this.cycleService.recalculateRawScores(cycleId);
+      this.snackBar.open('加總平均分數已重新結算完成！', '關閉', { duration: 5000 });
+      await this.onCycleChange(cycleId);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : '結算失敗，請稍後再試';
+      this.snackBar.open(`❌ ${msg}`, '關閉', { duration: 8000 });
+    } finally {
+      this.isRecalculating.set(false);
+    }
   }
 
   // ── 私有輔助 ──────────────────────────────────────────────────────────────

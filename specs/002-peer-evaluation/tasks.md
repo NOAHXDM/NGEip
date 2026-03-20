@@ -136,6 +136,23 @@
 
 ---
 
+## Phase 8：加總平均分數（Raw Score）補強功能
+
+**目的**：在現有 Z-score 校正分數基礎上，新增原始加總平均分數的計算、儲存與切換顯示功能，並提供舊資料回填按鈕。
+
+- [X] T039 更新 `UserAttributeSnapshot` 介面於 `src/app/evaluation/models/evaluation.models.ts`，新增選用欄位 `rawAttributes?: AttributeScores` 與 `rawTotalScore?: number`（選用以確保向後相容）
+- [X] T040 [P] 更新 `ZScoreCalculatorService.compute()` 於 `src/app/evaluation/services/zscore-calculator.service.ts`，輸出結果快照中包含 `rawAttributes` 與 `rawTotalScore`；將原 private `computeRawAttributeScores()` 改為 public，供 `recalculateRawScores()` 與單元測試使用
+- [X] T041 [P] 更新 `ZScoreCalculatorService` 單元測試於 `src/app/evaluation/services/zscore-calculator.service.spec.ts`，補充覆蓋：compute() 輸出快照含 rawAttributes 及 rawTotalScore 正確值；computeRawAttributeScores() 公開方法的計算結果正確性
+- [X] T042 更新 `EvaluationCycleService.closeAndPublish()` 於 `src/app/evaluation/services/evaluation-cycle.service.ts`，在批次快照更新中寫入 `rawAttributes` 與 `rawTotalScore`；新增 `recalculateRawScores(cycleId: string): Promise<void>` 方法（讀取全週期表單 → 按受評者分組 → 呼叫 computeRawAttributeScores → batch update 快照）
+- [X] T043 [P] 更新 `EvaluationCycleService` 單元測試於 `src/app/evaluation/services/evaluation-cycle.service.spec.ts`，補充覆蓋：closeAndPublish 寫入 rawAttributes/rawTotalScore；recalculateRawScores 批次讀取並更新所有快照；無快照時無 batch 操作；某受評者無表單時不更新其快照
+- [X] T044 [P] 更新 `EvaluationFormService.submitForm()` 於 `src/app/evaluation/services/evaluation-form.service.ts`，在快照 merge-set 中同步寫入 `rawAttributes: previewAttributes` 與 `rawTotalScore`
+- [X] T045 [P] 更新 `EvaluationFormService` 單元測試於 `src/app/evaluation/services/evaluation-form.service.spec.ts`，補充覆蓋：submitForm batch.set 快照資料含 rawAttributes（與 attributes 相同值）及 rawTotalScore（六大屬性加總）
+- [X] T046 更新 `AttributeReportComponent` 於 `src/app/evaluation/pages/attribute-report/attribute-report.component.ts`，新增 `showRawScores` signal、`hasRawData` / `displayAttributes` / `displayTotalScore` computed 屬性；在模板加入切換開關（MatSlideToggle）讓使用者在 Z-score 分數與加總平均分數之間切換；雷達圖、資訊卡（總分）與歷史趨勢圖皆回應切換；當 `rawAttributes` 缺失時顯示提示文字代替空白
+- [X] T047 更新 `EvaluationOverviewAdminComponent` 於 `src/app/evaluation/pages/evaluation-overview-admin/evaluation-overview-admin.component.ts`，新增 `showRawScores` signal 與切換開關、`getDisplayTotalScore()` / `getDisplayAttrValue()` 顯示輔助方法、排名排序依當前切換狀態使用 `rawTotalScore` 或 `totalScore`；新增「重新結算加總平均分數」按鈕（調用 `recalculateRawScores()`，操作期間顯示 `isRecalculating` 狀態）
+- [X] T048 [P] 更新規格文件：`specs/002-peer-evaluation/data-model.md`（userAttributeSnapshot 新增 rawAttributes/rawTotalScore 欄位定義）、`spec.md`（新增 FR-022/FR-023/FR-024/FR-025）、`contracts/angular-interfaces.md`（同步 UserAttributeSnapshot 介面、ZScoreCalculatorService 新增 computeRawAttributeScores、EvaluationCycleService 新增 recalculateRawScores）
+
+---
+
 ## 相依性圖（使用者故事完成順序）
 
 ```

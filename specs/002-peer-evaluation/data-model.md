@@ -249,6 +249,12 @@ interface UserAttributeSnapshot {
 
   // 管理者排名輔助欄（final 後由 Z-score 計算寫入）
   rankingScore?: number;           // totalScore（Z-score 校正後）
+
+  // 加總平均分數（不經 Z-score 校正的原始屬性分數，供切換顯示及歷史趨勢對比用）
+  // preview 狀態時由 EvaluationFormService.submitForm 逐步寫入（最後一次覆蓋）
+  // final 狀態時由 EvaluationCycleService.closeAndPublish 一次性計算並寫入
+  rawAttributes?: AttributeScores; // 原始平均屬性分數（同 attributes 計算方式，但不做 Z-score 校正）
+  rawTotalScore?: number;          // rawAttributes 六項加總（最大 60）
 }
 ```
 
@@ -298,7 +304,7 @@ interface UserAttributeSnapshot {
 | 操作 | 讀次數 | 寫次數 | 頻率 |
 |------|-------|-------|------|
 | 評核者查看任務列表 | ~1–20 reads | 0 | 每次登入 |
-| 評核者提交表單 | 1 read (assignment check) | 3 writes (form + snapshot update + assignment update) | 一次性 |
+| 評核者提交表單 | 1 read (assignment check) | 4 writes (form + snapshot update + assignment update + cycle.completedAssignments increment) | 一次性 |
 | 受評者查看屬性報告 | 1–6 reads (snapshot history) | 0 | 每次查看 |
 | 管理者結束並發布 | N reads (all forms/assignments) | N+1 writes (snapshots + cycle) | 半年一次 |
 | 管理者排名視圖 | up to 100 reads | 0 | 偶爾 |

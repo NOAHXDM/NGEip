@@ -90,6 +90,8 @@ export interface UserAttributeSnapshot {
   careerArchetypes: string[];
   overallComments: string[];
   rankingScore?: number;
+  rawAttributes?: AttributeScores; // 不經 Z-score 校正的原始平均屬性分數
+  rawTotalScore?: number;          // rawAttributes 六項加總（最大 60）
 }
 
 // 評核表單填寫用的 DTO（前端表單狀態）
@@ -117,11 +119,15 @@ interface EvaluationCycleService {
   // 更新截止日
   updateDeadline(cycleId: string, deadline: Date): Promise<void>;
 
-  // 結束並發布（觸發 Z-score 批次計算）
+  // 結束並發布（觸發 Z-score 批次計算，同步寫入 rawAttributes/rawTotalScore）
   closeAndPublish(cycleId: string): Promise<void>;  // 複雜操作，內部呼叫 ZScoreCalculatorService
 
   // 取得週期（單筆）
   getCycleById(cycleId: string): Observable<EvaluationCycle | null>;
+
+  // 回填舊週期的原始平均分數（rawAttributes/rawTotalScore）
+  // 用於舊資料缺少新欄位時，管理者可透過 UI 按鈕手動觸發
+  recalculateRawScores(cycleId: string): Promise<void>;
 }
 ```
 
@@ -173,6 +179,9 @@ interface UserAttributeSnapshotService {
 
   // 管理者：取得某週期所有受評者快照（排名視圖用）
   getAllSnapshotsByCycle(cycleId: string): Observable<UserAttributeSnapshot[]>;
+
+  // 管理者：取得指定使用者的所有歷史快照（供 UserProfileDialog 嵌入式報告使用）
+  getSnapshotsByUserId(userId: string): Observable<UserAttributeSnapshot[]>;
 }
 ```
 
@@ -182,8 +191,11 @@ interface UserAttributeSnapshotService {
 // 純計算服務，無 Firestore 依賴；由 EvaluationCycleService.closeAndPublish 內部呼叫
 interface ZScoreCalculatorService {
   // 輸入：某週期的所有 EvaluationForms
-  // 輸出：每位受評者的校正後屬性分數 + 職業原型 + 異常標記
+  // 輸出：每位受評者的校正後屬性分數 + 原始屬性分數 + 職業原型 + 異常標記
   compute(forms: EvaluationForm[]): ComputedCycleResults;
+
+  // 計算原始平均屬性分數（不經 Z-score 校正），供 preview 預覽及舊資料回填使用
+  computeRawAttributeScores(forms: EvaluationForm[], evaluateeUid: string): AttributeScores;
 
   // 計算職業原型（初心者判定使用原始平均分數，門檻 < 5）
   determineArchetypes(attributes: AttributeScores, rawAttributes?: AttributeScores): string[];
@@ -196,7 +208,7 @@ interface ZScoreCalculatorService {
 }
 
 interface ComputedCycleResults {
-  snapshots: Map<string, Partial<UserAttributeSnapshot>>;  // userId → computed data
+  snapshots: Map<string, Partial<UserAttributeSnapshot>>;  // userId → computed data（含 rawAttributes/rawTotalScore）
   anomalousFormIds: Map<string, {reciprocalHighScore: boolean; outlierEvaluator: boolean}>;
 }
 ```
@@ -238,6 +250,20 @@ export class TrendLineChartComponent {
   @Input() width: number = 600;
   @Input() height: number = 300;
   @Input() selectedCycleLabel?: string;   // 高亮顯示的週期
+}
+```
+
+### UserAttributeReportEmbedComponent
+```typescript
+// src/app/evaluation/components/user-attribute-report-embed/user-attribute-report-embed.component.ts
+// 可嵌入版本的職場屬性報告，供管理者在 UserProfileDialog 中檢視指定使用者的報告
+@Component({...})
+export class UserAttributeReportEmbedComponent implements OnInit {
+  @Input({ required: true }) userId!: string;  // 目標受評者 UID
+  // 功能等同 AttributeReportComponent，差異：
+  //   1. 以 userId Input 查詢（非當前登入者）
+  //   2. 省略頁面標題，直接以卡片式佈局嵌入 Dialog
+  //   3. 支援 showRawScores toggle（同 AttributeReportComponent）
 }
 ```
 

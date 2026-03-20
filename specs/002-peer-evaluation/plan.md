@@ -78,7 +78,8 @@ src/
 │   │   │   ├── trend-line-chart/              # 純 SVG 趨勢折線圖
 │   │   │   ├── marquee-comments/              # CSS keyframes 跑馬燈
 │   │   │   ├── career-archetype-badge/        # RO 職業原型標籤顯示
-│   │   │   └── evaluation-form-questions/     # 10 道題目表單片段
+│   │   │   ├── evaluation-form-questions/     # 10 道題目表單片段
+│   │   │   └── user-attribute-report-embed/   # 可嵌入版屬性報告（供管理者 UserProfileDialog 使用）
 │   │   └── pages/
 │   │       ├── evaluation-tasks/              # 評核者：我的考評任務
 │   │       ├── evaluation-form/               # 評核者：填寫考評表
@@ -96,7 +97,7 @@ firestore.indexes.json  # 新增本功能的複合索引
 - `evaluation/` 為獨立功能資料夾，採 lazy-load 路由。
 - `services/` 與 `pages/` 分層，所有 Firestore 操作集中在 services，pages 不直接呼叫 Firebase SDK。
 - `zscore-calculator.service.ts` 為純計算服務（可單元測試，無 Firestore 依賴）。
-- `components/` 內的 5 個可重用元件可被不同 pages 引入（standalone imports）。
+- `components/` 內的 6 個可重用元件可被不同 pages 引入（standalone imports）。
 
 ---
 
@@ -126,7 +127,7 @@ userAttributeSnapshots/{cycleId}_{userId}
 [評核者提交表單]
   → Firestore batch():
     1. evaluationForms 建立（含 scores, feedbacks, overallComment）
-    2. userAttributeSnapshots upsert（status: 'preview'，computedAt: serverTimestamp()，arrayUnion overallComment，更新原始平均分）
+    2. userAttributeSnapshots upsert（status: 'preview'，computedAt: serverTimestamp()，arrayUnion overallComment，attributes: 本次表單原始屬性分數，rawAttributes: 同 attributes（最後一次覆蓋），rawTotalScore: rawAttributes 六項加總）
     3. evaluationAssignments 更新（status: 'completed', completedAt）
     4. evaluationCycles.completedAssignments += 1
 
@@ -141,7 +142,7 @@ userAttributeSnapshots/{cycleId}_{userId}
     2. ZScoreCalculatorService.compute() → 校正分數、職業原型、異常標記
     3. Firestore batch():
        - evaluationCycles 更新（status: 'closed', closedAt）
-       - 每位受評者的 userAttributeSnapshots 更新（status: 'final'，校正後分數）
+       - 每位受評者的 userAttributeSnapshots 更新（status: 'final'，Z-score 校正後 attributes/totalScore，同步寫入 rawAttributes/rawTotalScore 原始平均分）
        - 更新有異常標記的 evaluationForms（anomalyFlags）
        - 逾期任務的 evaluationAssignments 更新（status: 'overdue'）
 ```

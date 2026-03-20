@@ -106,11 +106,14 @@ export class ZScoreCalculatorService {
       const attributes = this.computeAttributeScores(evaluateeForms, calibratedScores);
       const rawAttributes = this.computeRawAttributeScores(evaluateeForms);
       const totalScore = Object.values(attributes).reduce((sum, v) => sum + v, 0);
+      const rawTotalScore = Object.values(rawAttributes).reduce((sum, v) => sum + v, 0);
       const careerArchetypes = this.determineArchetypes(attributes, rawAttributes);
 
       snapshots.set(evaluateeUid, {
         attributes,
         totalScore: Math.round(totalScore * 100) / 100,
+        rawAttributes,
+        rawTotalScore: Math.round(rawTotalScore * 100) / 100,
         careerArchetypes,
         validEvaluatorCount: evaluateeForms.length,
         rankingScore: Math.round(totalScore * 100) / 100,
@@ -217,8 +220,9 @@ export class ZScoreCalculatorService {
   /**
    * 計算受評者的六大屬性原始平均分數（未經 Z-score 校正）
    * 用於初心者判定（以原始分數為準，避免校正後分數偏移導致誤判）
+   * 也用於加總平均分數報告
    */
-  private computeRawAttributeScores(
+  computeRawAttributeScores(
     evaluateeForms: EvaluationForm[]
   ): AttributeScores {
     const attributeValues: Record<keyof AttributeScores, number[]> = {

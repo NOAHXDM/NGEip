@@ -600,5 +600,142 @@ describe('EvaluationCycleService', () => {
       await expectAsync(service.closeAndPublish(MOCK_CYCLE_ID)).toBeResolved();
       expect(MOCK_BATCH.commit).toHaveBeenCalled();
     });
+
+    it('closeAndPublish 應在快照中寫入 rawAttributes 和 rawTotalScore', async () => {
+      const computedAttributes: AttributeScores = {
+        EXE: 8.0, INS: 7.5, ADP: 7.2, COL: 8.1, STB: 7.8, INN: 6.9,
+      };
+      const rawAttributes: AttributeScores = {
+        EXE: 7.0, INS: 7.0, ADP: 7.0, COL: 7.0, STB: 7.0, INN: 7.0,
+      };
+
+      mockZScoreCalculator.compute.and.returnValue({
+        snapshots: new Map([
+          [EVALUATEE_UID_1, {
+            attributes: computedAttributes,
+            totalScore: 45.5,
+            rawAttributes,
+            rawTotalScore: 42.0,
+            rankingScore: 45.5,
+            careerArchetypes: ['⚔️ 劍士'],
+            validEvaluatorCount: 3,
+          }],
+        ]),
+        anomalousFormIds: new Map(),
+      });
+
+      getDocsSpy.and.returnValues(
+        Promise.resolve({ docs: [] } as any),
+        Promise.resolve({ docs: [] } as any),
+        Promise.resolve({
+          docs: [makeMockSnapshotDoc(EVALUATEE_UID_1, SNAPSHOT_ID_1)],
+        } as any),
+      );
+
+      await service.closeAndPublish(MOCK_CYCLE_ID);
+
+      const updateCalls = MOCK_BATCH.update.calls.allArgs();
+      const snapshotUpdateCall = updateCalls.find(
+        (args: unknown[]) =>
+          (args[1] as Record<string, unknown>)?.['status'] === 'final',
+      );
+      expect(snapshotUpdateCall).toBeDefined();
+      expect((snapshotUpdateCall![1] as Record<string, unknown>)['rawAttributes']).toEqual(rawAttributes);
+      expect((snapshotUpdateCall![1] as Record<string, unknown>)['rawTotalScore']).toBe(42.0);
+    });
+  });
+
+  // =====================
+  // 測試：recalculateRawScores
+  // =====================
+
+  describe('recalculateRawScores()', () => {
+    function makeMockFormDoc(evaluatorUid: string, evaluateeUid: string): any {
+      const scores: EvaluationFormScores = {
+        q1: 7, q2: 7, q3: 7, q4: 7, q5: 7,
+        q6: 7, q7: 7, q8: 7, q9: 7, q10: 7,
+      };
+      const form = {
+        id: `form-${evaluatorUid}-${evaluateeUid}`,
+        assignmentId: `assign-${evaluatorUid}`,
+        cycleId: MOCK_CYCLE_ID,
+        evaluatorUid,
+        evaluateeUid,
+        scores,
+        feedbacks: {},
+        overallComment: '整體表現良好，持續保持。',
+        anomalyFlags: { reciprocalHighScore: false, outlierEvaluator: false },
+      };
+      return { id: form.id, data: () => form };
+    }
+
+    function makeMockSnapshotDocForRecalc(userId: string) {
+      const snapshotId = `${MOCK_CYCLE_ID}_${userId}`;
+      return {
+        id: snapshotId,
+        data: () => ({
+          id: snapshotId,
+          cycleId: MOCK_CYCLE_ID,
+          userId,
+          status: 'final',
+          validEvaluatorCount: 1,
+          attributes: { EXE: 7, INS: 7, ADP: 7, COL: 7, STB: 7, INN: 7 },
+          totalScore: 42,
+        }),
+      };
+    }
+
+    it('應讀取表單並更新快照的 rawAttributes 和 rawTotalScore', async () => {
+      const userId = 'evaluatee-recalc-001';
+      const rawAttrs: AttributeScores = {
+        EXE: 7, INS: 7, ADP: 7, COL: 7, STB: 7, INN: 7,
+      };
+
+      // Mock ZScoreCalculatorService.computeRawAttributeScores
+      (mockZScoreCalculator as any).computeRawAttributeScores =
+        jasmine.createSpy('computeRawAttributeScores').and.returnValue(rawAttrs);
+
+      // getDocs: forms → 1 筆, snapshots → 1 筆
+      getDocsSpy.and.returnValues(
+        Promise.resolve({ docs: [makeMockFormDoc('evaluator-1', userId)] } as any),
+        Promise.resolve({ docs: [makeMockSnapshotDocForRecalc(userId)] } as any),
+      );
+
+      await service.recalculateRawScores(MOCK_CYCLE_ID);
+
+      expect(MOCK_BATCH.update).toHaveBeenCalledWith(
+        MOCK_DOC_REF,
+        jasmine.objectContaining({
+          rawAttributes: rawAttrs,
+          rawTotalScore: 42,
+        }),
+      );
+      expect(MOCK_BATCH.commit).toHaveBeenCalled();
+    });
+
+    it('無快照時應不執行任何寫入', async () => {
+      // getDocs: forms → 空, snapshots → 空
+      getDocsSpy.and.returnValues(
+        Promise.resolve({ docs: [] } as any),
+        Promise.resolve({ docs: [] } as any),
+      );
+
+      await service.recalculateRawScores(MOCK_CYCLE_ID);
+
+      expect(MOCK_BATCH.update).not.toHaveBeenCalled();
+    });
+
+    it('受評者無對應表單時不應更新該快照', async () => {
+      // getDocs: forms → 空, snapshots → 1 筆（但無對應表單）
+      getDocsSpy.and.returnValues(
+        Promise.resolve({ docs: [] } as any),
+        Promise.resolve({ docs: [makeMockSnapshotDocForRecalc('user-no-forms')] } as any),
+      );
+
+      await service.recalculateRawScores(MOCK_CYCLE_ID);
+
+      // 不應有任何 update（因為受評者無表單資料）
+      expect(MOCK_BATCH.update).not.toHaveBeenCalled();
+    });
   });
 });
