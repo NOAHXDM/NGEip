@@ -9,7 +9,7 @@ import {
   Timestamp,
   where,
 } from '@angular/fire/firestore';
-import { differenceInDays, addYears, startOfDay, isBefore } from 'date-fns';
+import { differenceInDays, differenceInYears, addYears, startOfDay, isBefore } from 'date-fns';
 import { combineLatest, forkJoin, from, map, Observable, of, switchMap } from 'rxjs';
 import { SubsidyStatsService } from './subsidy-stats.service';
 import { SubsidyApplication, SubsidyType } from './subsidy.service';
@@ -43,8 +43,10 @@ export class SubsidyLimitService {
       annualLimit: 6000,
       requiresFullYear: true,
       requiresProbationEnd: false,
-      canCarryOver: true,
-      maxCarryOver: 12000,
+      canCarryOver: false,
+      yearlyIncrement: 6000,
+      maxAvailable: 12000,
+      lifetimeCumulative: true,
       displayName: 'Health Check',
     },
     [SubsidyType.Laptop]: {
@@ -129,6 +131,17 @@ export class SubsidyLimitService {
     targetDate: Date = new Date()
   ): boolean {
     return this.calculateYearsOfService(startDate, targetDate) >= 1;
+  }
+
+  /**
+   * 計算完整年數（基於日曆日期，用於健檢補助等年資累進計算）
+   * 例如：2024-03-24 到 2026-03-23 = 1 年，2026-03-24 = 2 年
+   */
+  calculateCompletedYears(
+    startDate: Date,
+    targetDate: Date = new Date()
+  ): number {
+    return differenceInYears(targetDate, startDate);
   }
 
   /**
@@ -219,7 +232,9 @@ export class SubsidyLimitService {
   }
 
   /**
-   * 取得使用者在當前到職日週年期間的補助使用情況
+   * 取得使用者的補助使用情況
+   * - 一般補助：以到職日週年期間計算年度額度
+   * - 健檢補助：終身累計制，每滿一年增加 6,000，剩餘可用上限 12,000
    */
   getUserSubsidyLimitStatus(
     userId: string,
@@ -237,19 +252,18 @@ export class SubsidyLimitService {
       period.fiscalYear
     );
 
-    // 健檢補助需要查詢前一年的統計（計算累積額度）
-    const previousYearStats$ =
+    // 健檢補助：查詢歷年所有已核准的使用量（終身累計制）
+    const lifetimeHealthCheckStats$ =
       this.subsidyStatsService.getUserSubsidyStatsByType(
         userId,
-        SubsidyType.HealthCheck,
-        period.fiscalYear - 1
+        SubsidyType.HealthCheck
       );
 
     // 筆電補助需要查詢所有時間的領取狀態
     const laptopStatus$ = this.getUserLaptopInstallmentStatus(userId);
 
-    return combineLatest([currentPeriodStats$, previousYearStats$, laptopStatus$]).pipe(
-      map(([currentStats, previousHealthCheck, laptopStatus]) => {
+    return combineLatest([currentPeriodStats$, lifetimeHealthCheckStats$, laptopStatus$]).pipe(
+      map(([currentStats, lifetimeHealthCheck, laptopStatus]) => {
         const subsidies: SubsidyLimitDetail[] = [];
 
         // 處理每種補助類型
@@ -307,47 +321,70 @@ export class SubsidyLimitService {
               return; // 跳過後續的一般處理邏輯
             }
 
-            // 健檢補助：計算累積額度
-            if (type === SubsidyType.HealthCheck && config.canCarryOver) {
-              const previousUsed = previousHealthCheck?.totalAmount || 0;
-              const previousRemaining = config.annualLimit - previousUsed;
-              const carryOverAmount = Math.max(0, previousRemaining);
+            // 健檢補助：年資累進終身累計制
+            if (type === SubsidyType.HealthCheck && config.lifetimeCumulative) {
+              const completedYears = this.calculateCompletedYears(startDateObj);
+              const earned = completedYears * (config.yearlyIncrement || config.annualLimit);
+              const lifetimeUsed = lifetimeHealthCheck?.totalAmount || 0;
 
-              totalLimit = Math.min(
-                config.annualLimit + carryOverAmount,
-                config.maxCarryOver || config.annualLimit
+              // available = min(earned - lifetimeUsed, maxAvailable)
+              availableAmount = Math.min(
+                earned - lifetimeUsed,
+                config.maxAvailable || Infinity
               );
-              availableAmount = totalLimit - usedAmount;
+              totalLimit = Math.min(earned, config.maxAvailable || Infinity);
+
+              // 判斷資格
+              let eligible = true;
+              let ineligibleReason = '';
+
+              if (completedYears < 1) {
+                eligible = false;
+                ineligibleReason = 'Requires 1 year';
+              } else if (availableAmount <= 0) {
+                eligible = false;
+                ineligibleReason = 'Quota exceeded';
+              }
+
+              subsidies.push({
+                type,
+                displayName: config.displayName,
+                totalLimit,
+                usedAmount: lifetimeUsed,
+                availableAmount: Math.max(0, availableAmount),
+                eligible,
+                ineligibleReason,
+                annualLimit: config.annualLimit,
+              });
             } else {
               availableAmount = config.annualLimit - usedAmount;
+
+              // 判斷資格
+              let eligible = true;
+              let ineligibleReason = '';
+
+              if (config.requiresFullYear && !oneYearCompleted) {
+                eligible = false;
+                ineligibleReason = 'Requires 1 year';
+              } else if (config.requiresProbationEnd && !probationPassed) {
+                eligible = false;
+                ineligibleReason = 'Requires probation (90d)';
+              } else if (availableAmount <= 0) {
+                eligible = false;
+                ineligibleReason = 'Quota exceeded';
+              }
+
+              subsidies.push({
+                type,
+                displayName: config.displayName,
+                totalLimit,
+                usedAmount,
+                availableAmount: Math.max(0, availableAmount),
+                eligible,
+                ineligibleReason,
+                annualLimit: config.annualLimit,
+              });
             }
-
-            // 判斷資格
-            let eligible = true;
-            let ineligibleReason = '';
-
-            if (config.requiresFullYear && !oneYearCompleted) {
-              eligible = false;
-              ineligibleReason = 'Requires 1 year';
-            } else if (config.requiresProbationEnd && !probationPassed) {
-              eligible = false;
-              ineligibleReason = 'Requires probation (90d)';
-            } else if (availableAmount <= 0) {
-              // 額度已用完或超過
-              eligible = false;
-              ineligibleReason = 'Quota exceeded';
-            }
-
-            subsidies.push({
-              type,
-              displayName: config.displayName,
-              totalLimit,
-              usedAmount,
-              availableAmount: Math.max(0, availableAmount),
-              eligible,
-              ineligibleReason,
-              annualLimit: config.annualLimit,
-            });
           }
         });
 
@@ -409,6 +446,9 @@ export interface SubsidyLimitConfig {
   requiresProbationEnd: boolean;
   canCarryOver: boolean;
   maxCarryOver?: number;
+  yearlyIncrement?: number;
+  maxAvailable?: number;
+  lifetimeCumulative?: boolean;
   displayName: string;
 }
 
