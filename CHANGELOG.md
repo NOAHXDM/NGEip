@@ -5,6 +5,15 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.7] - 2026-03-24
+
+### 修復
+- 修正健檢補助進度條在終身累計制下顯示錯誤的問題：
+  - 舊邏輯：進度條使用 `usedAmount / totalLimit`，但終身累計制下 `usedAmount + availableAmount ≠ totalLimit`，導致百分比與實際可用額度不一致
+  - 新邏輯：健檢補助進度條改為 `usedAmount / (usedAmount + availableAmount)`，正確反映已使用與剩餘可用的比例
+  - 「總額」標籤改為「上限：12,000」，避免語義混淆
+- 健檢補助獨立為專屬顯示區塊（`subsidy.type === 2`），與其他補助的進度條計算邏輯分離
+
 ## [3.0.6] - 2026-03-24
 
 ### 變更
