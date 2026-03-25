@@ -102,6 +102,72 @@ export class SubsidyLimitService {
   }
 
   /**
+   * 計算健檢補助可用餘額（水桶模型）
+   *
+   * 規則：
+   * - 每滿一年（到職日週年）增加 yearlyIncrement（6,000）
+   * - 未使用額度最多累積至 maxAvailable（12,000），超出部分拋棄
+   * - 核准的申請扣減餘額
+   *
+   * @param startDate 到職日
+   * @param applications 所有已核准的健檢補助申請
+   * @param yearlyIncrement 每年增加額度
+   * @param maxAvailable 可用餘額上限
+   * @returns 目前可用餘額
+   */
+  calculateHealthCheckBalance(
+    startDate: Date,
+    applications: SubsidyApplication[],
+    yearlyIncrement: number,
+    maxAvailable: number
+  ): number {
+    const today = new Date();
+    const completedYears = this.calculateCompletedYears(startDate, today);
+
+    if (completedYears < 1) {
+      return 0;
+    }
+
+    // 將申請依日期排序
+    const sortedApps = applications
+      .filter((app) => app.applicationDate instanceof Timestamp)
+      .map((app) => ({
+        date: (app.applicationDate as Timestamp).toDate(),
+        amount: app.approvedAmount || 0,
+      }))
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    let balance = 0;
+    let appIndex = 0;
+
+    for (let year = 1; year <= completedYears; year++) {
+      // 週年日加額，餘額上限 cap
+      balance = Math.min(balance + yearlyIncrement, maxAvailable);
+
+      // 本年度區間結束點：下一個週年日 or 今天
+      const nextBoundary =
+        year < completedYears ? addYears(startDate, year + 1) : today;
+
+      // 扣除落在此區間內的核准申請
+      while (
+        appIndex < sortedApps.length &&
+        isBefore(sortedApps[appIndex].date, nextBoundary)
+      ) {
+        balance -= sortedApps[appIndex].amount;
+        appIndex++;
+      }
+    }
+
+    // 扣除尚未處理的申請（理論上不應有，但防呆）
+    while (appIndex < sortedApps.length) {
+      balance -= sortedApps[appIndex].amount;
+      appIndex++;
+    }
+
+    return Math.max(0, balance);
+  }
+
+  /**
    * 計算年資（以年為單位）
    */
   calculateYearsOfService(
@@ -236,7 +302,8 @@ export class SubsidyLimitService {
    * - 一般補助：以到職日週年期間（startDate ~ 滿週年）計算年度額度
    * - Training + AITool 聯合上限：Training 24,000（含 AITool），AITool 獨立上限 10,000
    *   Training 使用量超過 14,000 時會擠壓 AITool 可用額度
-   * - 健檢補助：終身累計制，每滿一年增加 6,000，剩餘可用上限 12,000
+   * - 健檢補助：終身累計制（水桶模型），每滿一年增加 6,000，餘額上限 12,000（超出拋棄）
+   *   totalLimit 固定為 maxAvailable (12,000)，availableAmount 由逐年模擬計算
    */
   getUserSubsidyLimitStatus(
     userId: string,
@@ -324,18 +391,22 @@ export class SubsidyLimitService {
               return; // 跳過後續的一般處理邏輯
             }
 
-            // 健檢補助：年資累進終身累計制
+            // 健檢補助：年資累進終身累計制（水桶模型）
+            // 每滿一年加 6,000，可用餘額上限 12,000，超過即拋棄
             if (type === SubsidyType.HealthCheck && config.lifetimeCumulative) {
               const completedYears = this.calculateCompletedYears(startDateObj);
-              const earned = completedYears * (config.yearlyIncrement || config.annualLimit);
               const lifetimeUsed = lifetimeHealthCheck?.totalAmount || 0;
+              const applications = lifetimeHealthCheck?.applications || [];
 
-              // available = min(earned - lifetimeUsed, maxAvailable)
-              availableAmount = Math.min(
-                earned - lifetimeUsed,
-                config.maxAvailable || Infinity
+              // 使用水桶模型模擬：逐年加額、扣除使用量、超過上限拋棄
+              const maxCap = config.maxAvailable || 12000;
+              availableAmount = this.calculateHealthCheckBalance(
+                startDateObj,
+                applications,
+                config.yearlyIncrement || config.annualLimit,
+                maxCap
               );
-              totalLimit = Math.min(earned, config.maxAvailable || Infinity);
+              totalLimit = maxCap;
 
               // 判斷資格
               let eligible = true;
@@ -476,6 +547,12 @@ export interface AnniversaryPeriod {
 
 /**
  * 補助限額詳情
+ *
+ * HealthCheck 類型：
+ * - totalLimit = 12,000（固定上限，水桶模型餘額上限）
+ * - availableAmount = 水桶模型計算之可用餘額（每年 +6,000，上限 12,000，超額拋棄）
+ * - usedAmount = 歷年所有已核准健檢補助總額
+ * - 進度條：usedAmount / totalLimit
  *
  * Training 類型特殊欄位：
  * - usedAmount = Training 實際用量 + AITool 實際用量（合併顯示）
