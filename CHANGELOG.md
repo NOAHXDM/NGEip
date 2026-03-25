@@ -5,6 +5,22 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.10] - 2026-03-25
+
+### 修復
+- 健檢補助進度條「已使用」改為回調近兩年內的核准紀錄：
+  - 因累計上限 12,000 = 2 年份額度（6,000 × 2），兩年窗口內的使用量即為對當前水桶餘額的有效消耗
+  - `usedAmount` 改為篩選 `applicationDate >= 兩年前` 的核准申請加總，不再使用終身累計
+- 進度條公式改為 `usedAmount / (usedAmount + availableAmount)`：
+  - 分母 = 近兩年已使用 + 水桶可用餘額 ≤ 12,000，語義直觀
+- 同步更新 `getUserSubsidyLimitStatus` 與 `SubsidyLimitDetail` 的 JSDoc
+
+### 範例
+- 到職日 2020-09-01，2025-09-02 申請 12,000：
+  - 當下（2026-03-25）：usedAmount = 12,000（近2年）、availableAmount = 0 → 進度 100%
+  - 2026-09-01 滿 6 年後：usedAmount = 12,000（近2年）、availableAmount = 6,000 → 進度 67%
+  - 2027-09-02 申請過期出窗口：usedAmount = 0、availableAmount = 12,000 → 進度 0%
+
 ## [3.0.9] - 2026-03-25
 
 ### 修復

@@ -304,6 +304,7 @@ export class SubsidyLimitService {
    *   Training 使用量超過 14,000 時會擠壓 AITool 可用額度
    * - 健檢補助：終身累計制（水桶模型），每滿一年增加 6,000，餘額上限 12,000（超出拋棄）
    *   totalLimit 固定為 maxAvailable (12,000)，availableAmount 由逐年模擬計算
+   *   usedAmount 為近兩年內核准紀錄，進度條 = usedAmount / (usedAmount + availableAmount)
    */
   getUserSubsidyLimitStatus(
     userId: string,
@@ -395,7 +396,6 @@ export class SubsidyLimitService {
             // 每滿一年加 6,000，可用餘額上限 12,000，超過即拋棄
             if (type === SubsidyType.HealthCheck && config.lifetimeCumulative) {
               const completedYears = this.calculateCompletedYears(startDateObj);
-              const lifetimeUsed = lifetimeHealthCheck?.totalAmount || 0;
               const applications = lifetimeHealthCheck?.applications || [];
 
               // 使用水桶模型模擬：逐年加額、扣除使用量、超過上限拋棄
@@ -407,6 +407,13 @@ export class SubsidyLimitService {
                 maxCap
               );
               totalLimit = maxCap;
+
+              // 已使用：回調兩年內的核准紀錄（對應 maxAvailable = 2 年份額度）
+              const twoYearsAgo = addYears(new Date(), -2);
+              const recentUsed = applications
+                .filter((app) => app.applicationDate instanceof Timestamp &&
+                  !isBefore((app.applicationDate as Timestamp).toDate(), twoYearsAgo))
+                .reduce((sum, app) => sum + (app.approvedAmount || 0), 0);
 
               // 判斷資格
               let eligible = true;
@@ -424,7 +431,7 @@ export class SubsidyLimitService {
                 type,
                 displayName: config.displayName,
                 totalLimit,
-                usedAmount: lifetimeUsed,
+                usedAmount: recentUsed,
                 availableAmount: Math.max(0, availableAmount),
                 eligible,
                 ineligibleReason,
@@ -551,8 +558,8 @@ export interface AnniversaryPeriod {
  * HealthCheck 類型：
  * - totalLimit = 12,000（固定上限，水桶模型餘額上限）
  * - availableAmount = 水桶模型計算之可用餘額（每年 +6,000，上限 12,000，超額拋棄）
- * - usedAmount = 歷年所有已核准健檢補助總額
- * - 進度條：usedAmount / totalLimit
+ * - usedAmount = 近兩年內已核准健檢補助總額（對應 maxAvailable = 2 年份額度）
+ * - 進度條：usedAmount / (usedAmount + availableAmount)
  *
  * Training 類型特殊欄位：
  * - usedAmount = Training 實際用量 + AITool 實際用量（合併顯示）
