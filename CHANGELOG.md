@@ -5,6 +5,28 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.9] - 2026-03-25
+
+### 修復
+- 健檢補助額度計算邏輯修正為「水桶模型」，修復超額未拋棄的問題：
+  - 舊邏輯：`available = min(completedYears × 6,000 − lifetimeUsed, 12,000)`，未考慮歷年未使用額度超過上限應拋棄，導致已用完額度後仍顯示有可用餘額
+  - 新邏輯：逐年模擬——每到職日週年加 6,000，餘額超過 12,000 即拋棄超出部分，再依申請時間順序扣除使用量
+  - 新增 `calculateHealthCheckBalance()` 方法實作水桶模型
+- 健檢補助進度條改以固定上限 12,000 為滿格基準：
+  - `totalLimit` 固定為 `maxAvailable`（12,000），不再是浮動的 `usedAmount + availableAmount`
+  - 進度條公式：`usedAmount / totalLimit`
+  - 文字顯示三項：「已使用 / 可用餘額 / 累計上限」
+  - 底部附註：「已使用 X%（每滿一年 +6,000，上限 12,000）」
+- 同步更新 `getUserSubsidyLimitStatus` 與 `SubsidyLimitDetail` 的 JSDoc，補充 HealthCheck 水桶模型語義
+
+### 範例
+- 到職日 2020-09-01：
+  - Year 1（2021-09-01）：餘額 0 + 6,000 = 6,000
+  - Year 2（2022-09-01）：餘額 6,000 + 6,000 = 12,000
+  - Year 3（2023-09-01）：餘額 min(12,000 + 6,000, 12,000) = 12,000（超出 6,000 拋棄）
+  - 2025-09-02 申請 12,000 → 餘額 0，可用額度 0
+  - Year 6（2026-09-01）：餘額 0 + 6,000 = 6,000
+
 ## [3.0.8] - 2026-03-25
 
 ### 修復
