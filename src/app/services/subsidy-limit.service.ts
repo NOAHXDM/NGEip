@@ -233,7 +233,9 @@ export class SubsidyLimitService {
 
   /**
    * 取得使用者的補助使用情況
-   * - 一般補助：以到職日週年期間計算年度額度
+   * - 一般補助：以到職日週年期間（startDate ~ 滿週年）計算年度額度
+   * - Training + AITool 聯合上限：Training 24,000（含 AITool），AITool 獨立上限 10,000
+   *   Training 使用量超過 14,000 時會擠壓 AITool 可用額度
    * - 健檢補助：終身累計制，每滿一年增加 6,000，剩餘可用上限 12,000
    */
   getUserSubsidyLimitStatus(
@@ -246,10 +248,11 @@ export class SubsidyLimitService {
     const probationPassed = this.isProbationPassed(startDateObj);
     const oneYearCompleted = this.isOneYearCompleted(startDateObj);
 
-    // 查詢當前週年期間的補助統計（使用 fiscalYear）
+    // 查詢當前週年期間的補助統計（使用到職日週年日期範圍）
     const currentPeriodStats$ = this.subsidyStatsService.getUserAllSubsidyStats(
       userId,
-      period.fiscalYear
+      undefined,
+      { start: period.periodStart, end: period.periodEnd }
     );
 
     // 健檢補助：查詢歷年所有已核准的使用量（終身累計制）
@@ -389,27 +392,36 @@ export class SubsidyLimitService {
         });
 
         // 處理進修+AI聯合上限
+        // AITool 額度包含在 Training 額度內，Training 使用會擠壓 AITool 可用額度
         const trainingDetail = subsidies.find(
           (s) => s.type === SubsidyType.Training
         );
         const aiDetail = subsidies.find((s) => s.type === SubsidyType.AITool);
 
         if (trainingDetail && aiDetail) {
-          const combinedUsed = trainingDetail.usedAmount + aiDetail.usedAmount;
+          const trainingOnlyUsed = trainingDetail.usedAmount;
+          const aiToolUsed = aiDetail.usedAmount;
           const combinedLimit = 24000;
-          const combinedAvailable = Math.max(0, combinedLimit - combinedUsed);
+          const aiToolBaseLimit = 10000;
 
-          // 調整個別可用額度（不能超過聯合剩餘額度）
-          trainingDetail.availableAmount = Math.min(
-            trainingDetail.availableAmount,
-            combinedAvailable
-          );
-          aiDetail.availableAmount = Math.min(
-            aiDetail.availableAmount,
-            combinedAvailable
-          );
+          // Training 進度條：顯示合併使用量（Training + AITool）
+          const combinedUsed = trainingOnlyUsed + aiToolUsed;
+          trainingDetail.usedAmount = combinedUsed;
+          trainingDetail.totalLimit = combinedLimit;
+          trainingDetail.availableAmount = Math.max(0, combinedLimit - combinedUsed);
+          trainingDetail.aiToolUsedAmount = aiToolUsed;
+          trainingDetail.trainingOnlyUsedAmount = trainingOnlyUsed;
 
-          // 如果調整後額度為 0，且原本是 eligible，則更新為 ineligible
+          // AITool 進度條：Training 使用超過 (24000 - 10000) = 14000 時，會擠壓 AITool 總額
+          const aiToolEffectiveTotal = Math.min(
+            aiToolBaseLimit,
+            Math.max(0, combinedLimit - trainingOnlyUsed)
+          );
+          aiDetail.totalLimit = aiToolEffectiveTotal;
+          aiDetail.usedAmount = aiToolUsed;
+          aiDetail.availableAmount = Math.max(0, aiToolEffectiveTotal - aiToolUsed);
+
+          // 更新資格狀態
           if (trainingDetail.availableAmount <= 0 && trainingDetail.eligible) {
             trainingDetail.eligible = false;
             trainingDetail.ineligibleReason = 'Quota exceeded';
@@ -420,8 +432,8 @@ export class SubsidyLimitService {
           }
 
           // 標註聯合限制
-          trainingDetail.note = `Combined limit with AI Tool: ${combinedLimit.toLocaleString()}`;
-          aiDetail.note = `Individual limit: ${aiDetail.annualLimit.toLocaleString()}, Combined with Training: ${combinedLimit.toLocaleString()}`;
+          trainingDetail.note = `Training + AI Tool 合計上限：${combinedLimit.toLocaleString()}`;
+          aiDetail.note = `個別上限 ${aiToolBaseLimit.toLocaleString()}（Training 使用會擠壓 AI Tool 額度）`;
         }
 
         return {
@@ -464,6 +476,14 @@ export interface AnniversaryPeriod {
 
 /**
  * 補助限額詳情
+ *
+ * Training 類型特殊欄位：
+ * - usedAmount = Training 實際用量 + AITool 實際用量（合併顯示）
+ * - totalLimit = 24,000（Training + AITool 聯合上限）
+ * - aiToolUsedAmount / trainingOnlyUsedAmount 供堆疊進度條分色顯示
+ *
+ * AITool 類型特殊欄位：
+ * - totalLimit = min(10,000, 24,000 − Training 單獨用量)（受 Training 擠壓）
  */
 export interface SubsidyLimitDetail {
   type: SubsidyType;
@@ -476,6 +496,10 @@ export interface SubsidyLimitDetail {
   annualLimit: number;
   note?: string;
   laptopInstallmentInfo?: LaptopInstallmentInfo;
+  /** Training 進度條用：AI Tool 已使用金額（包含在 Training 合計中） */
+  aiToolUsedAmount?: number;
+  /** Training 進度條用：純 Training 已使用金額 */
+  trainingOnlyUsedAmount?: number;
 }
 
 /**

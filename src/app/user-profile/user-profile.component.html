@@ -372,6 +372,57 @@
               <div class="text-end text-muted small mt-1">
                 使用率：{{ getProgressPercentage(subsidy.usedAmount, subsidy.usedAmount + subsidy.availableAmount) | number: '1.0-0' }}%
               </div>
+            } @else if (subsidy.type === 3) {
+              <!-- Training：合併進度條（Training + AI Tool） -->
+              <div class="amount-info mb-2">
+                <div class="d-flex justify-content-between text-sm">
+                  <span>已使用：{{ subsidy.usedAmount | number: '1.0-0' }}</span>
+                  <span>可用：{{ subsidy.availableAmount | number: '1.0-0' }}</span>
+                  <span>總額：{{ subsidy.totalLimit | number: '1.0-0' }}</span>
+                </div>
+              </div>
+
+              <!-- 堆疊進度條 -->
+              <div class="stacked-progress-bar">
+                <div class="segment training-segment"
+                     [style.width.%]="getProgressPercentage(subsidy.trainingOnlyUsedAmount || 0, subsidy.totalLimit)">
+                </div>
+                <div class="segment aitool-segment"
+                     [style.width.%]="getProgressPercentage(subsidy.aiToolUsedAmount || 0, subsidy.totalLimit)">
+                </div>
+              </div>
+
+              <!-- 圖例與使用率 -->
+              <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="legend-dot training-color"></span>
+                  <span>Training {{ subsidy.trainingOnlyUsedAmount || 0 | number: '1.0-0' }}</span>
+                  <span class="legend-dot aitool-color"></span>
+                  <span>AI Tool {{ subsidy.aiToolUsedAmount || 0 | number: '1.0-0' }}</span>
+                </div>
+                <span>使用率：{{ getProgressPercentage(subsidy.usedAmount, subsidy.totalLimit) | number: '1.0-0' }}%</span>
+              </div>
+            } @else if (subsidy.type === 4) {
+              <!-- AI Tool：獨立進度條（總額受 Training 使用影響） -->
+              <div class="amount-info mb-2">
+                <div class="d-flex justify-content-between text-sm">
+                  <span>已使用：{{ subsidy.usedAmount | number: '1.0-0' }}</span>
+                  <span>可用：{{ subsidy.availableAmount | number: '1.0-0' }}</span>
+                  <span>總額：{{ subsidy.totalLimit | number: '1.0-0' }}</span>
+                </div>
+              </div>
+
+              <!-- 進度條 -->
+              <mat-progress-bar
+                mode="determinate"
+                [value]="getProgressPercentage(subsidy.usedAmount, subsidy.totalLimit)"
+                [color]="getProgressColor(getProgressPercentage(subsidy.usedAmount, subsidy.totalLimit))"
+              ></mat-progress-bar>
+
+              <!-- 使用率 -->
+              <div class="text-end text-muted small mt-1">
+                使用率：{{ getProgressPercentage(subsidy.usedAmount, subsidy.totalLimit) | number: '1.0-0' }}%
+              </div>
             } @else {
               <!-- 其他補助：顯示一般額度資訊 -->
               <div class="amount-info mb-2">
