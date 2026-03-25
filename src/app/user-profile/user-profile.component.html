@@ -353,12 +353,11 @@
                 沒有進行中的筆電補助
               </div>
             } @else if (subsidy.type === 2) {
-              <!-- 健檢補助：終身累計制，顯示已使用/可用/上限 -->
+              <!-- 健檢補助：終身累計制，僅顯示已使用與可用 -->
               <div class="amount-info mb-2">
                 <div class="d-flex justify-content-between text-sm">
                   <span>已使用：{{ subsidy.usedAmount | number: '1.0-0' }}</span>
                   <span>可用：{{ subsidy.availableAmount | number: '1.0-0' }}</span>
-                  <span>上限：12,000</span>
                 </div>
               </div>
 
