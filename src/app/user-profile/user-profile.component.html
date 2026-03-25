@@ -353,7 +353,7 @@
                 沒有進行中的筆電補助
               </div>
             } @else if (subsidy.type === 2) {
-              <!-- 健檢補助：終身累計制（水桶模型），以固定上限 12,000 為基準 -->
+              <!-- 健檢補助：水桶模型，已使用為近兩年紀錄 -->
               <div class="amount-info mb-2">
                 <div class="d-flex justify-content-between text-sm">
                   <span>已使用：{{ subsidy.usedAmount | number: '1.0-0' }}</span>
@@ -362,16 +362,16 @@
                 </div>
               </div>
 
-              <!-- 進度條：已使用 / 累計上限 -->
+              <!-- 進度條：已使用 / (已使用 + 可用) -->
               <mat-progress-bar
                 mode="determinate"
-                [value]="getProgressPercentage(subsidy.usedAmount, subsidy.totalLimit)"
-                [color]="getProgressColor(getProgressPercentage(subsidy.usedAmount, subsidy.totalLimit))"
+                [value]="getProgressPercentage(subsidy.usedAmount, subsidy.usedAmount + subsidy.availableAmount)"
+                [color]="getProgressColor(getProgressPercentage(subsidy.usedAmount, subsidy.usedAmount + subsidy.availableAmount))"
               ></mat-progress-bar>
 
               <!-- 使用率 -->
               <div class="text-end text-muted small mt-1">
-                已使用 {{ getProgressPercentage(subsidy.usedAmount, subsidy.totalLimit) | number: '1.0-0' }}%（每滿一年 +{{ subsidy.annualLimit | number: '1.0-0' }}，上限 {{ subsidy.totalLimit | number: '1.0-0' }}）
+                已使用 {{ getProgressPercentage(subsidy.usedAmount, subsidy.usedAmount + subsidy.availableAmount) | number: '1.0-0' }}%（每滿一年 +{{ subsidy.annualLimit | number: '1.0-0' }}，上限 {{ subsidy.totalLimit | number: '1.0-0' }}）
               </div>
             } @else if (subsidy.type === 3) {
               <!-- Training：合併進度條（Training + AI Tool） -->
