@@ -5,6 +5,22 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.8] - 2026-03-25
+
+### 修復
+- Training 與 AITool 補助額度計算區間由曆年制改為到職日週年制（startDate ~ 滿週年），與其他補助一致
+- Training + AITool 聯合上限邏輯重寫：
+  - Training 進度條：已使用 = Training 用量 + AITool 用量（合計），總額 24,000
+  - AITool 進度條：總額 = min(10,000, 24,000 − Training 單獨用量)，Training 使用會擠壓 AITool 可用額度
+  - Training 進度條改為堆疊雙色Bar（藍色 Training / 橘色 AI Tool），附圖例標示
+- `SubsidyStatsService.getUserSubsidyStatsByType` / `getUserAllSubsidyStats` 新增 `dateRange` 參數，支援以到職日週年日期範圍查詢核准補助（筆電補助仍使用曆年回溯 3 年）
+- `SubsidyLimitDetail` 介面新增 `aiToolUsedAmount`、`trainingOnlyUsedAmount` 欄位供 UI 堆疊進度條分色
+
+### 範例
+- 到職日 2024-06-01，週年期間 2025-06-01 ~ 2026-05-31：
+  - 申請 AITool 8,000 + Training 4,000 → Training Bar 已用 12,000 可用 12,000 總額 24,000；AITool Bar 已用 8,000 可用 2,000 總額 10,000
+  - 申請 AITool 2,000 + Training 20,000 → Training Bar 已用 22,000 可用 2,000 總額 24,000；AITool Bar 已用 2,000 可用 2,000 總額 4,000
+
 ## [3.0.7] - 2026-03-24
 
 ### 修復

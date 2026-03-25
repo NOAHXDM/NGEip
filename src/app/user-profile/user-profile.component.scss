@@ -66,4 +66,40 @@
     height: 8px;
     border-radius: 4px;
   }
+
+  .stacked-progress-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    overflow: hidden;
+
+    .segment {
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+
+    .training-segment {
+      background-color: #3f51b5; // primary blue
+    }
+
+    .aitool-segment {
+      background-color: #ff9800; // orange
+    }
+  }
+
+  .legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+
+    &.training-color {
+      background-color: #3f51b5;
+    }
+
+    &.aitool-color {
+      background-color: #ff9800;
+    }
+  }
 }

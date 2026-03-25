@@ -21,11 +21,16 @@ export class SubsidyStatsService {
 
   /**
    * 取得使用者的補助統計（依類型）
+   * @param userId 使用者 ID
+   * @param type 補助類型
+   * @param year 曆年（筆電補助回溯 3 年、其他補助依當年度過濾）
+   * @param dateRange 到職日週年期間日期範圍，優先於 year（筆電補助除外）
    */
   getUserSubsidyStatsByType(
     userId: string,
     type: SubsidyType,
-    year?: number
+    year?: number,
+    dateRange?: { start: Date; end: Date }
   ): Observable<SubsidyTypeStats> {
     const collectRef = collection(this.firestore, 'subsidyApplications');
     let constraints = [
@@ -39,6 +44,15 @@ export class SubsidyStatsService {
     if (type === SubsidyType.Laptop && year) {
       const threeYearsAgo = Timestamp.fromDate(new Date(year - 3, 0, 1));
       constraints.push(where('applicationDate', '>=', threeYearsAgo));
+    }
+    // 優先使用到職日週年期間日期範圍（非筆電補助）
+    else if (dateRange && type !== SubsidyType.Laptop) {
+      const startTs = Timestamp.fromDate(dateRange.start);
+      const endTs = Timestamp.fromDate(dateRange.end);
+      constraints.push(
+        where('applicationDate', '>=', startTs),
+        where('applicationDate', '<', endTs)
+      );
     }
     // 其他補助：依 applicationDate 過濾年度
     else if (year) {
@@ -125,10 +139,14 @@ export class SubsidyStatsService {
 
   /**
    * 取得使用者的所有補助統計摘要
+   * @param userId 使用者 ID
+   * @param year 曆年（fallback，筆電補助使用此參數）
+   * @param dateRange 到職日週年期間日期範圍，優先於 year（筆電補助除外）
    */
   getUserAllSubsidyStats(
     userId: string,
-    year?: number
+    year?: number,
+    dateRange?: { start: Date; end: Date }
   ): Observable<SubsidySummary> {
     const types = [
       SubsidyType.Laptop,
@@ -139,7 +157,7 @@ export class SubsidyStatsService {
     ];
 
     return combineLatest(
-      types.map((type) => this.getUserSubsidyStatsByType(userId, type, year))
+      types.map((type) => this.getUserSubsidyStatsByType(userId, type, year, dateRange))
     ).pipe(
       map((statsArray) => {
         const totalAmount = statsArray.reduce(
