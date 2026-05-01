@@ -5,6 +5,15 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.11] - 2026-05-01
+
+### 修復
+- 出勤統計結算表格過濾離職兩個月以上的使用者：
+  - 顯示 CURRENT（本期）資料時，離職日距今超過兩個月的使用者不計入統計
+  - 顯示歷史月份（含尚未結算的 fallback 計算）時，以該月份結束日為基準，離職日早於兩個月前的使用者不計入統計
+  - 執行「結算」操作時同樣套用此過濾，確保寫入 Firestore 的統計資料不包含已離職超過兩個月的使用者
+- 修改範圍：`AttendanceStatsService.calcuateAttendanceStatsMonthly`，在 `users.map` 前新增 `activeUsers` 過濾條件，以 `user.exitDate` 的 `Timestamp.toDate()` 與 `subMonths(referenceDate, 2)` 比較
+
 ## [3.0.10] - 2026-03-25
 
 ### 修復

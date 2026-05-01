@@ -83,10 +83,12 @@ export class AttendanceStatsService {
 
   private calcuateAttendanceStatsMonthly(yearMonth?: string) {
     let attendanceLogsRef = this.attendanceService.getCurrentMonth;
+    let referenceDate = new Date();
     if (yearMonth) {
       const startDate = startOfMonth(parse(yearMonth, 'yyyy-MM', new Date()));
       const endDate = startOfMonth(addMonths(startDate, 1));
       attendanceLogsRef = this.attendanceService.search(startDate, endDate);
+      referenceDate = endDate;
     }
 
     return combineLatest([
@@ -95,13 +97,19 @@ export class AttendanceStatsService {
       this.systemConfigService.license$,
     ]).pipe(
       map(([users, attendances, license]) => {
+        const twoMonthsBeforeRef = subMonths(referenceDate, 2);
+        const activeUsers = users.filter((user) => {
+          if (!user.exitDate) return true;
+          const exitDate = (user.exitDate as Timestamp).toDate();
+          return exitDate >= twoMonthsBeforeRef;
+        });
         const resolver = new AttendanceLogResolver(
           attendances as any,
           license.overtimePriorityReplacedByLeave
         );
         const data: AttendanceStats = {
           lastUpdated: serverTimestamp(),
-          stats: users.map((user) => {
+          stats: activeUsers.map((user) => {
             return {
               userId: user.uid,
               attendances: this.attendanceService.typeList.map((type) => {
