@@ -1,9 +1,9 @@
 # This file is used by the build system to adjust CSS and JS output to support the specified browsers below.
 # For additional information regarding the format and rule options, please see:
-# https://github.com/browserslist/browserslist#queries
+# https://github.com/browserslist/browserslist
 
 # For the full list of supported browsers by the Angular framework, please see:
-# https://angular.dev/reference/versions#browser-support
+# https://angular.dev/reference/versions
 
 # You can see what browsers were selected by your queries by running:
 #   npx browserslist
@@ -13,5 +13,4 @@ last 1 Firefox version
 last 2 Edge major versions
 last 2 Safari major versions
 last 2 iOS major versions
-last 2 Android major versions
 Firefox ESR
