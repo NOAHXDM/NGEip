@@ -10,7 +10,7 @@
       <mat-label>申請人</mat-label>
       <mat-select formControlName="userId">
         <mat-option value="">請選擇</mat-option>
-        @for (user of userList$ | async; track user.uid) {
+        @for (user of leaveSelectableUserList$ | async; track user.uid) {
         <mat-option [value]="user.uid">{{ user.name }}</mat-option>
         }
       </mat-select>
@@ -106,7 +106,7 @@
         formControlName="proxyUserId"
       >
         <mat-option value="">請選擇</mat-option>
-        @for (user of userList$ | async; track user.uid) {
+        @for (user of leaveSelectableUserList$ | async; track user.uid) {
         <mat-option [value]="user.uid">{{ user.name }}</mat-option>
         }
       </mat-select>

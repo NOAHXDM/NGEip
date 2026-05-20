@@ -24,7 +24,7 @@ import {
   updateDoc,
   where,
 } from '@angular/fire/firestore';
-import { subYears } from 'date-fns';
+import { subMonths, subYears } from 'date-fns';
 import {
   combineLatest,
   from,
@@ -255,6 +255,25 @@ export class UserService {
 
   logout() {
     return from(signOut(this.auth));
+  }
+
+  getUsersWithinExitWindow(referenceDate: Date = new Date(), months = 2) {
+    return this.list$.pipe(
+      map((users) => this.filterUsersWithinExitWindow(users, referenceDate, months))
+    );
+  }
+
+  filterUsersWithinExitWindow(
+    users: User[],
+    referenceDate: Date = new Date(),
+    months = 2
+  ): User[] {
+    const cutoffDate = subMonths(referenceDate, months);
+    return users.filter((user) => {
+      if (!user.exitDate) return true;
+      const exitDate = (user.exitDate as Timestamp).toDate();
+      return exitDate >= cutoffDate;
+    });
   }
 }
 

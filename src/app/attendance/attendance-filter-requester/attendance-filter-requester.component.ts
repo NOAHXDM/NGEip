@@ -16,7 +16,7 @@ import { UserService } from '../../services/user.service';
   styleUrl: './attendance-filter-requester.component.scss',
 })
 export class AttendanceFilterRequesterComponent implements AfterViewInit {
-  readonly list$ = inject(UserService).list$;
+  readonly list$ = inject(UserService).getUsersWithinExitWindow();
   @ViewChild(MatSelectionList) selectionList?: MatSelectionList;
 
   constructor(

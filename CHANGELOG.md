@@ -5,6 +5,18 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.12] - 2026-05-19
+
+### 修復
+- 請假相關下拉選單同步套用「離職超過兩個月不顯示」規則：
+  - 申請人下拉選單選項
+  - 代理人下拉選單選項
+  - 申請人篩選下拉選單選項
+- 抽出共用過濾邏輯至 `UserService`：
+  - 新增 `getUsersWithinExitWindow(referenceDate, months)`
+  - 新增 `filterUsersWithinExitWindow(users, referenceDate, months)`
+- 出勤統計改為呼叫 `UserService.filterUsersWithinExitWindow(...)`，避免規則重複散落
+
 ## [3.0.11] - 2026-05-01
 
 ### 修復
