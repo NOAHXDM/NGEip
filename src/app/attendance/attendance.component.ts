@@ -100,6 +100,7 @@ export class AttendanceComponent implements OnInit {
   calloutVisible = signal(false);
   proxyVisible = signal(true);
   readonly userList$: Observable<User[]>;
+  readonly leaveSelectableUserList$: Observable<User[]>;
   endDatetimePickerMaxDate: Date | null = null;
   startDatetimePickerMinDate: Date | null = null;
 
@@ -112,6 +113,7 @@ export class AttendanceComponent implements OnInit {
     protected data: { title: string; attendance?: AttendanceLog }
   ) {
     this.userList$ = this.userService.list$;
+    this.leaveSelectableUserList$ = this.userService.getUsersWithinExitWindow();
   }
 
   ngOnInit() {

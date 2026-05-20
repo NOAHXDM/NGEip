@@ -14,7 +14,6 @@ import {
   parse,
   startOfMonth,
   addMonths,
-  subMonths,
 } from 'date-fns';
 import { combineLatest, concatMap, from, map } from 'rxjs';
 
@@ -97,12 +96,11 @@ export class AttendanceStatsService {
       this.systemConfigService.license$,
     ]).pipe(
       map(([users, attendances, license]) => {
-        const twoMonthsBeforeRef = subMonths(referenceDate, 2);
-        const activeUsers = users.filter((user) => {
-          if (!user.exitDate) return true;
-          const exitDate = (user.exitDate as Timestamp).toDate();
-          return exitDate >= twoMonthsBeforeRef;
-        });
+        const activeUsers = this.userService.filterUsersWithinExitWindow(
+          users,
+          referenceDate,
+          2
+        );
         const resolver = new AttendanceLogResolver(
           attendances as any,
           license.overtimePriorityReplacedByLeave
