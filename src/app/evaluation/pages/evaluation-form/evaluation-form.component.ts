@@ -7,7 +7,8 @@
  *
  * 功能：
  *  - 從路由參數讀取 assignmentId，載入指派與週期資料
- *  - 若 assignment.status === 'completed' → 唯讀模式展示已提交的分數與整體評語
+ *  - 若 assignment.status === 'completed' 且未截止 → 允許編輯已提交內容
+ *  - 若 assignment.status === 'completed' 且已截止 → 唯讀展示已提交內容
  *  - 若截止日期已過 → 顯示警示，表單停用
  *  - 主表單：
  *    ① EvaluationFormQuestionsComponent（10 道題）
@@ -109,7 +110,13 @@ const OVERALL_COMMENT_MAX = 500;
           </button>
           <div class="header-info">
             <h1 class="page-title">
-              {{ isReadonly() ? '考評表單（唯讀）' : '填寫考評表單' }}
+              @if (isReadonly()) {
+                考評表單（唯讀）
+              } @else if (isEditSubmittedMode()) {
+                編輯已提交考評表
+              } @else {
+                填寫考評表單
+              }
             </h1>
             @if (cycle()) {
               <p class="cycle-label">
@@ -119,10 +126,10 @@ const OVERALL_COMMENT_MAX = 500;
             }
           </div>
           <!-- 狀態 chip -->
-          @if (isReadonly()) {
+          @if (isSubmitted()) {
             <mat-chip class="status-chip status-chip--completed">
-              <mat-icon matChipTrailingIcon>task_alt</mat-icon>
-              已填寫
+              <mat-icon matChipTrailingIcon>{{ isReadonly() ? 'task_alt' : 'edit' }}</mat-icon>
+              {{ isReadonly() ? '已填寫' : '已填寫（可編輯）' }}
             </mat-chip>
           } @else if (isDeadlinePassed()) {
             <mat-chip class="status-chip status-chip--overdue">
@@ -248,11 +255,11 @@ const OVERALL_COMMENT_MAX = 500;
                 >
                   @if (isSubmitting()) {
                     <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-                    提交中…
+                    {{ isEditSubmittedMode() ? '更新中…' : '提交中…' }}
                   } @else {
                     <ng-container>
                       <mat-icon>send</mat-icon>
-                      提交考評表單
+                      {{ isEditSubmittedMode() ? '更新考評表單' : '提交考評表單' }}
                     </ng-container>
                   }
                 </button>
@@ -476,8 +483,16 @@ export class EvaluationFormComponent implements OnInit {
 
   // ── 計算屬性 ─────────────────────────────────────────────────────────────
 
-  /** 已完成指派 → 唯讀展示 */
-  readonly isReadonly = computed(() => this.assignment()?.status === 'completed');
+  /** 指派是否已完成 */
+  readonly isSubmitted = computed(() => this.assignment()?.status === 'completed');
+
+  /** 已完成且截止前：可編輯已提交表單 */
+  readonly isEditSubmittedMode = computed(
+    () => this.isSubmitted() && !this.isDeadlinePassed(),
+  );
+
+  /** 已完成且截止後：唯讀展示 */
+  readonly isReadonly = computed(() => this.isSubmitted() && this.isDeadlinePassed());
 
   /** 截止日期是否已過 */
   readonly isDeadlinePassed = computed(() => {
@@ -556,12 +571,18 @@ export class EvaluationFormComponent implements OnInit {
       );
       this.cycle.set(cycle);
 
-      // 3. 若已完成，載入已提交的表單內容（唯讀展示）
+      // 3. 若已完成，載入已提交的表單內容（截止前可編輯、截止後唯讀）
       if (assignment.status === 'completed') {
         const form = await firstValueFrom(
           this.formService.getMyForm(assignment.cycleId, assignment.evaluateeUid),
         );
         this.existingForm.set(form);
+
+        if (form) {
+          this.scores.set({ ...form.scores });
+          this.feedbacks.set({ ...form.feedbacks });
+          this.overallComment.set(form.overallComment);
+        }
       }
     } catch (err) {
       console.error('[EvaluationFormComponent] 載入資料失敗：', err);
@@ -594,7 +615,7 @@ export class EvaluationFormComponent implements OnInit {
         draft,
       );
 
-      this.snackBar.open('考評表單已成功提交！', '關閉', {
+      this.snackBar.open(this.isEditSubmittedMode() ? '考評表單已更新！' : '考評表單已成功提交！', '關閉', {
         duration: 4000,
         panelClass: ['snack-success'],
       });

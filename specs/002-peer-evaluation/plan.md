@@ -124,16 +124,17 @@ userAttributeSnapshots/{cycleId}_{userId}
   → evaluationAssignments 批次建立（status: 'pending'）
   → evaluationCycles.totalAssignments += N
 
-[評核者提交表單]
+[評核者提交/更新表單]
   → Firestore batch():
-    1. evaluationForms 建立（含 scores, feedbacks, overallComment）
-    2. userAttributeSnapshots upsert（status: 'preview'，computedAt: serverTimestamp()，arrayUnion overallComment，attributes: 本次表單原始屬性分數，rawAttributes: 同 attributes（最後一次覆蓋），rawTotalScore: rawAttributes 六項加總）
-    3. evaluationAssignments 更新（status: 'completed', completedAt）
-    4. evaluationCycles.completedAssignments += 1
+    1. pending 任務：evaluationForms 建立（含 scores, feedbacks, overallComment）
+    2. completed 任務且未截止：更新既有 evaluationForms（同一 assignment 的原提交內容）
+    3. userAttributeSnapshots upsert（status: 'preview'，computedAt: serverTimestamp()，arrayUnion overallComment，attributes: 本次表單原始屬性分數，rawAttributes: 同 attributes（最後一次覆蓋），rawTotalScore: rawAttributes 六項加總）
+    4. 僅首次提交時更新 evaluationAssignments（status: 'completed', completedAt）
+    5. 僅首次提交時 evaluationCycles.completedAssignments += 1
 
 [截止日到達（前端檢查）]
   → 前端 isDeadlinePassed = deadline.toDate() < new Date()
-  → 阻止新提交，顯示「考核截止日期已過」
+  → 阻止新提交與已提交表單修改，顯示「考核截止日期已過」
   → 週期在 UI 顯示「已截止，待確認」（status 仍為 'active'，前端依 deadline 判斷）
 
 [管理者結束並發布]
@@ -340,7 +341,7 @@ get duration(): string {
 | `RadarChartComponent` | 6 軸幾何計算；warn 色觸發條件；空資料不崩潰 |
 | `MarqueeCommentsComponent` | 空陣列不渲染；切換 comments 重新動畫 |
 | `EvaluationFormComponent` | 極端分數(≥9/≤3)觸發文字必填；整體評價字數 <20 阻止提交；>500 阻止提交 |
-| `EvaluationFormService.submitForm()` | Firestore batch 寫入正確文件數；重複提交阻止 |
+| `EvaluationFormService.submitForm()` | pending 首次提交寫入 4 筆；completed 且未截止更新既有表單；overdue 或截止後修改阻止 |
 
 ### 整合測試（Firebase Emulator）
 

@@ -29,10 +29,12 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import {
   AttributeKey,
   AttributeScores,
+  EvaluationCycle,
   PeriodDataPoint,
   RadarAxis,
   UserAttributeSnapshot,
 } from '../../models/evaluation.models';
+import { EvaluationCycleService } from '../../services/evaluation-cycle.service';
 import { UserAttributeSnapshotService } from '../../services/user-attribute-snapshot.service';
 import { RadarChartComponent } from '../../components/radar-chart/radar-chart.component';
 import { TrendLineChartComponent } from '../../components/trend-line-chart/trend-line-chart.component';
@@ -140,7 +142,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
               (selectionChange)="onCycleChange($event.value)">
               @for (snapshot of allSnapshots(); track snapshot.cycleId) {
                 <mat-option [value]="snapshot.cycleId">
-                  {{ snapshot.cycleId }}
+                  {{ getCycleLabel(snapshot.cycleId) }}
                   @if (snapshot.status === 'final') {
                     （已發布）
                   } @else {
@@ -526,6 +528,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
 })
 export class AttributeReportComponent implements OnInit {
   private readonly snapshotService = inject(UserAttributeSnapshotService);
+  private readonly cycleService = inject(EvaluationCycleService);
 
   readonly attributeKeys = ATTRIBUTE_KEYS;
 
@@ -539,6 +542,7 @@ export class AttributeReportComponent implements OnInit {
 
   private readonly snapshots$ = this.snapshotService.getMySnapshots();
   allSnapshots = toSignal(this.snapshots$, { initialValue: [] as UserAttributeSnapshot[] });
+  allCycles = toSignal(this.cycleService.getCycles(), { initialValue: [] as EvaluationCycle[] });
 
   // ── 衍生計算值 ────────────────────────────────────────────────────────────
 
@@ -611,6 +615,13 @@ export class AttributeReportComponent implements OnInit {
     }));
   });
 
+  private readonly cycleNameById = computed<Record<string, string>>(() => {
+    return this.allCycles().reduce((acc, cycle) => {
+      acc[cycle.id] = cycle.name;
+      return acc;
+    }, {} as Record<string, string>);
+  });
+
   /** 職等達標說明 */
   rankDescription = computed(() => {
     const snapshot = this.currentSnapshot();
@@ -635,6 +646,10 @@ export class AttributeReportComponent implements OnInit {
 
   onCycleChange(cycleId: string): void {
     this.selectedCycleId.set(cycleId);
+  }
+
+  getCycleLabel(cycleId: string): string {
+    return this.cycleNameById()[cycleId] ?? cycleId;
   }
 
   getAttributeLabel(key: AttributeKey): string {

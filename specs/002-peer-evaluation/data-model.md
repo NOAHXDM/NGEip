@@ -34,7 +34,7 @@ interface EvaluationCycle {
 
   // 時程
   startDate: Timestamp;     // 週期建立（開始）日
-  deadline: Timestamp;      // 截止日期（到達後前端鎖定提交）
+  deadline: Timestamp;      // 截止日期（到達後前端鎖定新提交與已提交修改）
 
   // 狀態
   // active          = 進行中（deadline 未到）
@@ -76,7 +76,7 @@ interface EvaluationAssignment {
 
   // 狀態
   // pending   = 待填寫（截止日未到）
-  // completed = 已完成（表單已提交）
+  // completed = 已完成（表單已提交；截止日前可更新原提交內容）
   // overdue   = 逾期未完成（截止日到達時未提交）
   status: 'pending' | 'completed' | 'overdue';
 

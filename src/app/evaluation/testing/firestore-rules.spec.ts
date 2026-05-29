@@ -108,6 +108,7 @@ xdescribe('Security Rules 整合測試 - 評量考核系統', () => {
         id: CYCLE_ID, name: '2026 上半年考核', type: 'H1', year: 2026,
         status: 'active', totalAssignments: 1, completedAssignments: 0,
         createdBy: ADMIN_UID, createdAt: new Date(),
+        deadline: new Date('2099-12-31'),
       });
       // 建立指派
       await db.doc(`evaluationAssignments/${ASSIGNMENT_ID}`).set({
@@ -254,6 +255,40 @@ xdescribe('Security Rules 整合測試 - 評量考核系統', () => {
         ...VALID_FORM_DATA,
         evaluatorUid: EVALUATOR_UID,
       })
+    );
+  });
+
+  it('案例 9b：評核者在截止日前可更新自己提交的 evaluationForm → ALLOWED', async () => {
+    const evaluatorCtx = createEvaluatorContext(EVALUATOR_UID);
+    const db = evaluatorCtx.firestore();
+
+    await assertSucceeds(
+      updateDoc(doc(db, `evaluationForms/${FORM_ID}`), {
+        scores: { ...VALID_SCORES, q1: 8 },
+        feedbacks: VALID_FEEDBACKS,
+        overallComment: '此同事在近期跨部門協作中主動承擔溝通橋樑角色，整體執行品質明顯提升，值得持續肯定。',
+        submittedAt: new Date(),
+      }),
+    );
+  });
+
+  it('案例 9c：評核者在截止日後不可更新自己提交的 evaluationForm → DENIED', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await ctx.firestore().doc(`evaluationCycles/${CYCLE_ID}`).update({
+        deadline: new Date('2000-01-01'),
+      });
+    });
+
+    const evaluatorCtx = createEvaluatorContext(EVALUATOR_UID);
+    const db = evaluatorCtx.firestore();
+
+    await assertFails(
+      updateDoc(doc(db, `evaluationForms/${FORM_ID}`), {
+        scores: { ...VALID_SCORES, q1: 8 },
+        feedbacks: VALID_FEEDBACKS,
+        overallComment: '此同事在近期跨部門協作中主動承擔溝通橋樑角色，整體執行品質明顯提升，值得持續肯定。',
+        submittedAt: new Date(),
+      }),
     );
   });
 

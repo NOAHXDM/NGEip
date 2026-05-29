@@ -9,6 +9,7 @@
  *  - 合併受評者姓名（Firestore users/{uid}）與週期資訊（EvaluationCycleService）
  *  - 截止日期已過 → 顯示警示 chip
  *  - 已完成 → 顯示「已填寫」chip
+ *  - 已完成且未截止 → 可從「已填寫」分頁進入編輯
  *  - 待填寫且未截止 → 顯示「填寫考評表」按鈕
  *  - 各分頁空狀態提示
  */
@@ -195,10 +196,21 @@ interface EnrichedAssignment {
 
                           <!-- 已填寫 chip -->
                           <div class="card-actions">
-                            <mat-chip class="chip chip--completed">
-                              <mat-icon matChipTrailingIcon>check_circle</mat-icon>
-                              已填寫
-                            </mat-chip>
+                            @if (item.isDeadlinePassed) {
+                              <mat-chip class="chip chip--completed">
+                                <mat-icon matChipTrailingIcon>check_circle</mat-icon>
+                                已填寫
+                              </mat-chip>
+                            } @else {
+                              <button
+                                mat-stroked-button
+                                color="primary"
+                                (click)="navigateToForm(item.assignment.id)"
+                              >
+                                <mat-icon>edit</mat-icon>
+                                編輯已填寫
+                              </button>
+                            }
                           </div>
                         </div>
 
