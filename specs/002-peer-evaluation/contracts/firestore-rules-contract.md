@@ -13,7 +13,7 @@
 |------|------|--------|--------|--------|
 | `evaluationCycles` | 已登入使用者 | Admin only | Admin or 已登入（僅限 `completedAssignments`） | Admin only |
 | `evaluationAssignments` | 相關評核者 or Admin | Admin only | 評核者（自己）or Admin | Admin only |
-| `evaluationForms` | **本人評核者** or Admin（**受評者拒絕讀取**） | 評核者（自己，提交一次） | Admin only（補充 anomalyFlags） | 禁止 |
+| `evaluationForms` | **本人評核者** or Admin（**受評者拒絕讀取**） | 評核者（自己） | Admin 或評核者本人（僅截止日前、且不可改關聯欄位） | 禁止 |
 | `userAttributeSnapshots` | 本人受評者 or Admin | 評核者（建立預覽）or Admin | 評核者（更新預覽）or Admin | 禁止 |
 
 ---
@@ -78,8 +78,21 @@ match /evaluationForms/{formId} {
     request.resource.data.overallComment.size() >= 20 &&
     request.resource.data.overallComment.size() <= 500;
 
-  // 只有管理者可更新（更新 anomalyFlags），一般使用者不可修改已提交表單
-  allow update: if isAdmin();
+  // 管理者可更新；評核者可在截止日前更新自己的已提交表單
+  // 限制：不可改 evaluatorUid / evaluateeUid / cycleId / assignmentId / anomalyFlags
+  allow update: if isAdmin() ||
+    (isSignedIn() &&
+     resource.data.evaluatorUid == request.auth.uid &&
+     request.resource.data.evaluatorUid == resource.data.evaluatorUid &&
+     request.resource.data.evaluateeUid == resource.data.evaluateeUid &&
+     request.resource.data.cycleId == resource.data.cycleId &&
+     request.resource.data.assignmentId == resource.data.assignmentId &&
+     request.resource.data.anomalyFlags == resource.data.anomalyFlags &&
+     isValidScores(request.resource.data.scores) &&
+     request.resource.data.overallComment.size() >= 20 &&
+     request.resource.data.overallComment.size() <= 500 &&
+     exists(/databases/$(database)/documents/evaluationCycles/$(resource.data.cycleId)) &&
+     get(/databases/$(database)/documents/evaluationCycles/$(resource.data.cycleId)).data.deadline > request.time);
 
   // 禁止任何人刪除考評表（資料完整性）
   allow delete: if false;
@@ -180,19 +193,22 @@ match /evaluationForms/{formId} {
     (isSignedIn() && resource.data.evaluatorUid == request.auth.uid);
   allow create: if isSignedIn() &&
     request.resource.data.evaluatorUid == request.auth.uid &&
-    request.resource.data.scores.q1 >= 1 && request.resource.data.scores.q1 <= 10 &&
-    request.resource.data.scores.q2 >= 1 && request.resource.data.scores.q2 <= 10 &&
-    request.resource.data.scores.q3 >= 1 && request.resource.data.scores.q3 <= 10 &&
-    request.resource.data.scores.q4 >= 1 && request.resource.data.scores.q4 <= 10 &&
-    request.resource.data.scores.q5 >= 1 && request.resource.data.scores.q5 <= 10 &&
-    request.resource.data.scores.q6 >= 1 && request.resource.data.scores.q6 <= 10 &&
-    request.resource.data.scores.q7 >= 1 && request.resource.data.scores.q7 <= 10 &&
-    request.resource.data.scores.q8 >= 1 && request.resource.data.scores.q8 <= 10 &&
-    request.resource.data.scores.q9 >= 1 && request.resource.data.scores.q9 <= 10 &&
-    request.resource.data.scores.q10 >= 1 && request.resource.data.scores.q10 <= 10 &&
+    isValidScores(request.resource.data.scores) &&
     request.resource.data.overallComment.size() >= 20 &&
     request.resource.data.overallComment.size() <= 500;
-  allow update: if isAdmin();
+  allow update: if isAdmin() ||
+    (isSignedIn() &&
+     resource.data.evaluatorUid == request.auth.uid &&
+     request.resource.data.evaluatorUid == resource.data.evaluatorUid &&
+     request.resource.data.evaluateeUid == resource.data.evaluateeUid &&
+     request.resource.data.cycleId == resource.data.cycleId &&
+     request.resource.data.assignmentId == resource.data.assignmentId &&
+     request.resource.data.anomalyFlags == resource.data.anomalyFlags &&
+     isValidScores(request.resource.data.scores) &&
+     request.resource.data.overallComment.size() >= 20 &&
+     request.resource.data.overallComment.size() <= 500 &&
+     exists(/databases/$(database)/documents/evaluationCycles/$(resource.data.cycleId)) &&
+     get(/databases/$(database)/documents/evaluationCycles/$(resource.data.cycleId)).data.deadline > request.time);
   allow delete: if false;
 }
 

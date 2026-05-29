@@ -5,6 +5,20 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.13] - 2026-05-29
+
+### 變更
+- 評核者在「我的考評任務」的「已填寫」分頁，截止日前可再次進入並編輯已提交考評表。
+- 考評表單頁面新增已提交編輯模式：
+  - `completed` 且未截止：可更新既有提交內容。
+  - 已截止：維持唯讀，不允許修改。
+
+### 安全
+- 更新 Firestore Security Rules：允許評核者在截止日前更新自己提交的 `evaluationForms`，並限制不可更改 `evaluatorUid`、`evaluateeUid`、`cycleId`、`assignmentId`、`anomalyFlags`。
+
+### 文件
+- 同步更新 `specs/002-peer-evaluation/spec.md`、`specs/002-peer-evaluation/plan.md`、`specs/002-peer-evaluation/tasks.md`、`specs/002-peer-evaluation/data-model.md` 與 `README.md`，使「截止日前可編輯、截止後鎖定」規則一致。
+
 ## [3.0.12] - 2026-05-19
 
 ### 修復

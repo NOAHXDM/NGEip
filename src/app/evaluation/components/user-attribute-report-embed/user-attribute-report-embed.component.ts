@@ -6,6 +6,7 @@
  */
 
 import { Component, Input, OnInit, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { MatCardModule } from '@angular/material/card';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -17,10 +18,12 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import {
   AttributeKey,
   AttributeScores,
+  EvaluationCycle,
   PeriodDataPoint,
   RadarAxis,
   UserAttributeSnapshot,
 } from '../../models/evaluation.models';
+import { EvaluationCycleService } from '../../services/evaluation-cycle.service';
 import { UserAttributeSnapshotService } from '../../services/user-attribute-snapshot.service';
 import { RadarChartComponent } from '../radar-chart/radar-chart.component';
 import { TrendLineChartComponent } from '../trend-line-chart/trend-line-chart.component';
@@ -112,7 +115,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
               (selectionChange)="onCycleChange($event.value)">
               @for (snapshot of allSnapshots(); track snapshot.cycleId) {
                 <mat-option [value]="snapshot.cycleId">
-                  {{ snapshot.cycleId }}
+                  {{ getCycleLabel(snapshot.cycleId) }}
                   @if (snapshot.status === 'final') {
                     （已發布）
                   } @else {
@@ -464,6 +467,7 @@ export class UserAttributeReportEmbedComponent implements OnInit {
   @Input({ required: true }) userId!: string;
 
   private readonly snapshotService = inject(UserAttributeSnapshotService);
+  private readonly cycleService = inject(EvaluationCycleService);
 
   readonly attributeKeys = ATTRIBUTE_KEYS;
 
@@ -471,6 +475,7 @@ export class UserAttributeReportEmbedComponent implements OnInit {
   selectedCycleId = signal<string | null>(null);
   showRawScores = signal(false);
   allSnapshots = signal<UserAttributeSnapshot[]>([]);
+  allCycles = toSignal(this.cycleService.getCycles(), { initialValue: [] as EvaluationCycle[] });
 
   hasSnapshots = computed(() => this.allSnapshots().length > 0);
 
@@ -539,6 +544,13 @@ export class UserAttributeReportEmbedComponent implements OnInit {
     return JOB_RANK_DESCRIPTIONS[rank] ?? null;
   });
 
+  private readonly cycleNameById = computed<Record<string, string>>(() => {
+    return this.allCycles().reduce((acc, cycle) => {
+      acc[cycle.id] = cycle.name;
+      return acc;
+    }, {} as Record<string, string>);
+  });
+
   ngOnInit(): void {
     this.snapshotService.getSnapshotsByUserId(this.userId).subscribe((snapshots) => {
       this.isLoading.set(false);
@@ -551,6 +563,10 @@ export class UserAttributeReportEmbedComponent implements OnInit {
 
   onCycleChange(cycleId: string): void {
     this.selectedCycleId.set(cycleId);
+  }
+
+  getCycleLabel(cycleId: string): string {
+    return this.cycleNameById()[cycleId] ?? cycleId;
   }
 
   getAttributeLabel(key: AttributeKey): string {

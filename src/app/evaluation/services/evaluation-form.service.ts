@@ -7,9 +7,12 @@
  *  - validateDraft(draft)                          驗證表單草稿（私有）
  *  - submitForm(cycleId, assignmentId, evaluateeUid, draft)
  *      1. 驗證草稿（overallComment 字數、極端分數說明）
- *      2. 確認指派狀態非 completed（防止重複提交）
+ *      2. 依指派狀態執行：
+ *         a. pending   → 建立新表單並完成指派
+ *         b. completed → 更新既有表單（截止日前可編輯）
+ *         c. overdue   → 拒絕提交
  *      3. Firestore Batch Write：
- *         a. evaluationForms/{auto-id}              建立表單文件
+ *         a. evaluationForms/{auto-id or existing-id} 建立或更新表單文件
  *         b. userAttributeSnapshots/{cycleId}_{evaluateeUid}
  *                                                   arrayUnion overallComment、
  *                                                   更新預覽屬性、increment validEvaluatorCount
@@ -36,7 +39,7 @@ import {
   DocumentSnapshot,
   WriteBatch,
 } from '@angular/fire/firestore';
-import { Observable as RxObservable, of } from 'rxjs';
+import { Observable as RxObservable, firstValueFrom, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import {
   Firestore,
@@ -275,24 +278,77 @@ export class EvaluationFormService {
 
     const assignment = assignmentSnap.data() as EvaluationAssignment;
 
-    if (assignment.status === 'completed') {
-      throw new Error('此考評指派已完成提交，不得重複提交');
+    if (assignment.status === 'overdue') {
+      throw new Error('此考評指派已逾期，無法提交或修改');
     }
 
     // Step 4：計算本份表單的預覽屬性分數（原始平均，未校正）
     const previewAttributes = this.computePreviewAttributes(draft.scores);
 
-    // Step 5：Firestore Batch Write（四個操作原子性提交）
-    const batch = this.firestoreCreateBatch();
-
-    // 4a. 建立 evaluationForms 文件（auto-id）
-    const formsColRef = this.firestoreCollectionRef(FORMS_COLLECTION);
-    const formRef = this.firestoreNewDocRef(formsColRef);
-
     // 過濾 feedbacks 中的 undefined / 空字串（防止 SDK 拋出 unsupported field value 錯誤）
     const sanitizedFeedbacks = Object.fromEntries(
       Object.entries(draft.feedbacks).filter(([, v]) => v !== undefined && v !== ''),
     );
+
+    // 計算原始平均分數的加總
+    const rawTotalScore = Object.values(previewAttributes).reduce((sum, v) => sum + v, 0);
+
+    // Step 5：Firestore Batch Write（四個操作原子性提交）
+    const batch = this.firestoreCreateBatch();
+
+    // 4a. completed 且未逾期：更新既有表單（截止日前可編輯）
+    if (assignment.status === 'completed') {
+      const existingForms = await firstValueFrom(
+        this.firestoreQuery<EvaluationForm>(
+          FORMS_COLLECTION,
+          this.firestoreWhere('evaluatorUid', '==', currentUser.uid),
+          this.firestoreWhere('cycleId', '==', cycleId),
+          this.firestoreWhere('evaluateeUid', '==', evaluateeUid),
+        ),
+      );
+
+      const existingForm = existingForms[0] ?? null;
+      if (!existingForm?.id) {
+        throw new Error('此考評指派狀態異常：已完成但找不到既有表單');
+      }
+
+      const formRef = this.firestoreDocRef(FORMS_COLLECTION, existingForm.id);
+      batch.update(formRef, {
+        submittedAt: this.firestoreServerTimestamp(),
+        scores: draft.scores,
+        feedbacks: sanitizedFeedbacks,
+        overallComment: draft.overallComment,
+      });
+
+      const snapshotId = `${cycleId}_${evaluateeUid}`;
+      const snapshotRef = this.firestoreDocRef(SNAPSHOTS_COLLECTION, snapshotId);
+
+      batch.set(
+        snapshotRef,
+        {
+          cycleId,
+          userId: evaluateeUid,
+          status: 'preview' as const,
+          computedAt: this.firestoreServerTimestamp(),
+          overallComments: this.firestoreArrayUnion(draft.overallComment),
+          attributes: previewAttributes,
+          rawAttributes: previewAttributes,
+          rawTotalScore: Math.round(rawTotalScore * 100) / 100,
+        },
+        { merge: true },
+      );
+
+      await batch.commit();
+      return;
+    }
+
+    if (assignment.status !== 'pending') {
+      throw new Error(`不支援的考評指派狀態：${assignment.status}`);
+    }
+
+    // 4b. pending：建立 evaluationForms 文件（auto-id）
+    const formsColRef = this.firestoreCollectionRef(FORMS_COLLECTION);
+    const formRef = this.firestoreNewDocRef(formsColRef);
 
     batch.set(formRef, {
       id: formRef.id,
@@ -310,12 +366,9 @@ export class EvaluationFormService {
       },
     });
 
-    // 4b. 合併更新 userAttributeSnapshots（merge:true 保留已有欄位）
+    // 4c. 合併更新 userAttributeSnapshots（merge:true 保留已有欄位）
     const snapshotId = `${cycleId}_${evaluateeUid}`;
     const snapshotRef = this.firestoreDocRef(SNAPSHOTS_COLLECTION, snapshotId);
-
-    // 計算原始平均分數的加總
-    const rawTotalScore = Object.values(previewAttributes).reduce((sum, v) => sum + v, 0);
 
     batch.set(
       snapshotRef,
@@ -333,13 +386,13 @@ export class EvaluationFormService {
       { merge: true },
     );
 
-    // 4c. 更新指派狀態為 completed
+    // 4d. 更新指派狀態為 completed
     batch.update(assignmentRef, {
       status: 'completed' as const,
       completedAt: this.firestoreServerTimestamp(),
     });
 
-    // 4d. 原子性遞增週期的已完成指派計數
+    // 4e. 原子性遞增週期的已完成指派計數
     const cycleRef = this.firestoreDocRef(CYCLES_COLLECTION, cycleId);
     batch.update(cycleRef, {
       completedAssignments: this.firestoreIncrement(1),

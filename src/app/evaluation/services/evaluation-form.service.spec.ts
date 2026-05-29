@@ -22,7 +22,8 @@
  *  2. overallComment > 500 字元        → submitForm 應拒絕並包含「500」的錯誤訊息
  *  3. 分數 ≥ 9 且無對應說明            → submitForm 應拒絕並包含題目 key 的錯誤訊息
  *  4. 分數 ≤ 3 且無對應說明            → submitForm 應拒絕並包含題目 key 的錯誤訊息
- *  5. 指派狀態 = completed             → submitForm 應拒絕（防止重複提交），不呼叫 firestoreCreateBatch
+ *  5. 指派狀態 = completed             → submitForm 應更新既有表單（截止日前可編輯）
+ *     指派狀態 = overdue               → submitForm 應拒絕
  *  6. 有效表單提交                     → 呼叫 firestoreCreateBatch、batch.set ×2、batch.update ×2、batch.commit
  */
 
@@ -75,13 +76,23 @@ const VALID_DRAFT: EvaluationFormDraft = {
   overallComment: VALID_OVERALL_COMMENT,
 };
 
+const EXISTING_FORM = {
+  id: 'mock-existing-form-id-001',
+  assignmentId: MOCK_ASSIGNMENT_ID,
+  cycleId: MOCK_CYCLE_ID,
+  evaluatorUid: MOCK_EVALUATOR_UID,
+  evaluateeUid: MOCK_EVALUATEE_UID,
+  submittedAt: {} as Timestamp,
+  scores: VALID_DRAFT.scores,
+  feedbacks: VALID_DRAFT.feedbacks,
+  overallComment: VALID_DRAFT.overallComment,
+  anomalyFlags: { reciprocalHighScore: false, outlierEvaluator: false },
+};
+
 /**
  * 建立模擬的 EvaluationAssignment Firestore 文件快照
  */
-function makeAssignmentSnapshot(
-  status: EvaluationAssignment['status'],
-  exists = true,
-) {
+function makeAssignmentSnapshot(status: EvaluationAssignment['status'], exists = true) {
   return {
     exists: () => exists,
     data: () =>
@@ -398,47 +409,51 @@ describe('EvaluationFormService', () => {
   });
 
   // =======================================================================
-  // 測試 5：指派狀態 = completed（防止重複提交）
+  // 測試 5：completed 可編輯、overdue 禁止提交
   // =======================================================================
 
-  describe('submitForm() — 防止重複提交', () => {
+  describe('submitForm() — completed 可更新、overdue 禁止提交', () => {
 
-    it('指派狀態 = completed 時應拒絕，且不呼叫 firestoreCreateBatch', async () => {
+    it('指派狀態 = completed 且存在既有表單時，應更新表單與快照（不更新 assignment/cycle）', async () => {
       firestoreGetSpy.and.returnValue(
         Promise.resolve(makeAssignmentSnapshot('completed') as any),
+      );
+      firestoreQuerySpy.and.returnValue(of([EXISTING_FORM]));
+
+      await expectAsync(
+        service.submitForm(MOCK_CYCLE_ID, MOCK_ASSIGNMENT_ID, MOCK_EVALUATEE_UID, VALID_DRAFT),
+      ).toBeResolved();
+
+      expect(firestoreCreateBatchSpy).toHaveBeenCalledTimes(1);
+      expect(mockBatch.set).toHaveBeenCalledTimes(1);      // snapshot merge
+      expect(mockBatch.update).toHaveBeenCalledTimes(1);   // existing form update
+      expect(mockBatch.commit).toHaveBeenCalledTimes(1);
+    });
+
+    it('指派狀態 = completed 但查無既有表單時應拒絕', async () => {
+      firestoreGetSpy.and.returnValue(
+        Promise.resolve(makeAssignmentSnapshot('completed') as any),
+      );
+      firestoreQuerySpy.and.returnValue(of([]));
+
+      await expectAsync(
+        service.submitForm(MOCK_CYCLE_ID, MOCK_ASSIGNMENT_ID, MOCK_EVALUATEE_UID, VALID_DRAFT),
+      ).toBeRejectedWithError(/找不到既有表單/);
+    });
+
+    it('指派狀態 = overdue 時應拒絕，且不呼叫 firestoreCreateBatch', async () => {
+      firestoreGetSpy.and.returnValue(
+        Promise.resolve(makeAssignmentSnapshot('overdue') as any),
       );
 
       await expectAsync(
         service.submitForm(MOCK_CYCLE_ID, MOCK_ASSIGNMENT_ID, MOCK_EVALUATEE_UID, VALID_DRAFT),
-      ).toBeRejected();
+      ).toBeRejectedWithError(/逾期/);
 
-      // 核心斷言：批次寫入不應被啟動
       expect(firestoreCreateBatchSpy).not.toHaveBeenCalled();
     });
 
-    it('指派狀態 = completed 時的錯誤訊息應說明「重複提交」', async () => {
-      firestoreGetSpy.and.returnValue(
-        Promise.resolve(makeAssignmentSnapshot('completed') as any),
-      );
-
-      let caughtError: Error | undefined;
-      try {
-        await service.submitForm(
-          MOCK_CYCLE_ID,
-          MOCK_ASSIGNMENT_ID,
-          MOCK_EVALUATEE_UID,
-          VALID_DRAFT,
-        );
-      } catch (e) {
-        caughtError = e as Error;
-      }
-
-      expect(caughtError).toBeDefined();
-      expect(caughtError).toBeInstanceOf(Error);
-      expect(caughtError!.message).toMatch(/重複提交|completed/);
-    });
-
-    it('指派狀態 = pending 時應允許提交並呼叫 firestoreCreateBatch', async () => {
+    it('指派狀態 = pending 時應允許首次提交並呼叫 firestoreCreateBatch', async () => {
       firestoreGetSpy.and.returnValue(
         Promise.resolve(makeAssignmentSnapshot('pending') as any),
       );
