@@ -44,6 +44,9 @@ import { FirestoreTimestampPipe } from '../../pipes/firestore-timestamp.pipe';
   styleUrl: './attendance-stats.component.scss',
 })
 export class AttendanceStatsComponent {
+  private static readonly MAX_QUICK_PICK_OPTIONS = 12;
+  private static readonly CURRENT_QUICK_PICK_OPTION = 'CURRENT';
+
   displayedColumns: string[];
   list$?: Observable<UserAttendanceStatsModel[]>;
   listLastUpdated?: Timestamp;
@@ -75,9 +78,26 @@ export class AttendanceStatsComponent {
           license.initialSettlementYear || new Date().getFullYear()
         )
       ),
-      tap(
-        (options) => (this.quickPickOption = this.quickPickOption || options[0])
-      )
+      map((options) =>
+        options.slice(
+          -(AttendanceStatsComponent.MAX_QUICK_PICK_OPTIONS - 1)
+        )
+      ),
+      tap((options) => {
+        if (
+          !this.quickPickOption ||
+          (this.quickPickOption !=
+            AttendanceStatsComponent.CURRENT_QUICK_PICK_OPTION &&
+            !options.includes(this.quickPickOption))
+        ) {
+          this.quickPickOption =
+            AttendanceStatsComponent.CURRENT_QUICK_PICK_OPTION;
+          this.clientPreferencesService.setPreference(
+            'statQuickPickOption',
+            this.quickPickOption
+          );
+        }
+      })
     );
     this.quickPickOption = this.clientPreferencesService.getPreference(
       'statQuickPickOption'

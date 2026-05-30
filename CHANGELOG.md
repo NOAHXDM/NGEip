@@ -5,6 +5,19 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.14] - 2026-05-30
+
+### 修復
+- 出勤統計結算月份 quick pick 選項改為最多 12 個（含「本期」）：
+  - 歷史月份選項最多保留最近 11 個。
+  - 「本期（CURRENT）」固定保留，避免操作區過長。
+- 修正用戶偏好回復邏輯：
+  - 若使用者先前儲存的 `statQuickPickOption` 不在目前可選月份中，系統會自動 fallback 至「本期（CURRENT）」。
+  - fallback 後同步更新 client preference，避免重整後持續落在無效選項。
+
+### 文件
+- 檢查現有 README 與規格文件，未發現與本次「出勤統計月份 quick pick 上限 / 無效選項 fallback」行為衝突的敘述；本次以變更日誌作為行為更新依據。
+
 ## [3.0.13] - 2026-05-29
 
 ### 變更
