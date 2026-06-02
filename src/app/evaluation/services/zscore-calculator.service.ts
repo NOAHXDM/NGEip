@@ -109,6 +109,14 @@ export class ZScoreCalculatorService {
       const rawTotalScore = Object.values(rawAttributes).reduce((sum, v) => sum + v, 0);
       const careerArchetypes = this.determineArchetypes(attributes, rawAttributes);
 
+      // 由 forms 重新彙整整體評語，作為唯一可信來源。
+      // 與 validEvaluatorCount 同源於 evaluateeForms，確保
+      // overallComments.length === validEvaluatorCount，並清除預覽期
+      // arrayUnion 可能殘留的孤兒評語（評語改寫後的舊字串）。
+      const overallComments = evaluateeForms
+        .map((f) => f.overallComment?.trim() ?? '')
+        .filter((c) => c.length > 0);
+
       snapshots.set(evaluateeUid, {
         attributes,
         totalScore: Math.round(totalScore * 100) / 100,
@@ -116,6 +124,7 @@ export class ZScoreCalculatorService {
         rawTotalScore: Math.round(rawTotalScore * 100) / 100,
         careerArchetypes,
         validEvaluatorCount: evaluateeForms.length,
+        overallComments,
         rankingScore: Math.round(totalScore * 100) / 100,
       });
     }

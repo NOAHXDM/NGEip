@@ -245,7 +245,9 @@ interface UserAttributeSnapshot {
 
   // 整體評價（匿名，跑馬燈顯示）
   // 僅含純文字，無評核者識別資訊
-  overallComments: string[];       // 每位評核者提交時 arrayUnion，管理者確認後不變
+  // preview：評核者提交時 arrayUnion；改寫評語時另以 arrayRemove 移除舊評語，避免孤兒字串
+  // final：由 forms 重新彙整（與 validEvaluatorCount 同源），保證 length === validEvaluatorCount
+  overallComments: string[];
 
   // 管理者排名輔助欄（final 後由 Z-score 計算寫入）
   rankingScore?: number;           // totalScore（Z-score 校正後）
@@ -262,7 +264,8 @@ interface UserAttributeSnapshot {
 - 受評者查看自己的快照：`where('userId', '==', uid).orderBy('computedAt', 'desc')`
 - 管理者查看某週期所有快照：`where('cycleId', '==', cycleId)`
 - 管理者排名視圖：`where('cycleId', '==', cycleId).orderBy('totalScore', 'desc')`
-- 評核者提交表單後更新快照（arrayUnion）：直接 `updateDoc` by document ID
+- 評核者提交表單後更新快照（arrayUnion）：直接 `updateDoc` by document ID；改寫評語時另以獨立 batch `arrayRemove` 移除舊評語
+- 結束並發布時 overallComments 由 forms 重新彙整覆寫（與 validEvaluatorCount 同源），消除預覽期殘留
 
 **所需索引**：
 ```json

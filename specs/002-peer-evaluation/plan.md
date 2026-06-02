@@ -129,6 +129,7 @@ userAttributeSnapshots/{cycleId}_{userId}
     1. pending 任務：evaluationForms 建立（含 scores, feedbacks, overallComment）
     2. completed 任務且未截止：更新既有 evaluationForms（同一 assignment 的原提交內容）
     3. userAttributeSnapshots upsert（status: 'preview'，computedAt: serverTimestamp()，arrayUnion overallComment，attributes: 本次表單原始屬性分數，rawAttributes: 同 attributes（最後一次覆蓋），rawTotalScore: rawAttributes 六項加總）
+       - 編輯改寫評語時：主批次提交後另以獨立 batch arrayRemove 舊評語，避免 overallComments 殘留孤兒字串（Firestore 禁止同一寫入對同欄位同時套用 arrayUnion 與 arrayRemove，故拆兩次 commit，採「先加後刪」順序）
     4. 僅首次提交時更新 evaluationAssignments（status: 'completed', completedAt）
     5. 僅首次提交時 evaluationCycles.completedAssignments += 1
 
@@ -143,7 +144,7 @@ userAttributeSnapshots/{cycleId}_{userId}
     2. ZScoreCalculatorService.compute() → 校正分數、職業原型、異常標記
     3. Firestore batch():
        - evaluationCycles 更新（status: 'closed', closedAt）
-       - 每位受評者的 userAttributeSnapshots 更新（status: 'final'，Z-score 校正後 attributes/totalScore，同步寫入 rawAttributes/rawTotalScore 原始平均分）
+       - 每位受評者的 userAttributeSnapshots 更新（status: 'final'，Z-score 校正後 attributes/totalScore，同步寫入 rawAttributes/rawTotalScore 原始平均分；overallComments 由該受評者的 forms 重新彙整，與 validEvaluatorCount 同源於 evaluateeForms，保證 overallComments.length === validEvaluatorCount，並清除預覽期可能殘留的孤兒評語）
        - 更新有異常標記的 evaluationForms（anomalyFlags）
        - 逾期任務的 evaluationAssignments 更新（status: 'overdue'）
 ```

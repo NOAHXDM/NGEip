@@ -135,6 +135,7 @@ describe('EvaluationFormService', () => {
   let firestoreCreateBatchSpy: jasmine.Spy;
   let firestoreServerTimestampSpy: jasmine.Spy;
   let firestoreArrayUnionSpy: jasmine.Spy;
+  let firestoreArrayRemoveSpy: jasmine.Spy;
   let firestoreIncrementSpy: jasmine.Spy;
   let firestoreQuerySpy: jasmine.Spy;
   let firestoreWhereSpy: jasmine.Spy;
@@ -183,6 +184,9 @@ describe('EvaluationFormService', () => {
 
     firestoreArrayUnionSpy = spyOn(service as any, 'firestoreArrayUnion')
       .and.callFake((...items: unknown[]) => ({ _arrayUnion: items }) as any);
+
+    firestoreArrayRemoveSpy = spyOn(service as any, 'firestoreArrayRemove')
+      .and.callFake((...items: unknown[]) => ({ _arrayRemove: items }) as any);
 
     firestoreIncrementSpy = spyOn(service as any, 'firestoreIncrement')
       .and.callFake((n: number) => ({ _increment: n }) as any);
@@ -428,6 +432,45 @@ describe('EvaluationFormService', () => {
       expect(mockBatch.set).toHaveBeenCalledTimes(1);      // snapshot merge
       expect(mockBatch.update).toHaveBeenCalledTimes(1);   // existing form update
       expect(mockBatch.commit).toHaveBeenCalledTimes(1);
+    });
+
+    it('編輯且評語未改寫時，不應移除舊評語（不建立清理批次）', async () => {
+      firestoreGetSpy.and.returnValue(
+        Promise.resolve(makeAssignmentSnapshot('completed') as any),
+      );
+      // EXISTING_FORM.overallComment === VALID_DRAFT.overallComment（未改寫）
+      firestoreQuerySpy.and.returnValue(of([EXISTING_FORM]));
+
+      await service.submitForm(MOCK_CYCLE_ID, MOCK_ASSIGNMENT_ID, MOCK_EVALUATEE_UID, VALID_DRAFT);
+
+      expect(firestoreArrayRemoveSpy).not.toHaveBeenCalled();
+      expect(firestoreCreateBatchSpy).toHaveBeenCalledTimes(1); // 僅主批次
+    });
+
+    it('編輯且評語改寫時，應於主批次後以額外批次 arrayRemove 移除舊評語', async () => {
+      firestoreGetSpy.and.returnValue(
+        Promise.resolve(makeAssignmentSnapshot('completed') as any),
+      );
+      firestoreQuerySpy.and.returnValue(of([EXISTING_FORM]));
+
+      const rewordedDraft: EvaluationFormDraft = {
+        ...VALID_DRAFT,
+        overallComment: '這是改寫後的整體評語，內容與先前不同但長度同樣符合要求。',
+      };
+
+      await service.submitForm(MOCK_CYCLE_ID, MOCK_ASSIGNMENT_ID, MOCK_EVALUATEE_UID, rewordedDraft);
+
+      // arrayRemove 應以「舊評語」呼叫
+      expect(firestoreArrayRemoveSpy).toHaveBeenCalledWith(EXISTING_FORM.overallComment);
+      // 主批次 + 清理批次共兩次
+      expect(firestoreCreateBatchSpy).toHaveBeenCalledTimes(2);
+      expect(mockBatch.commit).toHaveBeenCalledTimes(2);
+      // 清理批次的 set 應寫入 arrayRemove 物件
+      const cleanupSetArgs = mockBatch.set.calls.mostRecent().args;
+      expect(cleanupSetArgs[1]['overallComments']).toEqual({
+        _arrayRemove: [EXISTING_FORM.overallComment],
+      });
+      expect(cleanupSetArgs[2]).toEqual({ merge: true });
     });
 
     it('指派狀態 = completed 但查無既有表單時應拒絕', async () => {

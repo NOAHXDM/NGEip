@@ -53,6 +53,7 @@ import {
   writeBatch,
   serverTimestamp,
   arrayUnion,
+  arrayRemove,
   increment,
 } from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
@@ -159,6 +160,11 @@ export class EvaluationFormService {
   /** 建立 arrayUnion FieldValue */
   protected firestoreArrayUnion(...elements: unknown[]): FieldValue {
     return arrayUnion(...elements);
+  }
+
+  /** 建立 arrayRemove FieldValue */
+  protected firestoreArrayRemove(...elements: unknown[]): FieldValue {
+    return arrayRemove(...elements);
   }
 
   /** 建立 increment FieldValue */
@@ -339,6 +345,23 @@ export class EvaluationFormService {
       );
 
       await batch.commit();
+
+      // 評語改寫時，移除快照中該評核者先前留下的舊評語，避免 overallComments
+      // 累積孤兒字串（造成「評語數 > 有效評核人數」的漂移）。
+      //
+      // 注意：Firestore 不允許在同一次寫入對同一欄位同時套用 arrayUnion 與
+      // arrayRemove，故拆為獨立的後續 commit；採「先加後刪」順序，即使刪除
+      // commit 失敗也僅退回原有行為，不會遺失評語。
+      const previousComment = existingForm.overallComment;
+      if (previousComment && previousComment !== draft.overallComment) {
+        const cleanupBatch = this.firestoreCreateBatch();
+        cleanupBatch.set(
+          snapshotRef,
+          { overallComments: this.firestoreArrayRemove(previousComment) },
+          { merge: true },
+        );
+        await cleanupBatch.commit();
+      }
       return;
     }
 
