@@ -292,6 +292,7 @@ export class EvaluationCycleService {
             careerArchetypes: computed.careerArchetypes ?? snapData['careerArchetypes'],
             rankingScore: computed.rankingScore ?? computed.totalScore ?? snapData['totalScore'],
             validEvaluatorCount: computed.validEvaluatorCount ?? snapData['validEvaluatorCount'],
+            overallComments: computed.overallComments ?? snapData['overallComments'],
             computedAt: this._fn.serverTimestamp(),
           });
         });

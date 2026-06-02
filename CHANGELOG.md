@@ -5,6 +5,21 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.15] - 2026-06-02
+
+### 修復
+- 修正考評快照「有效評核人數」與「整體評語」數量不一致（評語多於評核人數）的問題：
+  - 根因：`overallComments` 以 `arrayUnion` 只增不減，評核者於截止日前改寫整體評語時，新評語被追加為不同字串、舊評語從未移除，留下孤兒字串使評語數虛增；而 `validEvaluatorCount`（=實際表單數）維持正確，造成兩者漂移。
+  - 編輯分支：評語改寫時於主批次提交後，另以獨立 batch `arrayRemove` 移除該評核者先前的舊評語，消除預覽期殘留。採「先加後刪」順序，即使清理失敗也僅退回原行為、不會遺失評語。
+  - 結束並發布：`overallComments` 改由該受評者的所有考評表重新彙整，與 `validEvaluatorCount` 同源於 `evaluateeForms`，保證 `overallComments.length === validEvaluatorCount`，並過濾空白評語。
+
+### 文件
+- 同步更新規格與設計文件：`specs/002-peer-evaluation/data-model.md`（`overallComments` 欄位語意與查詢模式）、`plan.md`（preview 提交與 final 發布的評語維護機制），以及 `README.md`（結束並發布步驟說明評語與評核人數一致性）。
+
+### 備註
+- 因 Firestore 不允許在同一次寫入對同一欄位同時套用 `arrayUnion` 與 `arrayRemove`，編輯改寫的清理刻意拆為獨立的後續 commit。
+- 匿名 `string[]` 設計刻意保留（避免以 `evaluatorUid` 為 key 而讓受評者反推評核者身份）。
+
 ## [3.0.14] - 2026-05-30
 
 ### 修復

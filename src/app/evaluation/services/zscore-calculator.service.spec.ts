@@ -381,6 +381,34 @@ describe('ZScoreCalculatorService', () => {
       expect(result.snapshots.get('T1')!.validEvaluatorCount).toBe(2);
       expect(result.snapshots.get('T2')!.validEvaluatorCount).toBe(1);
     });
+
+    it('overallComments 由 forms 重新彙整，length 等於 validEvaluatorCount', () => {
+      const forms = [
+        makeForm('f1', 'E1', 'T1', makeScores(7), '評核者一對 T1 的整體評語，長度足夠。'),
+        makeForm('f2', 'E2', 'T1', makeScores(6), '評核者二對 T1 的整體評語，長度足夠。'),
+      ];
+      const result = service.compute(forms);
+
+      const snapshot = result.snapshots.get('T1')!;
+      expect(snapshot.overallComments).toEqual([
+        '評核者一對 T1 的整體評語，長度足夠。',
+        '評核者二對 T1 的整體評語，長度足夠。',
+      ]);
+      // 不變量：評語數恰等於有效評核人數
+      expect(snapshot.overallComments!.length).toBe(snapshot.validEvaluatorCount!);
+    });
+
+    it('overallComments 過濾空白評語但 validEvaluatorCount 仍計入該表單', () => {
+      const forms = [
+        makeForm('f1', 'E1', 'T1', makeScores(7), '有效評語，長度足夠用於跑馬燈顯示。'),
+        makeForm('f2', 'E2', 'T1', makeScores(6), '   '),
+      ];
+      const result = service.compute(forms);
+
+      const snapshot = result.snapshots.get('T1')!;
+      expect(snapshot.overallComments).toEqual(['有效評語，長度足夠用於跑馬燈顯示。']);
+      expect(snapshot.validEvaluatorCount).toBe(2);
+    });
   });
 
   // =====================
