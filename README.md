@@ -1,5 +1,14 @@
 # NGEip
 
+[![Contributors](https://img.shields.io/github/contributors/NOAHXDM/NGEip.svg?style=for-the-badge)](https://github.com/NOAHXDM/NGEip/graphs/contributors)
+[![Forks](https://img.shields.io/github/forks/NOAHXDM/NGEip.svg?style=for-the-badge)](https://github.com/NOAHXDM/NGEip/network/members)
+[![Stargazers](https://img.shields.io/github/stars/NOAHXDM/NGEip.svg?style=for-the-badge)](https://github.com/NOAHXDM/NGEip/stargazers)
+[![Issues](https://img.shields.io/github/issues/NOAHXDM/NGEip.svg?style=for-the-badge)](https://github.com/NOAHXDM/NGEip/issues)
+[![License](https://img.shields.io/github/license/NOAHXDM/NGEip.svg?style=for-the-badge)](LICENSE.txt)
+[![Version](https://img.shields.io/github/package-json/v/NOAHXDM/NGEip?style=for-the-badge)](package.json)
+[![Last Commit](https://img.shields.io/github/last-commit/NOAHXDM/NGEip?style=for-the-badge)](https://github.com/NOAHXDM/NGEip/commits/main)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/NOAHXDM/NGEip)
+
 NGEip 是一套以 **Angular 20 + Firebase** 為核心的企業資訊入口網站（EIP）。
 本專案依據 `.specify/memory/constitution.md` 的治理原則運作，後端能力統一使用
 Firebase Authentication、Cloud Firestore、Firebase Storage 與 Firebase Hosting。
