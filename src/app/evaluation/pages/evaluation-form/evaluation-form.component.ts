@@ -7,6 +7,7 @@
  *
  * 功能：
  *  - 從路由參數讀取 assignmentId，載入指派與週期資料
+ *  - 顯示被考評對象資訊（name / jobTitle / jobRank）
  *  - 若 assignment.status === 'completed' 且未截止 → 允許編輯已提交內容
  *  - 若 assignment.status === 'completed' 且已截止 → 唯讀展示已提交內容
  *  - 若截止日期已過 → 顯示警示，表單停用
@@ -48,6 +49,7 @@ import {
 import { EvaluationFormService } from '../../services/evaluation-form.service';
 import { EvaluationCycleService } from '../../services/evaluation-cycle.service';
 import { EvaluationFormQuestionsComponent } from '../../components/evaluation-form-questions/evaluation-form-questions.component';
+import { User } from '../../../services/user.service';
 
 // ── 預設值 ────────────────────────────────────────────────────────────────────
 
@@ -59,6 +61,7 @@ const DEFAULT_SCORES: EvaluationFormScores = {
 const EMPTY_FEEDBACKS: EvaluationFormFeedbacks = {};
 
 const ASSIGNMENTS_COLLECTION = 'evaluationAssignments';
+const USERS_COLLECTION = 'users';
 const OVERALL_COMMENT_MIN = 20;
 const OVERALL_COMMENT_MAX = 500;
 
@@ -124,6 +127,11 @@ const OVERALL_COMMENT_MAX = 500;
                 截止日：{{ cycle()!.deadline.toDate() | date:'yyyy/MM/dd' }}
               </p>
             }
+            <p class="evaluatee-label">
+              被考評對象：<span class="evaluatee-name">{{ evaluateeName() }}</span>
+              <span class="evaluatee-rank">{{ evaluateeJobRank() }}</span>
+              <span class="evaluatee-title">{{ evaluateeJobTitle() }}</span>
+            </p>
           </div>
           <!-- 狀態 chip -->
           @if (isSubmitted()) {
@@ -328,6 +336,31 @@ const OVERALL_COMMENT_MAX = 500;
       font-size: 0.85rem;
       color: #757575;
     }
+    .evaluatee-label {
+      margin: 6px 0 0;
+      font-size: 0.86rem;
+      color: #616161;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .evaluatee-name {
+      font-weight: 600;
+      color: #212121;
+    }
+    .evaluatee-rank {
+      padding: 1px 8px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      color: #1e88e5;
+      background: #e3f2fd;
+      border: 1px solid #bbdefb;
+    }
+    .evaluatee-title {
+      font-size: 0.82rem;
+      color: #455a64;
+    }
 
     /* ── 狀態 chip ───────────────────────────────────────────── */
     .status-chip {
@@ -473,6 +506,9 @@ export class EvaluationFormComponent implements OnInit {
   readonly assignment   = signal<EvaluationAssignment | null>(null);
   readonly cycle        = signal<EvaluationCycle | null>(null);
   readonly existingForm = signal<EvaluationForm | null>(null);
+  readonly evaluateeName = signal('未知用戶');
+  readonly evaluateeJobRank = signal('職等未設定');
+  readonly evaluateeJobTitle = signal('職稱未設定');
 
   // ── 表單狀態（Signal） ────────────────────────────────────────────────────
 
@@ -565,13 +601,27 @@ export class EvaluationFormComponent implements OnInit {
       } as EvaluationAssignment;
       this.assignment.set(assignment);
 
-      // 2. 載入評核週期（取第一次發射）
-      const cycle = await firstValueFrom(
-        this.cycleService.getCycleById(assignment.cycleId),
-      );
+      // 2. 並行載入評核週期與受評者基本資料
+      const [cycle, evaluateeSnap] = await Promise.all([
+        firstValueFrom(this.cycleService.getCycleById(assignment.cycleId)),
+        getDoc(doc(this.firestore, USERS_COLLECTION, assignment.evaluateeUid)),
+      ]);
+
+      if (evaluateeSnap.exists()) {
+        const evaluatee = evaluateeSnap.data() as User;
+        this.evaluateeName.set(evaluatee.name?.trim() || '未知用戶');
+        this.evaluateeJobRank.set(evaluatee.jobRank?.trim() || '職等未設定');
+        this.evaluateeJobTitle.set(evaluatee.jobTitle?.trim() || '職稱未設定');
+      } else {
+        this.evaluateeName.set('未知用戶');
+        this.evaluateeJobRank.set('職等未設定');
+        this.evaluateeJobTitle.set('職稱未設定');
+      }
+
+      // 3. 載入評核週期
       this.cycle.set(cycle);
 
-      // 3. 若已完成，載入已提交的表單內容（截止前可編輯、截止後唯讀）
+      // 4. 若已完成，載入已提交的表單內容（截止前可編輯、截止後唯讀）
       if (assignment.status === 'completed') {
         const form = await firstValueFrom(
           this.formService.getMyForm(assignment.cycleId, assignment.evaluateeUid),

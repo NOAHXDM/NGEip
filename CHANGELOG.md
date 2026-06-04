@@ -5,6 +5,29 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.16] - 2026-06-04
+
+### 變更
+- 評核者「我的考評任務」卡片補齊受評者資訊顯示：`name`、`jobTitle`、`jobRank`。
+- 「已填寫」分頁任務清單調整為依 `completedAt` 由新到舊（DESC）排序，優先呈現最新完成項目。
+- 「填寫考評表單」頁面標題區新增被考評對象資訊顯示（`name` / `jobTitle` / `jobRank`）。
+
+### 修復
+- 受評者資料缺漏時加入一致 fallback 文案，避免卡片顯示空白：
+  - `name` → `未知用戶`
+  - `jobTitle` → `職稱未設定`
+  - `jobRank` → `職等未設定`
+
+### 文件
+- 同步更新程式碼註解與規格文件，補充任務清單欄位顯示與排序規則：
+  - `src/app/evaluation/pages/evaluation-tasks/evaluation-tasks.component.ts`
+  - `src/app/evaluation/pages/evaluation-form/evaluation-form.component.ts`
+  - `specs/002-peer-evaluation/spec.md`
+  - `README.md`
+
+### 關聯議題
+- Closes [#12](https://github.com/NOAHXDM/NGEip/issues/12)
+
 ## [3.0.15] - 2026-06-02
 
 ### 修復
