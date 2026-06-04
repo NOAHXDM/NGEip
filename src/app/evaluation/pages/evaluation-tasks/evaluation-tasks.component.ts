@@ -6,10 +6,11 @@
  * 功能：
  *  - 兩個分頁：「待填寫」（pending / overdue）、「已填寫」（completed）
  *  - 從 EvaluationAssignmentService 取得所有指派
- *  - 合併受評者姓名（Firestore users/{uid}）與週期資訊（EvaluationCycleService）
+ *  - 合併受評者資訊（name / jobTitle / jobRank，來源 Firestore users/{uid}）與週期資訊（EvaluationCycleService）
  *  - 截止日期已過 → 顯示警示 chip
  *  - 已完成 → 顯示「已填寫」chip
  *  - 已完成且未截止 → 可從「已填寫」分頁進入編輯
+ *  - 已填寫任務依 completedAt 由新到舊排序
  *  - 待填寫且未截止 → 顯示「填寫考評表」按鈕
  *  - 各分頁空狀態提示
  */
@@ -40,6 +41,8 @@ import { User } from '../../../services/user.service';
 interface EnrichedAssignment {
   assignment: EvaluationAssignment;
   evaluateeName: string;
+  evaluateeJobTitle: string;
+  evaluateeJobRank: string;
   cycleName: string;
   deadline: Timestamp | null;
   isDeadlinePassed: boolean;
@@ -113,7 +116,11 @@ interface EnrichedAssignment {
                           <div class="evaluatee-info">
                             <mat-icon class="person-icon">person</mat-icon>
                             <div>
-                              <div class="evaluatee-name">{{ item.evaluateeName }}</div>
+                              <div class="evaluatee-name">
+                                {{ item.evaluateeName }}
+                                <span class="evaluatee-rank">{{ item.evaluateeJobRank }}</span>
+                                <span class="evaluatee-title">{{ item.evaluateeJobTitle }}</span>
+                              </div>
                               <div class="cycle-name">{{ item.cycleName }}</div>
                             </div>
                           </div>
@@ -189,7 +196,11 @@ interface EnrichedAssignment {
                           <div class="evaluatee-info">
                             <mat-icon class="person-icon">person</mat-icon>
                             <div>
-                              <div class="evaluatee-name">{{ item.evaluateeName }}</div>
+                              <div class="evaluatee-name">
+                                {{ item.evaluateeName }}
+                                <span class="evaluatee-rank">{{ item.evaluateeJobRank }}</span>
+                                <span class="evaluatee-title">{{ item.evaluateeJobTitle }}</span>
+                              </div>
                               <div class="cycle-name">{{ item.cycleName }}</div>
                             </div>
                           </div>
@@ -359,6 +370,24 @@ interface EnrichedAssignment {
       font-size: 1rem;
       font-weight: 600;
       color: #212121;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .evaluatee-title {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: #546e7a;
+    }
+    .evaluatee-rank {
+      padding: 1px 8px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 500;
+      color: #1e88e5;
+      background: #e3f2fd;
+      border: 1px solid #bbdefb;
     }
     .cycle-name {
       font-size: 0.82rem;
@@ -459,17 +488,34 @@ export class EvaluationTasksComponent {
           // 受評者姓名：直接讀取 users/{uid}（單次快照）
           from(
             getDoc(doc(this.firestore, 'users', assignment.evaluateeUid)).then(
-              (snap) => (snap.exists() ? (snap.data() as User).name : '未知用戶'),
+              (snap) => {
+                if (!snap.exists()) {
+                  return {
+                    name: '未知用戶',
+                    jobTitle: '職稱未設定',
+                    jobRank: '職等未設定',
+                  };
+                }
+
+                const user = snap.data() as User;
+                return {
+                  name: user.name?.trim() || '未知用戶',
+                  jobTitle: user.jobTitle?.trim() || '職稱未設定',
+                  jobRank: user.jobRank?.trim() || '職等未設定',
+                };
+              },
             ),
           ),
           // 週期資訊：取第一次發射值即完成
           this.cycleService.getCycleById(assignment.cycleId).pipe(take(1)),
         ]).pipe(
-          map(([evaluateeName, cycle]) => {
+          map(([evaluatee, cycle]) => {
             const deadline = cycle?.deadline ?? null;
             return {
               assignment,
-              evaluateeName,
+              evaluateeName: evaluatee.name,
+              evaluateeJobTitle: evaluatee.jobTitle,
+              evaluateeJobRank: evaluatee.jobRank,
               cycleName: cycle?.name ?? '未知週期',
               deadline,
               isDeadlinePassed: deadline ? deadline.toDate() < new Date() : false,
@@ -502,7 +548,11 @@ export class EvaluationTasksComponent {
   readonly completedAssignments = computed(() =>
     (this.enrichedAssignments() ?? []).filter(
       (a) => a.assignment.status === 'completed',
-    ),
+    ).sort((a, b) => {
+      const aTime = a.assignment.completedAt?.toMillis() ?? 0;
+      const bTime = b.assignment.completedAt?.toMillis() ?? 0;
+      return bTime - aTime;
+    }),
   );
 
   // ── 導航 ─────────────────────────────────────────────────────────────────
