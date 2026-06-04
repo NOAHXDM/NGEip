@@ -15,6 +15,8 @@
  *    - 升降冪選擇
  *    - 顯示名次
  *  - 「結束並發布」按鈕（週期 status=closed 後停用）
+ *  - 「重新結算職業原型」：支援週期全量與單一受評者
+ *    - 單一受評者操作位於卡片展開區，並顯示最近一次重算時間
  *  - 空狀態引導
  */
 
@@ -48,6 +50,7 @@ import { EvaluationCycleService } from '../../services/evaluation-cycle.service'
 import { UserAttributeSnapshotService } from '../../services/user-attribute-snapshot.service';
 import { EvaluationFormService } from '../../services/evaluation-form.service';
 import { CareerArchetypeBadgeComponent } from '../../components/career-archetype-badge/career-archetype-badge.component';
+import { FirestoreTimestampPipe } from '../../../pipes/firestore-timestamp.pipe';
 
 // ── 排序欄位定義 ──────────────────────────────────────────────────────────────
 
@@ -95,6 +98,7 @@ interface EvaluateeCard {
     MatChipsModule,
     MatExpansionModule,
     CareerArchetypeBadgeComponent,
+    FirestoreTimestampPipe,
   ],
   template: `
     <div class="page-container">
@@ -151,6 +155,20 @@ interface EvaluateeCard {
                   <mat-icon>calculate</mat-icon>
                 }
                 重新結算加總平均分數
+              </button>
+
+              <!-- 重新計算職業原型 -->
+              <button
+                mat-stroked-button
+                color="primary"
+                [disabled]="isRecalculatingArchetypes()"
+                (click)="recalculateCareerArchetypes()">
+                @if (isRecalculatingArchetypes()) {
+                  <mat-spinner diameter="16" />
+                } @else {
+                  <mat-icon>auto_fix_high</mat-icon>
+                }
+                重新結算職業原型
               </button>
             }
           </div>
@@ -303,13 +321,37 @@ interface EvaluateeCard {
 
                 <!-- 展開考評表明細按鈕 -->
                 <div class="expand-section">
-                  <button
-                    mat-button
-                    color="primary"
-                    (click)="toggleExpandCard(card)">
-                    <mat-icon>{{ card.isExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
-                    {{ card.isExpanded ? '收合考評表明細' : '展開考評表明細' }}
-                  </button>
+                  <div class="expand-actions-row">
+                    <button
+                      mat-button
+                      color="primary"
+                      (click)="toggleExpandCard(card)">
+                      <mat-icon>{{ card.isExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+                      {{ card.isExpanded ? '收合考評表明細' : '展開考評表明細' }}
+                    </button>
+
+                    <button
+                      mat-button
+                      color="primary"
+                      [disabled]="recalculatingEvaluateeUid() === card.snapshot.userId"
+                      (click)="recalculateCareerArchetypeForEvaluatee(card)">
+                      @if (recalculatingEvaluateeUid() === card.snapshot.userId) {
+                        <mat-spinner diameter="14" />
+                      } @else {
+                        <mat-icon>auto_fix_high</mat-icon>
+                      }
+                      僅重算此人職業原型
+                    </button>
+
+                    <span class="recalc-time">
+                      最近一次重算：
+                      @if (card.snapshot.computedAt) {
+                        {{ card.snapshot.computedAt | firestoreTimestamp:'yyyy-MM-dd HH:mm:ss' }}
+                      } @else {
+                        尚未重算
+                      }
+                    </span>
+                  </div>
                 </div>
 
                 <!-- 考評表明細（展開後） -->
@@ -580,6 +622,18 @@ interface EvaluateeCard {
       margin-top: 8px;
     }
 
+    .expand-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .recalc-time {
+      font-size: 12px;
+      color: #666;
+    }
+
     .form-divider {
       margin: 12px 0;
     }
@@ -688,6 +742,8 @@ export class EvaluationOverviewAdminComponent implements OnInit {
   isLoadingSnapshots = signal(false);
   isClosing = signal(false);
   isRecalculating = signal(false);
+  isRecalculatingArchetypes = signal(false);
+  recalculatingEvaluateeUid = signal<string | null>(null);
   rankingViewEnabled = signal(false);
   showRawScores = signal(false);
   sortField = signal<SortField>('totalScore');
@@ -874,6 +930,68 @@ export class EvaluationOverviewAdminComponent implements OnInit {
       this.snackBar.open(`❌ ${msg}`, '關閉', { duration: 8000 });
     } finally {
       this.isRecalculating.set(false);
+    }
+  }
+
+  /** 觸發重新結算職業原型 */
+  async recalculateCareerArchetypes(): Promise<void> {
+    const cycleId = this.selectedCycleId();
+    if (!cycleId) return;
+
+    const confirmed = window.confirm(
+      `確定要重新結算週期「${this.selectedCycle()?.name}」的職業原型嗎？\n` +
+      `此操作將依據目前分數重新判定所有受評者的職業原型。`,
+    );
+    if (!confirmed) return;
+
+    this.isRecalculatingArchetypes.set(true);
+    try {
+      await this.cycleService.recalculateCareerArchetypes(cycleId);
+      this.snackBar.open('職業原型已重新結算完成！', '關閉', { duration: 5000 });
+      await this.onCycleChange(cycleId);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : '結算失敗，請稍後再試';
+      this.snackBar.open(`❌ ${msg}`, '關閉', { duration: 8000 });
+    } finally {
+      this.isRecalculatingArchetypes.set(false);
+    }
+  }
+
+  /** 觸發單一受評者的職業原型重算 */
+  async recalculateCareerArchetypeForEvaluatee(card: EvaluateeCard): Promise<void> {
+    const cycleId = this.selectedCycleId();
+    if (!cycleId) return;
+
+    const confirmed = window.confirm(
+      `確定只重算「${card.evaluateeName}」在週期「${this.selectedCycle()?.name}」的職業原型嗎？`,
+    );
+    if (!confirmed) return;
+
+    this.recalculatingEvaluateeUid.set(card.snapshot.userId);
+    try {
+      const updated = await this.cycleService.recalculateCareerArchetypeForEvaluatee(
+        cycleId,
+        card.snapshot.userId,
+      );
+
+      if (updated) {
+        this.snackBar.open(`已完成「${card.evaluateeName}」職業原型重算。`, '關閉', {
+          duration: 5000,
+        });
+      } else {
+        this.snackBar.open(
+          `「${card.evaluateeName}」缺少可用表單或快照，未進行更新。`,
+          '關閉',
+          { duration: 7000 },
+        );
+      }
+
+      await this.onCycleChange(cycleId);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : '重算失敗，請稍後再試';
+      this.snackBar.open(`❌ ${msg}`, '關閉', { duration: 8000 });
+    } finally {
+      this.recalculatingEvaluateeUid.set(null);
     }
   }
 

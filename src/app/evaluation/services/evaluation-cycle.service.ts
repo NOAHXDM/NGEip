@@ -10,6 +10,9 @@
  *  - updateDeadline(cycleId, deadline)    更新截止日期
  *  - incrementCompletedAssignments(cycleId) 遞增已完成指派計數（由表單提交服務呼叫）
  *  - closeAndPublish(cycleId)             關閉並發布週期（完整 Z-score 批次計算）
+ *  - recalculateRawScores(cycleId)        回填週期原始平均分數（raw）
+ *  - recalculateCareerArchetypes(cycleId) 重算週期所有受評者職業原型
+ *  - recalculateCareerArchetypeForEvaluatee(cycleId, evaluateeUid) 重算單一受評者職業原型
  */
 
 import { Injectable, inject } from '@angular/core';
@@ -35,6 +38,7 @@ import {
 import { Auth } from '@angular/fire/auth';
 import { Timestamp } from 'firebase/firestore';
 import {
+  AttributeScores,
   EvaluationAssignment,
   EvaluationCycle,
   EvaluationForm,
@@ -404,5 +408,141 @@ export class EvaluationCycleService {
     for (const batch of batches) {
       await batch.commit();
     }
+  }
+
+  /**
+   * 重新計算指定週期所有受評者的職業原型（careerArchetypes）
+   *
+   * 規則：
+   * - 以 snapshot 現有 attributes 作為主要判定分數（通常為發布後 Z-score 校正分數）
+   * - 以 forms 重新計算 rawAttributes 作為初心者判定依據
+   * - 若某受評者本週期無表單，則略過不更新
+   *
+   * @param cycleId 目標週期 ID
+   */
+  async recalculateCareerArchetypes(cycleId: string): Promise<void> {
+    // Step 1：讀取本週期所有已提交考評表
+    const formsQuery = this._fn.query(
+      this._fn.collection(this.firestore, FORMS_COLLECTION),
+      this._fn.where('cycleId', '==', cycleId),
+    );
+    const formsSnap = await this._fn.getDocs(formsQuery);
+    const forms: EvaluationForm[] = formsSnap.docs.map(
+      (d) => ({ ...d.data(), id: d.id } as EvaluationForm),
+    );
+
+    // Step 2：依受評者分組
+    const formsByEvaluatee = new Map<string, EvaluationForm[]>();
+    for (const form of forms) {
+      const arr = formsByEvaluatee.get(form.evaluateeUid) ?? [];
+      arr.push(form);
+      formsByEvaluatee.set(form.evaluateeUid, arr);
+    }
+
+    // Step 3：讀取本週期所有快照
+    const snapshotsQuery = this._fn.query(
+      this._fn.collection(this.firestore, SNAPSHOTS_COLLECTION),
+      this._fn.where('cycleId', '==', cycleId),
+    );
+    const snapshotsSnap = await this._fn.getDocs(snapshotsQuery);
+
+    if (snapshotsSnap.docs.length === 0) return;
+
+    // Step 4：Batch 更新每份快照的 careerArchetypes
+    let currentBatch = this._fn.writeBatch(this.firestore);
+    let opCount = 0;
+    const batches: ReturnType<typeof writeBatch>[] = [currentBatch];
+
+    const addOp = (fn: (b: ReturnType<typeof writeBatch>) => void) => {
+      if (opCount >= BATCH_SIZE_LIMIT) {
+        currentBatch = this._fn.writeBatch(this.firestore);
+        batches.push(currentBatch);
+        opCount = 0;
+      }
+      fn(currentBatch);
+      opCount++;
+    };
+
+    for (const existingSnap of snapshotsSnap.docs) {
+      const snapData = existingSnap.data();
+      const userId = snapData['userId'] as string;
+      const snapshotRef = this._fn.doc(this.firestore, SNAPSHOTS_COLLECTION, existingSnap.id);
+
+      const evaluateeForms = formsByEvaluatee.get(userId);
+      if (!evaluateeForms || evaluateeForms.length === 0) {
+        continue;
+      }
+
+      const rawAttributes = this.zScoreCalculator.computeRawAttributeScores(evaluateeForms);
+      const attributesFromSnapshot = snapData['attributes'] as AttributeScores | undefined;
+      const attributes = attributesFromSnapshot ?? rawAttributes;
+      const careerArchetypes = this.zScoreCalculator.determineArchetypes(attributes, rawAttributes);
+
+      addOp((b) => {
+        b.update(snapshotRef, {
+          careerArchetypes,
+          computedAt: this._fn.serverTimestamp(),
+        });
+      });
+    }
+
+    for (const batch of batches) {
+      await batch.commit();
+    }
+  }
+
+  /**
+   * 重新計算指定週期「單一受評者」的職業原型（careerArchetypes）
+   *
+   * 規則：
+   * - 以 snapshot 現有 attributes 作為主要判定分數
+   * - 以該受評者 forms 重新計算 rawAttributes 作為初心者判定依據
+   *
+   * @param cycleId 目標週期 ID
+   * @param evaluateeUid 受評者 UID
+   * @returns true 代表有完成更新；false 代表缺少表單或快照而未更新
+   */
+  async recalculateCareerArchetypeForEvaluatee(
+    cycleId: string,
+    evaluateeUid: string,
+  ): Promise<boolean> {
+    // Step 1：讀取該受評者於指定週期的所有考評表
+    const formsQuery = this._fn.query(
+      this._fn.collection(this.firestore, FORMS_COLLECTION),
+      this._fn.where('cycleId', '==', cycleId),
+      this._fn.where('evaluateeUid', '==', evaluateeUid),
+    );
+    const formsSnap = await this._fn.getDocs(formsQuery);
+    const evaluateeForms: EvaluationForm[] = formsSnap.docs.map(
+      (d) => ({ ...d.data(), id: d.id } as EvaluationForm),
+    );
+
+    if (evaluateeForms.length === 0) {
+      return false;
+    }
+
+    // Step 2：讀取對應快照
+    const snapshotId = `${cycleId}_${evaluateeUid}`;
+    const snapshotRef = this._fn.doc(this.firestore, SNAPSHOTS_COLLECTION, snapshotId);
+    const snapshotDoc = await this._fn.getDoc(snapshotRef);
+
+    if (!snapshotDoc.exists()) {
+      return false;
+    }
+
+    // Step 3：依規則重算職業原型
+    const snapData = snapshotDoc.data() as Record<string, unknown>;
+    const rawAttributes = this.zScoreCalculator.computeRawAttributeScores(evaluateeForms);
+    const attributesFromSnapshot = snapData['attributes'] as AttributeScores | undefined;
+    const attributes = attributesFromSnapshot ?? rawAttributes;
+    const careerArchetypes = this.zScoreCalculator.determineArchetypes(attributes, rawAttributes);
+
+    // Step 4：寫回快照
+    await this._fn.updateDoc(snapshotRef, {
+      careerArchetypes,
+      computedAt: this._fn.serverTimestamp(),
+    });
+
+    return true;
   }
 }

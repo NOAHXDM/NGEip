@@ -268,7 +268,9 @@ export class ZScoreCalculatorService {
    * 優先順序：
    * 1. 全部屬性 ≥ 8 → 🌟 勇者 Hero（特殊全能原型）
    * 2. 任意 3 項以上屬性 < 5（使用原始平均分數） → 🌱 初心者 Novice（待成長原型）
-   * 3. 取前兩高屬性的所有組合，查詢 ARCHETYPE_MAP，去重後輸出並列原型
+    * 3. 取前兩高屬性的所有組合，查詢 ARCHETYPE_MAP，去重後輸出並列原型
+   * 4. 若步驟 3 無命中：改用「最高屬性 + 可映射且分數最高的屬性」作為 fallback
+   *    （若分數同分則按排序先後決定）
    *
    * @param attributes 校正後屬性分數（用於勇者判定與一般原型判定）
    * @param rawAttributes 原始平均屬性分數（用於初心者判定），未提供時以 attributes 代替
@@ -299,6 +301,32 @@ export class ZScoreCalculatorService {
         const key = `${candidates[i][0]}+${candidates[j][0]}`;
         if (ARCHETYPE_MAP[key]) {
           archetypes.add(ARCHETYPE_MAP[key]);
+        }
+      }
+    }
+
+    // 若「前兩高屬性組合」未命中，改用最高屬性做 fallback。
+    // 例：COL 最高且 EXE 次高（COL+EXE 未定義）時，
+    //     會在 COL 可映射對象（ADP/STB）中取分數較高者。
+    if (archetypes.size === 0 && sorted.length > 0) {
+      const highestAttr = sorted[0][0] as keyof AttributeScores;
+      const partnerCandidates = sorted
+        .map(([attr, score], index) => ({ attr: attr as keyof AttributeScores, score, index }))
+        .filter(({ attr }) => attr !== highestAttr)
+        .filter(({ attr }) => !!ARCHETYPE_MAP[`${highestAttr}+${attr}`]);
+
+      if (partnerCandidates.length > 0) {
+        partnerCandidates.sort((a, b) => {
+          if (b.score !== a.score) {
+            return b.score - a.score;
+          }
+          return a.index - b.index;
+        });
+
+        const fallbackKey = `${highestAttr}+${partnerCandidates[0].attr}`;
+        const fallbackArchetype = ARCHETYPE_MAP[fallbackKey];
+        if (fallbackArchetype) {
+          archetypes.add(fallbackArchetype);
         }
       }
     }
