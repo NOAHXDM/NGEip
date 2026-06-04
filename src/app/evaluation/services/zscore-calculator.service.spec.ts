@@ -270,6 +270,14 @@ describe('ZScoreCalculatorService', () => {
       expect(result).toContain('⚔️ 劍士'); // EXE+STB
       expect(result).toContain('🔨 商人'); // EXE+INS
     });
+
+    it('前兩高組合未命中時，應以最高屬性的可映射次屬性做 fallback', () => {
+      // 前兩高為 COL(9) + EXE(8)，COL+EXE 未定義。
+      // fallback：COL 可映射 ADP 與 STB，且 STB(7) > ADP(6) → 應判定為牧師（COL+STB）。
+      const attrs: AttributeScores = { EXE: 8, INS: 5, ADP: 6, COL: 9, STB: 7, INN: 4 };
+      const result = service.determineArchetypes(attrs);
+      expect(result).toEqual(['✨ 牧師']);
+    });
   });
 
   // =====================

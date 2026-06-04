@@ -118,13 +118,26 @@ describe('EvaluationCycleService', () => {
     // ── 建立 DI token 的模擬物件 ──────────────────────────────────────────
     mockFirestore = jasmine.createSpyObj('Firestore', ['_dummy']);
     mockAuth = { currentUser: { uid: MOCK_USER_UID } };
-    mockZScoreCalculator = jasmine.createSpyObj('ZScoreCalculatorService', ['compute']);
+    mockZScoreCalculator = jasmine.createSpyObj('ZScoreCalculatorService', [
+      'compute',
+      'computeRawAttributeScores',
+      'determineArchetypes',
+    ]);
 
     // 預設 compute 回傳空結果
     mockZScoreCalculator.compute.and.returnValue({
       snapshots: new Map(),
       anomalousFormIds: new Map(),
     });
+    mockZScoreCalculator.computeRawAttributeScores.and.returnValue({
+      EXE: 7,
+      INS: 7,
+      ADP: 7,
+      COL: 7,
+      STB: 7,
+      INN: 7,
+    });
+    mockZScoreCalculator.determineArchetypes.and.returnValue(['⚔️ 劍士']);
 
     // 重置 batch spies
     MOCK_BATCH.update.calls.reset();
@@ -736,6 +749,203 @@ describe('EvaluationCycleService', () => {
 
       // 不應有任何 update（因為受評者無表單資料）
       expect(MOCK_BATCH.update).not.toHaveBeenCalled();
+    });
+  });
+
+  // =====================
+  // 測試：recalculateCareerArchetypes
+  // =====================
+
+  describe('recalculateCareerArchetypes()', () => {
+    function makeMockFormDoc(evaluatorUid: string, evaluateeUid: string): any {
+      const scores: EvaluationFormScores = {
+        q1: 7, q2: 7, q3: 7, q4: 7, q5: 7,
+        q6: 7, q7: 7, q8: 7, q9: 7, q10: 7,
+      };
+      const form = {
+        id: `form-${evaluatorUid}-${evaluateeUid}`,
+        assignmentId: `assign-${evaluatorUid}`,
+        cycleId: MOCK_CYCLE_ID,
+        evaluatorUid,
+        evaluateeUid,
+        scores,
+        feedbacks: {},
+        overallComment: '整體表現良好，持續保持。',
+        anomalyFlags: { reciprocalHighScore: false, outlierEvaluator: false },
+      };
+      return { id: form.id, data: () => form };
+    }
+
+    function makeMockSnapshotDocForArchetype(userId: string, attrs?: AttributeScores) {
+      const snapshotId = `${MOCK_CYCLE_ID}_${userId}`;
+      return {
+        id: snapshotId,
+        data: () => ({
+          id: snapshotId,
+          cycleId: MOCK_CYCLE_ID,
+          userId,
+          status: 'final',
+          validEvaluatorCount: 1,
+          attributes: attrs ?? { EXE: 6, INS: 6, ADP: 6, COL: 8, STB: 7, INN: 6 },
+          totalScore: 39,
+          careerArchetypes: [],
+        }),
+      };
+    }
+
+    it('應重算並更新快照的 careerArchetypes', async () => {
+      const userId = 'evaluatee-archetype-001';
+      const rawAttrs: AttributeScores = {
+        EXE: 6,
+        INS: 6,
+        ADP: 6,
+        COL: 8,
+        STB: 7,
+        INN: 6,
+      };
+
+      mockZScoreCalculator.computeRawAttributeScores.and.returnValue(rawAttrs);
+      mockZScoreCalculator.determineArchetypes.and.returnValue(['✨ 牧師']);
+
+      // getDocs: forms -> 1 筆, snapshots -> 1 筆
+      getDocsSpy.and.returnValues(
+        Promise.resolve({ docs: [makeMockFormDoc('evaluator-1', userId)] } as any),
+        Promise.resolve({ docs: [makeMockSnapshotDocForArchetype(userId)] } as any),
+      );
+
+      await service.recalculateCareerArchetypes(MOCK_CYCLE_ID);
+
+      expect(mockZScoreCalculator.computeRawAttributeScores).toHaveBeenCalled();
+      expect(mockZScoreCalculator.determineArchetypes).toHaveBeenCalled();
+      expect(MOCK_BATCH.update).toHaveBeenCalledWith(
+        MOCK_DOC_REF,
+        jasmine.objectContaining({
+          careerArchetypes: ['✨ 牧師'],
+          computedAt: MOCK_SERVER_TIMESTAMP,
+        }),
+      );
+      expect(MOCK_BATCH.commit).toHaveBeenCalled();
+    });
+
+    it('無快照時應不執行任何寫入', async () => {
+      // getDocs: forms -> 空, snapshots -> 空
+      getDocsSpy.and.returnValues(
+        Promise.resolve({ docs: [] } as any),
+        Promise.resolve({ docs: [] } as any),
+      );
+
+      await service.recalculateCareerArchetypes(MOCK_CYCLE_ID);
+
+      expect(MOCK_BATCH.update).not.toHaveBeenCalled();
+      expect(mockZScoreCalculator.determineArchetypes).not.toHaveBeenCalled();
+    });
+
+    it('受評者無對應表單時不應更新該快照', async () => {
+      // getDocs: forms -> 空, snapshots -> 1 筆（但無對應表單）
+      getDocsSpy.and.returnValues(
+        Promise.resolve({ docs: [] } as any),
+        Promise.resolve({ docs: [makeMockSnapshotDocForArchetype('user-no-forms')] } as any),
+      );
+
+      await service.recalculateCareerArchetypes(MOCK_CYCLE_ID);
+
+      expect(MOCK_BATCH.update).not.toHaveBeenCalled();
+      expect(mockZScoreCalculator.determineArchetypes).not.toHaveBeenCalled();
+    });
+  });
+
+  // =====================
+  // 測試：recalculateCareerArchetypeForEvaluatee
+  // =====================
+
+  describe('recalculateCareerArchetypeForEvaluatee()', () => {
+    function makeMockFormDoc(evaluatorUid: string, evaluateeUid: string): any {
+      const scores: EvaluationFormScores = {
+        q1: 7, q2: 7, q3: 7, q4: 7, q5: 7,
+        q6: 7, q7: 7, q8: 7, q9: 7, q10: 7,
+      };
+      const form = {
+        id: `form-${evaluatorUid}-${evaluateeUid}`,
+        assignmentId: `assign-${evaluatorUid}`,
+        cycleId: MOCK_CYCLE_ID,
+        evaluatorUid,
+        evaluateeUid,
+        scores,
+        feedbacks: {},
+        overallComment: '整體表現良好，持續保持。',
+        anomalyFlags: { reciprocalHighScore: false, outlierEvaluator: false },
+      };
+      return { id: form.id, data: () => form };
+    }
+
+    function makeSnapshotDocExists(attrs?: AttributeScores): any {
+      return {
+        exists: () => true,
+        data: () => ({
+          attributes: attrs ?? { EXE: 6, INS: 6, ADP: 6, COL: 8, STB: 7, INN: 6 },
+        }),
+      };
+    }
+
+    it('有表單與快照時應更新職業原型並回傳 true', async () => {
+      const evaluateeUid = 'evaluatee-single-001';
+      const rawAttrs: AttributeScores = {
+        EXE: 6,
+        INS: 6,
+        ADP: 6,
+        COL: 8,
+        STB: 7,
+        INN: 6,
+      };
+
+      mockZScoreCalculator.computeRawAttributeScores.and.returnValue(rawAttrs);
+      mockZScoreCalculator.determineArchetypes.and.returnValue(['✨ 牧師']);
+
+      getDocsSpy.and.returnValue(
+        Promise.resolve({ docs: [makeMockFormDoc('evaluator-1', evaluateeUid)] } as any),
+      );
+      getDocSpy.and.returnValue(Promise.resolve(makeSnapshotDocExists() as any));
+
+      const result = await service.recalculateCareerArchetypeForEvaluatee(MOCK_CYCLE_ID, evaluateeUid);
+
+      expect(result).toBeTrue();
+      expect(mockZScoreCalculator.computeRawAttributeScores).toHaveBeenCalled();
+      expect(mockZScoreCalculator.determineArchetypes).toHaveBeenCalled();
+      expect(updateDocSpy).toHaveBeenCalledWith(
+        MOCK_DOC_REF,
+        jasmine.objectContaining({
+          careerArchetypes: ['✨ 牧師'],
+          computedAt: MOCK_SERVER_TIMESTAMP,
+        }),
+      );
+    });
+
+    it('無表單時應回傳 false 且不寫入', async () => {
+      const evaluateeUid = 'evaluatee-single-002';
+
+      getDocsSpy.and.returnValue(Promise.resolve({ docs: [] } as any));
+
+      const result = await service.recalculateCareerArchetypeForEvaluatee(MOCK_CYCLE_ID, evaluateeUid);
+
+      expect(result).toBeFalse();
+      expect(updateDocSpy).not.toHaveBeenCalled();
+      expect(mockZScoreCalculator.determineArchetypes).not.toHaveBeenCalled();
+    });
+
+    it('快照不存在時應回傳 false 且不寫入', async () => {
+      const evaluateeUid = 'evaluatee-single-003';
+
+      getDocsSpy.and.returnValue(
+        Promise.resolve({ docs: [makeMockFormDoc('evaluator-1', evaluateeUid)] } as any),
+      );
+      getDocSpy.and.returnValue(
+        Promise.resolve({ exists: () => false, data: () => undefined } as any),
+      );
+
+      const result = await service.recalculateCareerArchetypeForEvaluatee(MOCK_CYCLE_ID, evaluateeUid);
+
+      expect(result).toBeFalse();
+      expect(updateDocSpy).not.toHaveBeenCalled();
     });
   });
 });

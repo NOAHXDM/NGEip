@@ -128,6 +128,12 @@ interface EvaluationCycleService {
   // 回填舊週期的原始平均分數（rawAttributes/rawTotalScore）
   // 用於舊資料缺少新欄位時，管理者可透過 UI 按鈕手動觸發
   recalculateRawScores(cycleId: string): Promise<void>;
+
+  // 重新計算週期所有受評者的職業原型
+  recalculateCareerArchetypes(cycleId: string): Promise<void>;
+
+  // 重新計算週期內單一受評者的職業原型
+  recalculateCareerArchetypeForEvaluatee(cycleId: string, evaluateeUid: string): Promise<boolean>;
 }
 ```
 
@@ -195,9 +201,9 @@ interface ZScoreCalculatorService {
   compute(forms: EvaluationForm[]): ComputedCycleResults;
 
   // 計算原始平均屬性分數（不經 Z-score 校正），供 preview 預覽及舊資料回填使用
-  computeRawAttributeScores(forms: EvaluationForm[], evaluateeUid: string): AttributeScores;
+  computeRawAttributeScores(evaluateeForms: EvaluationForm[]): AttributeScores;
 
-  // 計算職業原型（初心者判定使用原始平均分數，門檻 < 5）
+  // 計算職業原型（初心者判定使用原始平均分數；未命中對照表時使用最高屬性 fallback）
   determineArchetypes(attributes: AttributeScores, rawAttributes?: AttributeScores): string[];
 
   // 偵測互惠高分對

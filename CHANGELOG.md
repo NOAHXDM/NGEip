@@ -5,6 +5,28 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.17] - 2026-06-04
+
+### 變更
+- 管理者評核總覽新增職業原型重算能力：
+  - 可重算整個考核週期所有受評者的職業原型
+  - 可在受評者卡片展開區僅重算單一受評者職業原型
+  - 展開區顯示「最近一次重算時間」，若無資料則顯示「尚未重算」
+- 職業原型判定補上 fallback：當「前兩高屬性組合」未命中對照表時，改以最高屬性搭配其可映射且分數最高的屬性判定（同分時依排序先後）
+
+### 測試
+- 補充並通過 `EvaluationCycleService` 單元測試：
+  - `recalculateCareerArchetypeForEvaluatee(cycleId, evaluateeUid)` 成功/無表單/無快照分支
+- 補充並通過 `ZScoreCalculatorService` 單元測試：
+  - 前兩高組合未命中時的 fallback 判定案例
+
+### 文件
+- 同步修正程式註解與規格文件，確保與實作一致：
+  - `README.md`：職業原型對照從「單屬性最高」更新為「雙屬性組合 + fallback」，並補充管理者重算操作
+  - `specs/002-peer-evaluation/spec.md`：驗收情境補充 fallback 行為
+  - `specs/002-peer-evaluation/職場屬性評鑑規格.md`：補充未命中對照表 fallback 規則
+  - `specs/002-peer-evaluation/contracts/angular-interfaces.md`：同步新 API 與方法簽名
+
 ## [3.0.16] - 2026-06-04
 
 ### 變更
