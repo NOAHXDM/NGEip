@@ -153,16 +153,16 @@ function determineArchetypes(attrs: AttributeScores, rawAttrs?: AttributeScores)
 
 ---
 
-## 6. 跑馬燈（Marquee）實作
+## 6. 整體評語與具體回饋滾動區實作
 
-**問題**：整體評價跑馬燈如何實作？
+**問題**：整體評語與具體回饋如何在同一區塊中可讀且不破壞匿名性？
 
-**Decision**：純 Angular standalone 元件搭配 CSS `@keyframes` 動畫，不引入任何套件。
+**Decision**：在報告頁使用固定高度可捲動容器，資料來自 `userAttributeSnapshots` 的 `overallComments` 與 `feedbackInsights`，不引入任何外部套件。
 
 **Pattern**：
-- `marquee-comments.component.ts`：接受 `comments: string[]` 輸入，將所有評語串接（以分隔符號隔開），用 `overflow: hidden` + `translateX` 動畫。
-- 當 comments 為空陣列 → 元件不渲染（`@if (comments.length > 0)`）。
-- 切換週期 → 父元件更新 `comments` input → Angular 重新渲染 → CSS 動畫重新啟動（透過 key-binding 強制 re-render）。
+- 以 `overflow-y: auto` 呈現長內容；區塊高度固定，避免撐壞頁面排版。
+- 透過 `setInterval` 緩慢遞增 `scrollTop`，在未 hover 時自動慢速捲動；hover 時暫停。
+- 到達底部後回到頂部循環；若內容高度不足，則不啟動自動捲動。
 
 ---
 
@@ -191,5 +191,5 @@ function determineArchetypes(attrs: AttributeScores, rawAttrs?: AttributeScores)
 | 匿名性保護 | Security Rules 層阻斷 evaluatee 讀取 evaluationForms；overallComments 以純文字陣列存於 snapshot |
 | 職業原型並列 | 枚舉所有前兩高屬性對，去重後輸出 |
 | jobRank 映射 | 沿用現有欄位，J/M/S 為預期值，不符則顯示「職等未設定」 |
-| 跑馬燈 | 純 CSS keyframes + Angular binding |
+| 整體評語/具體回饋滾動區 | 固定高度 scroll panel + 自動慢速捲動（hover 暫停） |
 | 截止鎖定 | 前端守衛（不需 Cloud Functions） |

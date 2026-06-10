@@ -408,13 +408,13 @@ describe('ZScoreCalculatorService', () => {
 
     it('overallComments 過濾空白評語但 validEvaluatorCount 仍計入該表單', () => {
       const forms = [
-        makeForm('f1', 'E1', 'T1', makeScores(7), '有效評語，長度足夠用於跑馬燈顯示。'),
+        makeForm('f1', 'E1', 'T1', makeScores(7), '有效評語，長度足夠用於報告頁評語區顯示。'),
         makeForm('f2', 'E2', 'T1', makeScores(6), '   '),
       ];
       const result = service.compute(forms);
 
       const snapshot = result.snapshots.get('T1')!;
-      expect(snapshot.overallComments).toEqual(['有效評語，長度足夠用於跑馬燈顯示。']);
+      expect(snapshot.overallComments).toEqual(['有效評語，長度足夠用於報告頁評語區顯示。']);
       expect(snapshot.validEvaluatorCount).toBe(2);
     });
   });

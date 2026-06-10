@@ -5,8 +5,8 @@
  * 路由：/evaluation/my-report
  *
  * 功能：
- *  - 頂部 MarqueeCommentsComponent（顯示本週期的 overallComments）
- *  - 週期選擇器 MatSelect（切換後跑馬燈同步更新）
+ *  - 週期選擇器 MatSelect
+ *  - 整體評語與具體回饋滾動檢視
  *  - FR-015：評核人數不足警示（validEvaluatorCount < 5）
  *  - 基本資訊卡：CareerArchetypeBadgeComponent、totalScore、validEvaluatorCount
  *  - RadarChartComponent（6 軸分數，小數兩位）
@@ -16,7 +16,7 @@
  *  - 空狀態（無快照資料）
  */
 
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatCardModule } from '@angular/material/card';
 import { MatSelectModule } from '@angular/material/select';
@@ -30,6 +30,7 @@ import {
   AttributeKey,
   AttributeScores,
   EvaluationCycle,
+  EvaluationFeedbackInsight,
   PeriodDataPoint,
   RadarAxis,
   UserAttributeSnapshot,
@@ -38,7 +39,6 @@ import { EvaluationCycleService } from '../../services/evaluation-cycle.service'
 import { UserAttributeSnapshotService } from '../../services/user-attribute-snapshot.service';
 import { RadarChartComponent } from '../../components/radar-chart/radar-chart.component';
 import { TrendLineChartComponent } from '../../components/trend-line-chart/trend-line-chart.component';
-import { MarqueeCommentsComponent } from '../../components/marquee-comments/marquee-comments.component';
 import { CareerArchetypeBadgeComponent } from '../../components/career-archetype-badge/career-archetype-badge.component';
 
 // ── 職等及格說明 ──────────────────────────────────────────────────────────────
@@ -94,7 +94,6 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
     MatSlideToggleModule,
     RadarChartComponent,
     TrendLineChartComponent,
-    MarqueeCommentsComponent,
     CareerArchetypeBadgeComponent,
   ],
   template: `
@@ -127,11 +126,6 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
         </mat-card>
 
       } @else {
-
-        <!-- 跑馬燈：顯示本週期的 overallComments -->
-        <div class="marquee-section">
-          <app-marquee-comments [comments]="currentComments()" />
-        </div>
 
         <!-- 週期選擇器 -->
         <div class="cycle-selector-section">
@@ -173,6 +167,49 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
               </span>
             </div>
           }
+
+          <!-- 整體評語 + feedbacks 深度分析 -->
+          <mat-card class="chart-card comment-analysis-card">
+            <mat-card-header>
+              <mat-card-title>整體評語與深度分析</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="comment-stats">
+                <span class="stat-chip">整體評語 {{ currentComments().length }} 則</span>
+                <span class="stat-chip">具體回饋 {{ feedbackInsightCount() }} 則</span>
+              </div>
+
+              @if (currentComments().length > 0 || currentFeedbackInsights().length > 0) {
+                <div
+                  #insightsScrollPanel
+                  class="insights-scroll-panel"
+                  (mouseenter)="onInsightsHover(true)"
+                  (mouseleave)="onInsightsHover(false)">
+                  @if (currentComments().length > 0) {
+                    <div class="section-heading">整體評語</div>
+                    @for (comment of currentComments(); track $index) {
+                      <div class="insight-item">
+                        <div class="feedback-meta">整體評語 {{ $index + 1 }}</div>
+                        <div class="feedback-text">{{ comment }}</div>
+                      </div>
+                    }
+                  }
+
+                  @if (currentFeedbackInsights().length > 0) {
+                    <div class="section-heading">具體回饋</div>
+                    @for (insight of currentFeedbackInsights(); track insight.questionKey + insight.feedback + $index) {
+                      <div class="insight-item">
+                        <div class="feedback-meta">{{ insight.questionLabel }}・{{ insight.attributeLabel }}</div>
+                        <div class="feedback-text">{{ insight.feedback }}</div>
+                      </div>
+                    }
+                  }
+                </div>
+              } @else {
+                <p class="feedback-empty">本期尚無可顯示的整體評語與具體回饋。</p>
+              }
+            </mat-card-content>
+          </mat-card>
 
           <!-- 分數模式切換 -->
           <div class="score-mode-toggle">
@@ -354,11 +391,6 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
       margin: 0;
     }
 
-    .marquee-section {
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
     .cycle-selector-section {
       display: flex;
       align-items: center;
@@ -521,12 +553,80 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
       font-style: italic;
     }
 
+    .comment-analysis-card mat-card-content {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .comment-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .stat-chip {
+      font-size: 12px;
+      color: #355070;
+      background: #eef2f7;
+      border-radius: 999px;
+      padding: 4px 10px;
+    }
+
+    .insights-scroll-panel {
+      max-height: 260px;
+      overflow-y: auto;
+      padding-right: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      scrollbar-width: thin;
+    }
+
+    .section-heading {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      width: fit-content;
+      font-size: 12px;
+      color: #1a4f63;
+      background: #dff1f6;
+      border-radius: 999px;
+      padding: 2px 8px;
+    }
+
+    .insight-item {
+      padding: 8px 10px;
+      border-left: 3px solid #9ccfd8;
+      background: #f7fbfc;
+      border-radius: 4px;
+    }
+
+    .feedback-meta {
+      font-size: 12px;
+      color: #54707d;
+      margin-bottom: 2px;
+    }
+
+    .feedback-text {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #1f2937;
+      white-space: pre-wrap;
+    }
+
+    .feedback-empty {
+      margin: 0;
+      font-size: 13px;
+      color: #8b728e;
+    }
+
     .trend-card mat-card-content {
       overflow-x: auto;
     }
   `],
 })
-export class AttributeReportComponent implements OnInit {
+export class AttributeReportComponent implements OnInit, OnDestroy {
   private readonly snapshotService = inject(UserAttributeSnapshotService);
   private readonly cycleService = inject(EvaluationCycleService);
 
@@ -537,6 +637,15 @@ export class AttributeReportComponent implements OnInit {
   isLoading = signal(true);
   selectedCycleId = signal<string | null>(null);
   showRawScores = signal(false);
+  private isInsightsHovered = false;
+  private insightsAutoScrollTimer: ReturnType<typeof setInterval> | null = null;
+  private insightsPanelElement: HTMLDivElement | null = null;
+
+  @ViewChild('insightsScrollPanel')
+  set insightsScrollPanel(ref: ElementRef<HTMLDivElement> | undefined) {
+    this.insightsPanelElement = ref?.nativeElement ?? null;
+    this.ensureInsightsAutoScroll();
+  }
 
   // ── 快照資料（來自 service） ──────────────────────────────────────────────
 
@@ -555,12 +664,20 @@ export class AttributeReportComponent implements OnInit {
     return this.allSnapshots().find((s) => s.cycleId === cycleId) ?? null;
   });
 
-  /** 目前跑馬燈評語 */
+  /** 目前整體評語 */
   currentComments = computed<string[]>(() => {
     const snapshot = this.currentSnapshot();
     if (!snapshot) return [];
     return snapshot.overallComments ?? [];
   });
+
+  currentFeedbackInsights = computed<EvaluationFeedbackInsight[]>(() => {
+    const snapshot = this.currentSnapshot();
+    if (!snapshot) return [];
+    return snapshot.feedbackInsights ?? [];
+  });
+
+  feedbackInsightCount = computed<number>(() => this.currentFeedbackInsights().length);
 
   /** 是否有原始加總平均分數資料 */
   hasRawData = computed<boolean>(() => {
@@ -639,13 +756,52 @@ export class AttributeReportComponent implements OnInit {
       if (snapshots.length > 0 && !this.selectedCycleId()) {
         this.selectedCycleId.set(snapshots[0].cycleId);
       }
+      this.ensureInsightsAutoScroll();
     });
+  }
+
+  ngOnDestroy(): void {
+    if (this.insightsAutoScrollTimer) {
+      clearInterval(this.insightsAutoScrollTimer);
+      this.insightsAutoScrollTimer = null;
+    }
   }
 
   // ── 事件處理 ──────────────────────────────────────────────────────────────
 
   onCycleChange(cycleId: string): void {
     this.selectedCycleId.set(cycleId);
+    if (this.insightsPanelElement) {
+      this.insightsPanelElement.scrollTop = 0;
+    }
+  }
+
+  onInsightsHover(isHovered: boolean): void {
+    this.isInsightsHovered = isHovered;
+  }
+
+  private ensureInsightsAutoScroll(): void {
+    if (this.insightsAutoScrollTimer) {
+      return;
+    }
+
+    this.insightsAutoScrollTimer = setInterval(() => {
+      const panel = this.insightsPanelElement;
+      if (!panel || this.isInsightsHovered) {
+        return;
+      }
+
+      const maxScrollTop = panel.scrollHeight - panel.clientHeight;
+      if (maxScrollTop <= 0) {
+        return;
+      }
+
+      if (panel.scrollTop >= maxScrollTop - 1) {
+        panel.scrollTop = 0;
+      } else {
+        panel.scrollTop += 0.4;
+      }
+    }, 40);
   }
 
   getCycleLabel(cycleId: string): string {

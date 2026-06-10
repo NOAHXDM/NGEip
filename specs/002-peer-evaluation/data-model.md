@@ -14,7 +14,7 @@
 | `evaluationCycles` | 自動ID（UUID） | 考核週期 |
 | `evaluationAssignments` | `{evaluatorUid}_{cycleId}_{evaluateeUid}` | 評核指派關係 |
 | `evaluationForms` | 自動ID（UUID） | 評核者提交的完整考評表 |
-| `userAttributeSnapshots` | `{cycleId}_{userId}` | 受評者屬性報告快照（含跑馬燈文字） |
+| `userAttributeSnapshots` | `{cycleId}_{userId}` | 受評者屬性報告快照（含整體評語與具體回饋） |
 
 ---
 
@@ -243,7 +243,7 @@ interface UserAttributeSnapshot {
   // 職業原型（可能多個，並列時顯示全部）
   careerArchetypes: string[];      // 例如 ['⚔️ 劍士'] 或 ['⚔️ 劍士', '🔨 商人']
 
-  // 整體評價（匿名，跑馬燈顯示）
+  // 整體評價（匿名，於報告頁滾動區顯示）
   // 僅含純文字，無評核者識別資訊
   // preview：評核者提交時 arrayUnion；改寫評語時另以 arrayRemove 移除舊評語，避免孤兒字串
   // final：由 forms 重新彙整（與 validEvaluatorCount 同源），保證 length === validEvaluatorCount

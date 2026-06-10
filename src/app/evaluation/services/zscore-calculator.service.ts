@@ -5,6 +5,7 @@ import {
   ComputedCycleResults,
   UserAttributeSnapshot,
 } from '../models/evaluation.models';
+import { buildFeedbackInsightsFromFeedbacks } from '../utils/feedback-insights.util';
 
 /**
  * Z-score 防灌水校正演算法常數
@@ -117,6 +118,10 @@ export class ZScoreCalculatorService {
         .map((f) => f.overallComment?.trim() ?? '')
         .filter((c) => c.length > 0);
 
+      const feedbackInsights = evaluateeForms.flatMap((f) =>
+        buildFeedbackInsightsFromFeedbacks(f.feedbacks ?? {}),
+      );
+
       snapshots.set(evaluateeUid, {
         attributes,
         totalScore: Math.round(totalScore * 100) / 100,
@@ -125,6 +130,7 @@ export class ZScoreCalculatorService {
         careerArchetypes,
         validEvaluatorCount: evaluateeForms.length,
         overallComments,
+        feedbackInsights,
         rankingScore: Math.round(totalScore * 100) / 100,
       });
     }
