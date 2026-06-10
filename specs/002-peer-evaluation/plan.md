@@ -11,7 +11,7 @@
 
 - **管理者**：建立半年度考核週期、指派評核關係、查閱考評表、執行 Z-score 結束並發布、選擇性排名視圖。
 - **評核者**：填寫含 10 道評分題、選填文字回饋與必填整體評價（20–500 字）的匿名考評表。
-- **受評者**：查看六角雷達圖屬性報告（EXE/INS/ADP/COL/STB/INN）、RO 職業原型標籤、跨週期趨勢折線圖、整體評價跑馬燈（匿名）。
+- **受評者**：查看六角雷達圖屬性報告（EXE/INS/ADP/COL/STB/INN）、RO 職業原型標籤、跨週期趨勢折線圖、整體評語/具體回饋滾動區（匿名）。
 - **防灌水**：Z-score per-rater 標準化 + 互惠高分對偵測 + 離群評核者標記。
 
 **技術方向**：純 Angular 20 + Cloud Firestore，不引入外部圖表套件（SVG 實作）；前端執行 Z-score 批次計算（無 Cloud Functions）。
@@ -76,7 +76,7 @@ src/
 │   │   ├── components/                        # 可重用 UI 元件
 │   │   │   ├── radar-chart/                   # 純 SVG 六角雷達圖
 │   │   │   ├── trend-line-chart/              # 純 SVG 趨勢折線圖
-│   │   │   ├── marquee-comments/              # CSS keyframes 跑馬燈
+│   │   │   ├── feedback-insights-panel/       # 固定高度滾動區（整體評語/具體回饋）
 │   │   │   ├── career-archetype-badge/        # RO 職業原型標籤顯示
 │   │   │   ├── evaluation-form-questions/     # 10 道題目表單片段
 │   │   │   └── user-attribute-report-embed/   # 可嵌入版屬性報告（供管理者 UserProfileDialog 使用）
@@ -254,47 +254,29 @@ function toSvgPoint(value: number, max: number, index: number, radius: number, c
 
 ---
 
-## 跑馬燈設計
+## 整體評語與具體回饋滾動區設計
 
 ```scss
-// marquee-comments.component.scss
-.marquee-wrapper {
-  overflow: hidden;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.marquee-wrapper:hover .marquee-track {
-  animation-play-state: paused;
-}
-.marquee-track {
-  display: flex;
-  white-space: nowrap;
-  animation: marquee-scroll linear infinite;
-}
-@keyframes marquee-scroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+// attribute-report.component.scss（節錄）
+.insights-scroll-panel {
+  max-height: 280px;
+  overflow-y: auto;
 }
 ```
 
 ```typescript
-// 動畫速度依文字像素寬度與目標速率計算（恆定滾動速率，適合閱讀）
-private readonly charWidthPx = 14;  // 中文字元預估寬度（font-size 14px）
-
-get duration(): string {
-  const totalChars = this.joinedText.length;
-  const estimatedPixelWidth = totalChars * this.charWidthPx;
-  const seconds = Math.max(8, estimatedPixelWidth / this.speedPx); // speedPx 預設 120
-  return `${seconds}s`;
+// attribute-report.component.ts（節錄）
+private ensureInsightsAutoScroll(): void {
+  // 以固定間隔緩慢遞增 scrollTop；hover 時暫停
 }
 ```
 
 **互動行為**：
-- hover 暫停動畫，背景色微變（#f5f5f5 → #ebebeb），方便定點閱讀。
-- 點擊開啟 MatDialog 彈窗（MarqueeCommentsDialogComponent），以帶編號列表顯示所有評語完整內容。
-- 支援鍵盤 Enter 觸發，加了 `role="button"` 和 `tabindex="0"` 確保無障礙可及性。
+- 「整體評語」與「具體回饋」在同一區塊同時呈現，超出高度時可手動捲動。
+- 未 hover 時自動慢速捲動；hover 時暫停，便於閱讀。
+- 到達底部後循環回頂部，維持持續瀏覽體驗。
 
-**週期切換**：父元件更新 `comments` input → Angular 重新渲染 `@if (comments.length > 0)` 區塊 → 動畫重新啟動。
+**週期切換**：父元件切換 snapshot 後，區塊內容同步切換；若內容不足一屏則不啟動自動捲動。
 
 ---
 
@@ -340,7 +322,7 @@ get duration(): string {
 | `ZScoreCalculatorService.determineArchetypes()` | 勇者(全≥8)、初心者(原始平均分數 3項<5)、並列輸出多個、各原型組合 |
 | `ZScoreCalculatorService.detectReciprocalHighScores()` | A→B高+B→A高 → 標記；單向高分 → 不標記 |
 | `RadarChartComponent` | 6 軸幾何計算；warn 色觸發條件；空資料不崩潰 |
-| `MarqueeCommentsComponent` | 空陣列不渲染；切換 comments 重新動畫 |
+| `AttributeReportComponent` / `UserAttributeReportEmbedComponent` | 整體評語與具體回饋滾動區渲染；hover 暫停自動捲動；週期切換內容同步 |
 | `EvaluationFormComponent` | 極端分數(≥9/≤3)觸發文字必填；整體評價字數 <20 阻止提交；>500 阻止提交 |
 | `EvaluationFormService.submitForm()` | pending 首次提交寫入 4 筆；completed 且未截止更新既有表單；overdue 或截止後修改阻止 |
 

@@ -44,6 +44,7 @@ import {
   EvaluationForm,
 } from '../models/evaluation.models';
 import { ZScoreCalculatorService } from './zscore-calculator.service';
+import { buildFeedbackInsightsFromFeedbacks } from '../utils/feedback-insights.util';
 
 /** Firestore 集合路徑 */
 const CYCLES_COLLECTION = 'evaluationCycles';
@@ -297,6 +298,7 @@ export class EvaluationCycleService {
             rankingScore: computed.rankingScore ?? computed.totalScore ?? snapData['totalScore'],
             validEvaluatorCount: computed.validEvaluatorCount ?? snapData['validEvaluatorCount'],
             overallComments: computed.overallComments ?? snapData['overallComments'],
+            feedbackInsights: computed.feedbackInsights ?? snapData['feedbackInsights'],
             computedAt: this._fn.serverTimestamp(),
           });
         });
@@ -398,9 +400,12 @@ export class EvaluationCycleService {
         const rawTotalScore = Math.round(
           Object.values(rawAttributes).reduce((sum, v) => sum + v, 0) * 100,
         ) / 100;
+        const feedbackInsights = evaluateeForms.flatMap((form) =>
+          buildFeedbackInsightsFromFeedbacks(form.feedbacks ?? {}),
+        );
 
         addOp((b) => {
-          b.update(snapshotRef, { rawAttributes, rawTotalScore });
+          b.update(snapshotRef, { rawAttributes, rawTotalScore, feedbackInsights });
         });
       }
     }

@@ -270,19 +270,7 @@ export class UserAttributeReportEmbedComponent implements OnInit {
   //   1. 以 userId Input 查詢（非當前登入者）
   //   2. 省略頁面標題，直接以卡片式佈局嵌入 Dialog
   //   3. 支援 showRawScores toggle（同 AttributeReportComponent）
-}
-```
-
-### MarqueeCommentsComponent
-```typescript
-// src/app/evaluation/components/marquee-comments/marquee-comments.component.ts
-@Component({...})
-export class MarqueeCommentsComponent {
-  @Input() comments: string[] = [];
-  @Input() speedPx: number = 120;   // pixels/second（約每秒 8–9 個中文字，適合一般閱讀速率）
-  // 若 comments 為空陣列，元件自身不渲染
-  // 點擊跑馬燈可開啟完整評語彈窗（MarqueeCommentsDialogComponent）
-  // hover 時暫停動畫
+  //   4. 「整體評語與具體回饋」以固定高度可捲動區塊顯示，未 hover 時自動慢速捲動
 }
 ```
 

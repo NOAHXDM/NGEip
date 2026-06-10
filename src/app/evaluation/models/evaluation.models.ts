@@ -81,6 +81,14 @@ export interface EvaluationFormFeedbacks {
   q10?: string;
 }
 
+export interface EvaluationFeedbackInsight {
+  questionKey: keyof EvaluationFormScores;
+  questionLabel: string;
+  attributeKey: AttributeKey;
+  attributeLabel: string;
+  feedback: string;
+}
+
 export interface EvaluationForm {
   id: string;
   assignmentId: string;
@@ -108,7 +116,8 @@ export interface UserAttributeSnapshot {
   attributes: AttributeScores;
   totalScore: number; // EXE+INS+ADP+COL+STB+INN，最大 60
   careerArchetypes: string[]; // 職業原型，可能多個並列
-  overallComments: string[];  // 匿名整體評價，跑馬燈顯示。preview 期以 arrayUnion 累積（改寫時 arrayRemove 舊評語）；final 期由 forms 重新彙整，保證 length === validEvaluatorCount
+  overallComments: string[];  // 匿名整體評價，於報告頁整體評語區塊顯示。preview 期以 arrayUnion 累積（改寫時 arrayRemove 舊評語）；final 期由 forms 重新彙整，保證 length === validEvaluatorCount
+  feedbackInsights?: EvaluationFeedbackInsight[]; // 匿名題目回饋（由 forms.feedbacks 彙整），供報告頁深度分析呈現
   rankingScore?: number;      // final 後由 Z-score 計算寫入
   rawAttributes?: AttributeScores;  // 不經 Z-score 校正的加總平均分數
   rawTotalScore?: number;           // rawAttributes 六大屬性加總，最大 60

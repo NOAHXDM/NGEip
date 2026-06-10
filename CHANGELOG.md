@@ -5,6 +5,28 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.18] - 2026-06-10
+
+### 變更
+- 受評者報告（`/evaluation/my-report`）與管理者嵌入報告（`UserProfile` 內）的「整體評語」呈現改版：
+  - 移除跑馬燈與點擊彈窗行為
+  - 改為固定高度可捲動卡片區塊，同步顯示「整體評語（overallComments）」與「具體回饋（feedbackInsights）」
+  - 區塊在未 hover 時自動慢速捲動，hover 時暫停，提升長內容閱讀體驗
+- 管理者「評核總覽」的「重新結算加總平均分數」流程擴充：
+  - 除了回填 `rawAttributes` / `rawTotalScore`，也會同步回填 `feedbackInsights`
+  - 用於補齊舊週期資料缺少 `feedbackInsights` 的情境
+
+### 清理
+- 刪除不再使用的 `MarqueeCommentsComponent`（含舊跑馬燈/彈窗樣式與互動邏輯）
+- 更新相關程式註解，移除跑馬燈舊描述
+
+### 文件
+- 更新 `README.md` 評量考核系統流程與角色說明，將「跑馬燈」改為「整體評語與具體回饋滾動區」
+- 更新規格與操作文件：
+  - `specs/002-peer-evaluation/spec.md`
+  - `specs/002-peer-evaluation/quickstart.md`
+  - `specs/002-peer-evaluation/contracts/angular-interfaces.md`
+
 ## [3.0.17] - 2026-06-04
 
 ### 變更

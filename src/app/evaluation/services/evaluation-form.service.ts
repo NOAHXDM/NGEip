@@ -60,10 +60,16 @@ import { Auth, authState } from '@angular/fire/auth';
 import {
   AttributeScores,
   EvaluationAssignment,
+  EvaluationFeedbackInsight,
   EvaluationForm,
   EvaluationFormDraft,
+  EvaluationFormFeedbacks,
   EvaluationFormScores,
 } from '../models/evaluation.models';
+import {
+  buildFeedbackInsightsFromFeedbacks,
+  toFeedbackInsightKey,
+} from '../utils/feedback-insights.util';
 
 // =====================
 // Firestore 集合路徑常數
@@ -241,6 +247,40 @@ export class EvaluationFormService {
     return result;
   }
 
+  private buildFeedbackInsights(
+    feedbacks: EvaluationFormFeedbacks,
+  ): EvaluationFeedbackInsight[] {
+    return buildFeedbackInsightsFromFeedbacks(feedbacks);
+  }
+
+  private hasFeedbackInsightsChanged(
+    previous: EvaluationFeedbackInsight[],
+    next: EvaluationFeedbackInsight[],
+  ): boolean {
+    const prevSet = new Set(previous.map((item) => toFeedbackInsightKey(item)));
+    const nextSet = new Set(next.map((item) => toFeedbackInsightKey(item)));
+
+    if (prevSet.size !== nextSet.size) {
+      return true;
+    }
+
+    for (const key of prevSet) {
+      if (!nextSet.has(key)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private getRemovedFeedbackInsights(
+    previous: EvaluationFeedbackInsight[],
+    next: EvaluationFeedbackInsight[],
+  ): EvaluationFeedbackInsight[] {
+    const nextSet = new Set(next.map((item) => toFeedbackInsightKey(item)));
+    return previous.filter((item) => !nextSet.has(toFeedbackInsightKey(item)));
+  }
+
   // =====================
   // 表單提交
   // =====================
@@ -294,7 +334,8 @@ export class EvaluationFormService {
     // 過濾 feedbacks 中的 undefined / 空字串（防止 SDK 拋出 unsupported field value 錯誤）
     const sanitizedFeedbacks = Object.fromEntries(
       Object.entries(draft.feedbacks).filter(([, v]) => v !== undefined && v !== ''),
-    );
+    ) as EvaluationFormFeedbacks;
+    const feedbackInsights = this.buildFeedbackInsights(sanitizedFeedbacks);
 
     // 計算原始平均分數的加總
     const rawTotalScore = Object.values(previewAttributes).reduce((sum, v) => sum + v, 0);
@@ -329,18 +370,24 @@ export class EvaluationFormService {
       const snapshotId = `${cycleId}_${evaluateeUid}`;
       const snapshotRef = this.firestoreDocRef(SNAPSHOTS_COLLECTION, snapshotId);
 
+      const snapshotMergeData: Record<string, unknown> = {
+        cycleId,
+        userId: evaluateeUid,
+        status: 'preview' as const,
+        computedAt: this.firestoreServerTimestamp(),
+        overallComments: this.firestoreArrayUnion(draft.overallComment),
+        attributes: previewAttributes,
+        rawAttributes: previewAttributes,
+        rawTotalScore: Math.round(rawTotalScore * 100) / 100,
+      };
+
+      if (feedbackInsights.length > 0) {
+        snapshotMergeData['feedbackInsights'] = this.firestoreArrayUnion(...feedbackInsights);
+      }
+
       batch.set(
         snapshotRef,
-        {
-          cycleId,
-          userId: evaluateeUid,
-          status: 'preview' as const,
-          computedAt: this.firestoreServerTimestamp(),
-          overallComments: this.firestoreArrayUnion(draft.overallComment),
-          attributes: previewAttributes,
-          rawAttributes: previewAttributes,
-          rawTotalScore: Math.round(rawTotalScore * 100) / 100,
-        },
+        snapshotMergeData,
         { merge: true },
       );
 
@@ -353,11 +400,38 @@ export class EvaluationFormService {
       // arrayRemove，故拆為獨立的後續 commit；採「先加後刪」順序，即使刪除
       // commit 失敗也僅退回原有行為，不會遺失評語。
       const previousComment = existingForm.overallComment;
-      if (previousComment && previousComment !== draft.overallComment) {
+      const previousFeedbackInsights = this.buildFeedbackInsights(existingForm.feedbacks ?? {});
+      const feedbackInsightsChanged = this.hasFeedbackInsightsChanged(
+        previousFeedbackInsights,
+        feedbackInsights,
+      );
+
+      if ((previousComment && previousComment !== draft.overallComment) || feedbackInsightsChanged) {
         const cleanupBatch = this.firestoreCreateBatch();
+        const cleanupData: Record<string, unknown> = {};
+
+        if (previousComment && previousComment !== draft.overallComment) {
+          cleanupData['overallComments'] = this.firestoreArrayRemove(previousComment);
+        }
+
+        if (feedbackInsightsChanged) {
+          const removedInsights = this.getRemovedFeedbackInsights(
+            previousFeedbackInsights,
+            feedbackInsights,
+          );
+
+          if (removedInsights.length > 0) {
+            cleanupData['feedbackInsights'] = this.firestoreArrayRemove(...removedInsights);
+          }
+        }
+
+        if (Object.keys(cleanupData).length === 0) {
+          return;
+        }
+
         cleanupBatch.set(
           snapshotRef,
-          { overallComments: this.firestoreArrayRemove(previousComment) },
+          cleanupData,
           { merge: true },
         );
         await cleanupBatch.commit();
@@ -393,19 +467,25 @@ export class EvaluationFormService {
     const snapshotId = `${cycleId}_${evaluateeUid}`;
     const snapshotRef = this.firestoreDocRef(SNAPSHOTS_COLLECTION, snapshotId);
 
+    const snapshotMergeData: Record<string, unknown> = {
+      cycleId,
+      userId: evaluateeUid,
+      status: 'preview' as const,
+      computedAt: this.firestoreServerTimestamp(),
+      overallComments: this.firestoreArrayUnion(draft.overallComment),
+      attributes: previewAttributes,
+      rawAttributes: previewAttributes,
+      rawTotalScore: Math.round(rawTotalScore * 100) / 100,
+      validEvaluatorCount: this.firestoreIncrement(1),
+    };
+
+    if (feedbackInsights.length > 0) {
+      snapshotMergeData['feedbackInsights'] = this.firestoreArrayUnion(...feedbackInsights);
+    }
+
     batch.set(
       snapshotRef,
-      {
-        cycleId,
-        userId: evaluateeUid,
-        status: 'preview' as const,
-        computedAt: this.firestoreServerTimestamp(),
-        overallComments: this.firestoreArrayUnion(draft.overallComment),
-        attributes: previewAttributes,
-        rawAttributes: previewAttributes,
-        rawTotalScore: Math.round(rawTotalScore * 100) / 100,
-        validEvaluatorCount: this.firestoreIncrement(1),
-      },
+      snapshotMergeData,
       { merge: true },
     );
 
