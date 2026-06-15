@@ -15,7 +15,6 @@ import {
   collectionData,
   doc,
   docData,
-  getCountFromServer,
   getDocs,
   orderBy,
   query,
@@ -81,6 +80,7 @@ export class UserService {
 
   createUser(email: string, password: string, name: string) {
     let totalUsers = 0;
+    let activeUserCount = 0;
     return from(
       (async () => {
         // Check users has the duplicate email
@@ -90,27 +90,30 @@ export class UserService {
         );
         const usersCollection = collection(this.firestore, 'users');
 
-        const [emailSnapshot, countSnapshot] = await Promise.all([
+        const [emailSnapshot, usersSnapshot] = await Promise.all([
           getDocs(emailQuery),
-          getCountFromServer(usersCollection),
+          getDocs(usersCollection),
         ]);
 
         if (!emailSnapshot.empty) {
           throw new Error('電子郵件已存在');
         }
 
-        totalUsers = countSnapshot.data().count;
+        totalUsers = usersSnapshot.size;
+        activeUserCount = usersSnapshot.docs.filter(
+          (userDoc) => !(userDoc.data() as User).exitDate
+        ).length;
       })()
     ).pipe(
       switchMap(() =>
         from(
           runTransaction(this.firestore, async (transaction) => {
-            // Check license
+            // License capacity is derived from active users, not a stored counter.
             const systemConfigDoc = await transaction.get(
               doc(this.firestore, 'systemConfig', 'license')
             );
             const systemConfig = systemConfigDoc.data() as License;
-            if (systemConfig.currentUsers >= systemConfig.maxUsers) {
+            if (activeUserCount >= systemConfig.maxUsers) {
               throw new Error(
                 '已達到最大使用者數量。請聯繫您的系統管理員。'
               );
@@ -138,11 +141,6 @@ export class UserService {
               startDate: serverTimestamp(),
             };
             transaction.set(doc(this.firestore, 'users', uid), user);
-            // Update license
-            transaction.update(doc(this.firestore, 'systemConfig', 'license'), {
-              currentUsers: systemConfig.currentUsers + 1,
-              lastUpdated: serverTimestamp(),
-            });
           })
         )
       )
@@ -178,28 +176,7 @@ export class UserService {
       startDate: user.startDate,
       exitDate: user.exitDate,
     };
-    if (!data.exitDate) {
-      return from(updateDoc(docRef, data));
-    }
-
-    return from(
-      runTransaction(this.firestore, async (transaction) => {
-        // Check license
-        const systemConfigDoc = await transaction.get(
-          doc(this.firestore, 'systemConfig', 'license')
-        );
-        const systemConfig = systemConfigDoc.data() as License;
-
-        // Update user
-        transaction.update(docRef, data);
-
-        // Update license
-        transaction.update(doc(this.firestore, 'systemConfig', 'license'), {
-          currentUsers: systemConfig.currentUsers - 1,
-          lastUpdated: serverTimestamp(),
-        });
-      })
-    );
+    return from(updateDoc(docRef, data));
   }
 
   updateRemainingLeaveHours(data: LeaveTransaction) {

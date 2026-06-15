@@ -6,12 +6,12 @@
     novalidate
   >
     <h3 class="pt-3 text-center">系統設定</h3>
-    <!-- 當前使用者數 -->
+    <!-- 目前在職人數由 users 集合即時計算，不儲存於 systemConfig/license -->
     <mat-form-field appearance="outline">
-      <mat-label>當前使用者數</mat-label>
+      <mat-label>目前在職人數</mat-label>
       <input type="number" matInput formControlName="currentUsers" />
       <mat-icon matSuffix>person</mat-icon>
-      <mat-hint>使用者數量</mat-hint>
+      <mat-hint>依未設定離職日的使用者即時計算</mat-hint>
     </mat-form-field>
     <!-- 最大使用者數 -->
     <mat-form-field appearance="outline">

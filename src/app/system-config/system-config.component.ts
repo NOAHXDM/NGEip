@@ -76,6 +76,12 @@ export class SystemConfigComponent {
         this.configForm.patchValue(model as any);
       },
     });
+    this.userService.list$.pipe(takeUntilDestroyed()).subscribe({
+      next: (users) => {
+        const currentUsers = users.filter((user) => !user.exitDate).length;
+        this.configForm.get('currentUsers')?.setValue(currentUsers);
+      },
+    });
     this.configForm.get('currentUsers')?.disable();
     this.configForm.get('lastUpdated')?.disable();
   }

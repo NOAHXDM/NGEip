@@ -91,6 +91,9 @@ npm run deploy     # 建置並部署至 Firebase（使用 firebase.prod.json）
 - 所有使用者驗證皆使用 Firebase Authentication
 - 使用者主檔儲存在 Firestore 的 `users` 集合
 - 每位使用者資料必須以 Firebase UID 作為文件主鍵或可唯一映射的鍵值
+- `users` 集合是使用者狀態的唯一資料來源；未設定 `exitDate` 者視為目前在職
+- `systemConfig/license` 僅儲存 `maxUsers` 等系統設定，不儲存目前在職人數
+- 系統設定畫面與註冊上限檢查皆由 `users` 集合即時計算目前在職人數
 
 ### 資料儲存
 
