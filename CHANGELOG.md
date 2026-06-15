@@ -5,6 +5,27 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.19] - 2026-06-15
+
+### 變更
+- 將 `users` 集合作為使用者在職狀態的唯一資料來源：
+  - 未設定 `exitDate` 的使用者視為目前在職。
+  - 註冊時改由 `users` 集合即時計算在職人數，再與 `systemConfig/license.maxUsers` 比較。
+  - 更新使用者離職日時只修改使用者文件，不再增減 License 計數器。
+- 系統設定畫面保留唯讀「目前在職人數」，內容由 `users` 集合即時計算。
+
+### 資料模型
+- `systemConfig/license` 不再建立或維護 `currentUsers`。
+- 應用程式啟動時若偵測到既有 `currentUsers` 欄位，會自動將其移除。
+- `License` TypeScript 介面同步移除 `currentUsers`。
+
+### 修復
+- 消除重複更新已離職使用者造成重複扣減、清除離職日未加回，以及計數器可能成為負數或與使用者資料不一致的風險。
+
+### 文件
+- 更新 README 使用者資料模型說明，以及系統設定畫面的程式註解與提示文字。
+- 確認 `specs/002-peer-evaluation` 對在職使用者的定義仍為 `exitDate` 未設定，與本次實作一致，無需修改。
+
 ## [3.0.18] - 2026-06-10
 
 ### 變更

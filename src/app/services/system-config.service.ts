@@ -3,6 +3,7 @@ import {
   FieldValue,
   Firestore,
   Timestamp,
+  deleteField,
   doc,
   docData,
   runTransaction,
@@ -30,15 +31,18 @@ export class SystemConfigService {
     return from(
       runTransaction(this.firestore, async (transaction) => {
         const systemConfigDoc = await transaction.get(systemConfigRef);
-        // If the document does not exist, create it
         if (systemConfigDoc.exists()) {
-          throw new Error('License already exists');
+          if ('currentUsers' in systemConfigDoc.data()) {
+            transaction.update(systemConfigRef, {
+              currentUsers: deleteField(),
+            });
+          }
+          return;
         }
 
         // Initialize the license
         const license = {
           maxUsers: 10,
-          currentUsers: 0,
           lastUpdated: serverTimestamp(),
           initialSettlementYear: new Date().getFullYear(),
           timeFilterRange: false,
@@ -79,7 +83,6 @@ export class SystemConfigService {
 
 export interface License {
   maxUsers: number;
-  currentUsers: number;
   lastUpdated: Timestamp | FieldValue;
   initialSettlementYear: number;
   timeFilterRange: boolean;
