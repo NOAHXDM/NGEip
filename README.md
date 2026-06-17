@@ -141,7 +141,7 @@ npm run deploy     # 建置並部署至 Firebase（使用 firebase.prod.json）
 
 ## 遺留注意事項
 
-- 儲存庫中仍可能存在 Cloudinary 相關腳本或文件片段；這些內容屬於待清理遺留項，不得作為新增功能依據。
+- Cloudinary 已全面移植至 Firebase Storage（使用者頭像）並完成清理：移除 widget script、`cloudinary`/`dotenv` 依賴、系統設定的 Cloudinary 欄位與舊清理工具。頭像改存確定性路徑 `avatars/{uid}/avatar.webp`，孤兒檔清理見 `tools/storage-orphan-audit.js`。詳見 `specs/003-cloudinary-to-storage/plan.md`。
 - `angular.json` 目前仍可見 `skipTests` 的歷史設定；此設定不會凌駕專案憲章，所有新功能仍必須補齊測試。
 
 ## 評量考核系統

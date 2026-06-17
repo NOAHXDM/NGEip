@@ -24,7 +24,8 @@ Sync Impact Report
   - ✅ CLAUDE.md
 - Follow-up TODOs:
   - TODO(RATIFICATION_DATE): 無法從既有儲存庫或文件確認首次正式採納日期，需由維護者補填。
-  - 儲存庫仍可見 Cloudinary 腳本與 Angular schematics 的 skipTests 遺留設定，需後續實作層清理以完全符合本憲章。
+  - ✅ Cloudinary 遺留已清理：頭像移植至 Firebase Storage，移除 widget script、cloudinary/dotenv 依賴與系統設定欄位（見 specs/003-cloudinary-to-storage/plan.md）。
+  - Angular schematics 的 skipTests 歷史設定仍待後續實作層清理，以完全符合本憲章。
 -->
 # NGEip Constitution
 

@@ -1,0 +1,33 @@
+rules_version = '2';
+
+// Firebase Storage 安全規則
+// 路徑慣例：avatars/{uid}/avatar.webp（確定性路徑，新圖覆寫舊圖）
+service firebase.storage {
+  match /b/{bucket}/o {
+    // 是否為 admin：跨服務讀取 Firestore users/{uid}.role（每次計費一次 read）
+    function isAdmin() {
+      return request.auth != null
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /avatars/{uid}/{fileName} {
+      // 僅登入者可讀
+      allow read: if request.auth != null;
+
+      // 本人或 admin 可寫；限圖片、限大小（< 1MB）
+      allow write: if request.auth != null
+        && (request.auth.uid == uid || isAdmin())
+        && request.resource.size < 1 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+
+      // 本人或 admin 可刪（離職清理由 admin 或稽核腳本處理）
+      allow delete: if request.auth != null
+        && (request.auth.uid == uid || isAdmin());
+    }
+
+    // 其餘路徑一律拒絕
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
