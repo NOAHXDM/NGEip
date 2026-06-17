@@ -66,5 +66,5 @@ firebase login
 
 ## 遺留項目提醒
 
-- 儲存庫仍可能存在 Cloudinary 腳本或敘述，視為待清理遺留內容；不得作為新功能實作依據。
+- Cloudinary 已全面移植至 Firebase Storage 並完成清理（v3.0.20）；不得再引入 Cloudinary 或其他第三方後端。`tools/migrate-avatars-to-storage.js` 與 `tools/storage-orphan-audit.js` 中對 Cloudinary 的字串引用僅為一次性搬遷／稽核用途，非新功能依賴。
 - `angular.json` 的 `skipTests` 為歷史設定，不代表可略過測試要求。
