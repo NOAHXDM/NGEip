@@ -1,6 +1,6 @@
 {
   "name": "angular-eip",
-  "version": "3.0.19",
+  "version": "3.0.20",
   "scripts": {
     "start": "firebase emulators:start --config firebase.local.json --import ./firestore-backup",
     "build": "ng build",
@@ -38,7 +38,6 @@
     "@firebase/rules-unit-testing": "^5.0.0",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^25.5.0",
-    "firebase-admin": "^14.0.0",
     "jasmine-core": "~5.2.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
