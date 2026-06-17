@@ -25,15 +25,18 @@ import {
 } from '@angular/fire/firestore';
 import { subMonths, subYears } from 'date-fns';
 import {
+  catchError,
   combineLatest,
   from,
   map,
   Observable,
+  of,
   shareReplay,
   switchMap,
 } from 'rxjs';
 
 import { License } from './system-config.service';
+import { StorageService } from './storage.service';
 import { TimezoneService } from './timezone.service';
 
 @Injectable({
@@ -77,6 +80,7 @@ export class UserService {
     map((user) => user.role == 'admin')
   );
   readonly timezoneService = inject(TimezoneService);
+  private readonly storageService = inject(StorageService);
 
   createUser(email: string, password: string, name: string) {
     let totalUsers = 0;
@@ -176,7 +180,21 @@ export class UserService {
       startDate: user.startDate,
       exitDate: user.exitDate,
     };
-    return from(updateDoc(docRef, data));
+
+    if (!data.exitDate) {
+      return from(updateDoc(docRef, data));
+    }
+
+    // 離職：一併清除頭像參照，並於更新成功後刪除 Storage 頭像檔
+    // （孤兒檔清理第二道防線）。清理失敗不影響離職流程，
+    // 留待 storage-orphan-audit 稽核腳本兜底。
+    return from(updateDoc(docRef, { ...data, photoUrl: '' })).pipe(
+      switchMap(() =>
+        this.storageService
+          .deleteAvatar(user.uid!)
+          .pipe(catchError(() => of(void 0)))
+      )
+    );
   }
 
   updateRemainingLeaveHours(data: LeaveTransaction) {

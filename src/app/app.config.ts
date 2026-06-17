@@ -14,6 +14,11 @@ import {
   provideFirestore,
   connectFirestoreEmulator,
 } from '@angular/fire/firestore';
+import {
+  getStorage,
+  provideStorage,
+  connectStorageEmulator,
+} from '@angular/fire/storage';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { environment } from '../environments/environment';
 import { SystemConfigService } from './services/system-config.service';
@@ -50,6 +55,13 @@ export const appConfig: ApplicationConfig = {
         return firestore;
       })
       : provideFirestore(() => getFirestore()),
+    environment.useEmulators
+      ? provideStorage(() => {
+        const storage = getStorage();
+        connectStorageEmulator(storage, 'localhost', 9199);
+        return storage;
+      })
+      : provideStorage(() => getStorage()),
     provideAnimationsAsync(),
     {
       provide: APP_INITIALIZER,
