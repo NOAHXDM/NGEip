@@ -5,6 +5,33 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [3.0.20] - 2026-06-18
+
+### 變更
+- 使用者頭像上傳由 Cloudinary 全面移植至 Firebase Storage：
+  - 頭像改存確定性路徑 `avatars/{uid}/avatar.webp`，新圖覆寫舊圖，先天不產生孤兒檔。
+  - 上傳前以 Canvas 將圖片縮至 ≤512px 並壓縮為 webp，帶一週快取，降低儲存與下載成本。
+  - 使用者個人資料頁改以檔案選取上傳取代 Cloudinary widget，並加上傳中狀態。
+
+### 安全
+- 新增 `storage.rules`：頭像僅登入者可讀、本人或 admin 可寫／刪、限圖片且 < 1MB。
+- 升級 `@angular/*` 至 20.3.25（`^20` 範圍內），修補框架層 XSS／DoS 安全通報。
+- 相依漏洞由 62 降至 11：移除 `firebase-admin` devDependency（搬遷／稽核工具改為按需臨時安裝），其餘以非破壞性 `npm audit fix` 修補。剩餘 11 項皆為建置／開發伺服器工具（vite、esbuild、webpack-dev-server 等），不進線上 bundle；其修補需等待 Angular 工具鏈大版升級，不得以 `npm audit fix --force`（會將工具鏈降至 Angular 8）處理。
+
+### 移除
+- 移除 Cloudinary widget script、`cloudinary` 與 `dotenv` 依賴。
+- 移除系統設定（`systemConfig/license`）的 `cloudinaryCloudName` / `cloudinaryUploadPreset` 欄位與對應 UI。
+- 刪除 `tools/cloudinary-cleanup.js`。
+
+### 新增
+- `tools/migrate-avatars-to-storage.js`：一次性將在職者頭像由 Cloudinary 搬遷至 Storage（已離職者跳過）。
+- `tools/storage-orphan-audit.js`：Storage 孤兒檔稽核安全網。
+- `StorageService`、`image-resize` 工具與對應單元測試（共 12 項）。
+
+### 文件
+- 更新 README 遺留注意事項、CLAUDE.md 遺留項目提醒、憲章 Sync Impact TODO。
+- 新增 `specs/003-cloudinary-to-storage/plan.md` 實作計畫。
+
 ## [3.0.19] - 2026-06-15
 
 ### 變更
