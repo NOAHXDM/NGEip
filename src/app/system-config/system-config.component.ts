@@ -38,7 +38,6 @@ import { UserService } from '../services/user.service';
   styleUrl: './system-config.component.scss',
 })
 export class SystemConfigComponent {
-  publicIds: string[] = [];
   readonly isAdmin$: Observable<boolean>;
 
   readonly attendanceService = inject(AttendanceService);
@@ -52,8 +51,6 @@ export class SystemConfigComponent {
     overtimePriorityReplacedByLeave: new FormArray(
       this.reasonPriorityList.map(() => new FormControl(false))
     ),
-    cloudinaryCloudName: new FormControl(),
-    cloudinaryUploadPreset: new FormControl(),
   });
 
   constructor(
@@ -87,13 +84,8 @@ export class SystemConfigComponent {
   }
 
   updateLicense() {
-    const {
-      maxUsers,
-      initialSettlementYear,
-      timeFilterRange,
-      cloudinaryCloudName,
-      cloudinaryUploadPreset,
-    } = this.configForm.value;
+    const { maxUsers, initialSettlementYear, timeFilterRange } =
+      this.configForm.value;
 
     const overtimePriorityReplacedByLeave =
       this.configForm.value.overtimePriorityReplacedByLeave
@@ -111,9 +103,7 @@ export class SystemConfigComponent {
         maxUsers!,
         initialSettlementYear!,
         timeFilterRange!,
-        overtimePriorityReplacedByLeave!,
-        cloudinaryCloudName!,
-        cloudinaryUploadPreset!
+        overtimePriorityReplacedByLeave!
       )
       .pipe(take(1))
       .subscribe({
@@ -129,28 +119,5 @@ export class SystemConfigComponent {
       verticalPosition: verticalPosition,
       duration: 5000,
     });
-  }
-
-  downloadUsersPhotoPublicId() {
-    this.userService.list$.pipe(take(1)).subscribe({
-      next: (users) => {
-        this.publicIds = users
-          .filter((user) => !!user.photoUrl)
-          .map((user) => {
-            const photoUrl = user.photoUrl;
-            const photoUrlSplit = photoUrl!.split('/');
-            const photoPublicIdFile = photoUrlSplit.pop()!.split('.');
-            const [photoPublicId] = photoPublicIdFile;
-            return photoPublicId;
-          });
-      },
-    });
-    const JSONData = JSON.stringify(this.publicIds);
-    const blob = new Blob([JSONData], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'eipImages';
-    link.click();
-    URL.revokeObjectURL(link.href);
   }
 }
