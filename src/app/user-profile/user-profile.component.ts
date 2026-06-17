@@ -46,10 +46,9 @@ import { User, UserService } from '../services/user.service';
 import { UserNamePipe } from '../pipes/user-name.pipe';
 import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
 import { TimezoneService } from '../services/timezone.service';
-import { SystemConfigService } from '../services/system-config.service';
+import { StorageService } from '../services/storage.service';
 import { SubsidyLimitService, UserSubsidyLimitStatus } from '../services/subsidy-limit.service';
 import { UserAttributeReportEmbedComponent } from '../evaluation/components/user-attribute-report-embed/user-attribute-report-embed.component';
-declare var cloudinary: any;
 @Component({
   selector: 'app-user-profile',
   standalone: true,
@@ -140,13 +139,13 @@ export class UserProfileComponent {
   displayedColumns: string[] = ['date', 'hours', 'reason', 'actionBy'];
   myProfileMode = true;
   title = 'My Profile';
-  cloudinaryWidget: any;
+  readonly avatarUploading = signal(false);
 
   constructor(
     private userService: UserService,
     private annualLeaveService: AnnualLeaveService,
     private timezoneService: TimezoneService,
-    private systemConfigService: SystemConfigService,
+    private storageService: StorageService,
     private subsidyLimitService: SubsidyLimitService,
     private _dialog: MatDialog,
     private _snackBar: MatSnackBar,
@@ -219,34 +218,6 @@ export class UserProfileComponent {
         );
       })
     );
-  }
-
-  ngOnInit() {
-    this.systemConfigService.license$.subscribe((license) => {
-      const cloudName = license.cloudinaryCloudName;
-      const uploadPreset = license.cloudinaryUploadPreset;
-
-      if (cloudName && uploadPreset) {
-        this.cloudinaryWidget = cloudinary.createUploadWidget(
-          {
-            cloudName,
-            uploadPreset,
-          },
-          (error: any, result: any) => {
-            if (!error && result && result.event === 'success') {
-              const uploadedUrl = result.info.secure_url;
-              this.profileForm.get('photoUrl')?.setValue(uploadedUrl);
-
-              const userData = {
-                uid: this.profileForm.get('uid')?.value,
-                photoUrl: uploadedUrl,
-              } as User;
-              this.userService.updateUserPhotoUrl(userData).subscribe();
-            }
-          }
-        );
-      }
-    });
   }
 
   normalFieldsUpdate() {
@@ -366,12 +337,42 @@ export class UserProfileComponent {
       });
   }
 
-  openWidget() {
-    if (this.cloudinaryWidget) {
-      this.cloudinaryWidget.open();
-    } else {
-      this.openSnackBar('請先註冊 cloudinary 並設定');
+  onAvatarSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    // 允許再次選同一檔案觸發 change
+    input.value = '';
+    if (!file) {
+      return;
     }
+
+    const uid = this.profileForm.get('uid')?.value;
+    if (!uid) {
+      this.openSnackBar('無法取得使用者資訊，請重新整理後再試');
+      return;
+    }
+
+    this.avatarUploading.set(true);
+    this.storageService.uploadAvatar(uid, file).subscribe({
+      next: (downloadUrl) => {
+        this.profileForm.get('photoUrl')?.setValue(downloadUrl);
+        const userData = { uid, photoUrl: downloadUrl } as User;
+        this.userService.updateUserPhotoUrl(userData).subscribe({
+          next: () => {
+            this.avatarUploading.set(false);
+            this.openSnackBar('頭像更新成功');
+          },
+          error: () => {
+            this.avatarUploading.set(false);
+            this.openSnackBar('頭像更新失敗，請稍後再試');
+          },
+        });
+      },
+      error: (err) => {
+        this.avatarUploading.set(false);
+        this.openSnackBar(err?.message ?? '頭像上傳失敗，請稍後再試');
+      },
+    });
   }
 
   getProgressPercentage(used: number, total: number): number {
