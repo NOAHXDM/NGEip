@@ -51,6 +51,21 @@ export interface EvaluationAssignment {
   completedAt?: Timestamp;
 }
 
+export interface RandomAssignmentPreviewRow {
+  evaluateeUid: string;
+  evaluatorUids: string[];
+  lockedEvaluatorUids: string[]; // 既有 completed 指派，不可由預覽移除或替換
+  targetEvaluatorCount: number;
+  warnings: string[];
+}
+
+export interface RandomAssignmentPreview {
+  cycleId: string;
+  rows: RandomAssignmentPreviewRow[];
+  evaluatorLoads: Record<string, number>;
+  generatedAt: Date;
+}
+
 export interface EvaluationFormScores {
   q1: number; q2: number; q3: number; q4: number; q5: number;
   q6: number; q7: number; q8: number; q9: number; q10: number;
@@ -149,6 +164,16 @@ interface EvaluationAssignmentService {
 
   // 管理者：建立指派（單筆或批次）
   createAssignments(cycleId: string, assignments: {evaluatorUid: string; evaluateeUid: string}[]): Promise<void>;
+
+  // 管理者：產生隨機快選預覽（不寫入 Firestore）
+  generateRandomAssignmentPreview(
+    cycleId: string,
+    users: User[],
+    existingAssignments: EvaluationAssignment[],
+  ): RandomAssignmentPreview;
+
+  // 管理者：儲存隨機快選預覽，僅寫入新的 pending 指派且不異動 completed 指派
+  saveRandomAssignmentPreview(preview: RandomAssignmentPreview): Promise<void>;
 
   // 管理者：刪除指派
   deleteAssignment(assignmentId: string): Promise<void>;
