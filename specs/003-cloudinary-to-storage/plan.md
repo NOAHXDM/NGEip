@@ -173,6 +173,15 @@ Admin SDK，一次性、可重跑、冪等：
 - **整合（emulator）**：上傳 → `photoUrl` 寫入 → 顯示；離職 → 檔案被刪；`storage.rules` 授權測試（本人可寫、admin 可寫／刪他人、非本人非 admin 被拒、超過 1MB 被拒、非圖片被拒、未登入不可讀）。
 - **搬遷腳本**：對 emulator 跑 dry-run 驗證篩選（含離職者跳過、冪等）。
 
+## PR#13 後續修正（已完成，PR#15 / 2026-06-18）
+
+回應 PR#13 程式碼審查遺留意見，已於 PR#15 補齊並合併（merge `dd27646`）：
+
+- **離職流程單元測試**（原審查 #4）：新增 `src/app/services/user.service.spec.ts`，覆蓋 `updateUserAdvanced` 三條商業規則——無 `exitDate` 不清頭像、有 `exitDate` 清 `photoUrl` 並刪檔、刪檔失敗仍不阻斷離職。補齊「測試是交付門檻」缺口。
+- **頭像上傳重構**（原審查 #1/#2）：`user-profile` 的 `onAvatarSelected` 巢狀 subscribe 改 `switchMap` + `takeUntilDestroyed`；`photoUrl` 表單值改於 Firestore 寫入成功後才更新（消除競態）；錯誤改固定友善訊息 + `console.error`，不洩漏內部資訊。
+- **spec.md 補齊**（原審查 #9）：見 [spec.md](./spec.md)。
+- **測試 seam 架構決策**：`UserService` 新增 `readonly _fn = { doc, updateDoc }`，並將 `list$` 查詢以 `defer()` 延後至訂閱時建立。`_fn` 為 public 屬性、供單元測試覆寫攔截 Firestore 模組函式（規避 ES module non-configurable），此取捨**刻意沿用 evaluation 服務既有慣例**，不改為 `protected` 以維持測試存取一致。
+
 ## 上線步驟（建議順序，可平滑回退）
 
 1. 加 `provideStorage` + `storage.rules` + emulator 設定，本地驗證新上傳流程（此時 Cloudinary 仍在）。
