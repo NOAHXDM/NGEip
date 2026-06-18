@@ -168,7 +168,7 @@ userAttributeSnapshots/{cycleId}_{userId}
 | 管理者結束並發布（30 份表單，20 受評者） | ~30 | ~52 |
 | 管理者排名視圖（第一頁 20 筆） | ~20 | 0 |
 | 管理者隨機快選預覽（20 位使用者） | users + 該週期 assignments | 0 |
-| 管理者儲存隨機快選（20 位使用者、每人 10 位評核者） | transaction 內既有指派驗證 | 實際新增 pending 指派數 + 每個 transaction chunk 0 或 1 次週期統計更新 |
+| 管理者儲存隨機快選（20 位使用者、每人 10 位評核者） | transaction 內既有指派驗證 | 實際新增 pending 指派數 + 每個 transaction chunk 0 或 1 次週期統計更新（每 chunk 最多 498 筆新增，保留 cycle update 與擴充 write slot） |
 
 ---
 
@@ -331,6 +331,7 @@ private ensureInsightsAutoScroll(): void {
 - `userAttributeSnapshots` 的 write 規則限制：evaluator 只能在 `status == 'preview'` 時 update，且不能修改 `status`；防止受評者自己修改快照。
 - `evaluationForms` 的 `delete` 規則設為 `if false`，永久保留考評數據。
 - `evaluationCycles` 的 `update` 開放已登入使用者僅限修改 `completedAssignments` 欄位，允許評核者提交表單的原子性 batch 寫入（遞增完成計數）；其餘欄位付管理者操作。
+- 隨機快選儲存沿用既有管理者權限：管理者可在 transaction 中建立 `evaluationAssignments` 並更新 `evaluationCycles.totalAssignments`；一般使用者不得建立指派或修改 `totalAssignments`。
 
 ---
 

@@ -149,6 +149,8 @@ npx jasmine src/app/evaluation/**/*.spec.ts  # 或對應測試指令
 - ✅ `evaluateeUid` 的使用者讀取 `evaluationForms` → **403 DENIED**
 - ✅ 評核者讀取他人的 `evaluationForms` → **403 DENIED**
 - ✅ 普通使用者試圖建立 `evaluationCycles` → **403 DENIED**
+- ✅ 普通使用者試圖建立 `evaluationAssignments` 或更新 `evaluationCycles.totalAssignments` → **403 DENIED**
+- ✅ 管理者建立 `evaluationAssignments` 並更新 `evaluationCycles.totalAssignments` → **ALLOWED**
 - ✅ 受評者嘗試將自己的 `userAttributeSnapshot` 更新為 `status: 'final'` → **403 DENIED**
 
 ---

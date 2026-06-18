@@ -158,7 +158,7 @@
 **目的**：讓管理者可在週期截止前，針對該週期所有在職且非管理員使用者一次產生可編輯指派預覽，確認後才寫入正式指派。
 
 - [X] T049 [P] [US1] 更新 `src/app/evaluation/models/evaluation.models.ts`，新增 `RandomAssignmentPreview` 與 `RandomAssignmentPreviewRow` 介面，包含受評者、建議評核者、已完成且不可動評核者、目標人數、負載統計與警示訊息
-- [X] T050 [P] [US1] 建立或更新 `src/app/evaluation/services/evaluation-assignment.service.spec.ts`，覆蓋隨機快選演算法：排除自評、排除管理員、每位受評者達 `min(10, 可用使用者總數 - 1)`、2 人互評、0/1 人顯示無法產生、缺 `jobTitle` 不視為同職稱、負載盡量平均、同 `jobTitle` 在低負載候選中優先、已完成指派超過目標人數時保留並警示且不補派、已完成指派包含管理員或已離職者時保留且計入並警示
+- [X] T050 [P] [US1] 建立或更新 `src/app/evaluation/services/evaluation-assignment.service.spec.ts`，覆蓋隨機快選演算法：排除自評、排除管理員、每位受評者達 `min(10, 可用使用者總數 - 1)`、超過 10 人時每位受評者最多 10 位評核者、2 人互評、0/1 人顯示無法產生、缺 `jobTitle` 不視為同職稱、負載盡量平均、同 `jobTitle` 在低負載候選中優先、已完成指派超過目標人數時保留並警示且不補派、已完成指派包含管理員或已離職者時保留且計入並警示
 - [X] T051 [US1] 更新 `src/app/evaluation/services/evaluation-assignment.service.ts`，實作 `generateRandomAssignmentPreview()` 純計算流程，不寫入 Firestore；輸入在職使用者與該週期既有指派，輸出可編輯預覽資料
 - [X] T052 [US1] 更新 `src/app/evaluation/services/evaluation-assignment.service.ts` 的寫入流程，新增 `saveRandomAssignmentPreview()` 或調整 `createAssignments()`，於 Firestore transaction 內以確定性 key 檢查既有文件，只建立實際新增指派，且應提交總數僅依實際新增數遞增，避免並發重複儲存造成完成率統計失真
 - [X] T053 [P] [US1] 更新 `src/app/evaluation/testing/us1-integration.spec.ts`，新增隨機快選儲存整合測試：正式儲存後評核者可看到待辦；重複儲存不重複增加應提交總數；既有 completed 指派不被刪除、覆寫或替換；completed 超過目標人數時不新增補派；completed 評核者為管理員或已離職者時仍保留且計入

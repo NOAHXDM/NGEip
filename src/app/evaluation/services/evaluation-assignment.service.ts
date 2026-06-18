@@ -40,7 +40,8 @@ import { User } from '../../services/user.service';
 /** Firestore 集合路徑 */
 const ASSIGNMENTS_COLLECTION = 'evaluationAssignments';
 const CYCLES_COLLECTION = 'evaluationCycles';
-const TRANSACTION_SET_LIMIT = 499;
+// Firestore transaction 最多 500 writes；保留 cycleRef update 與未來擴充各 1 個 slot。
+const TRANSACTION_SET_LIMIT = 498;
 
 @Injectable({ providedIn: 'root' })
 export class EvaluationAssignmentService {
@@ -203,6 +204,8 @@ export class EvaluationAssignmentService {
       };
     });
 
+    this.rebalancePreviewLoads(rows, eligibleUsers, evaluatorLoads);
+
     return {
       cycleId,
       rows,
@@ -334,7 +337,7 @@ export class EvaluationAssignmentService {
     const result: { evaluatorUid: string; evaluateeUid: string }[] = [];
 
     for (const assignment of assignments) {
-      const key = `${assignment.evaluatorUid}_${assignment.evaluateeUid}`;
+      const key = JSON.stringify([assignment.evaluatorUid, assignment.evaluateeUid]);
       if (seen.has(key)) continue;
       seen.add(key);
       result.push(assignment);
@@ -363,6 +366,51 @@ export class EvaluationAssignmentService {
     }
 
     return grouped;
+  }
+
+  private rebalancePreviewLoads(
+    rows: RandomAssignmentPreviewRow[],
+    eligibleUsers: User[],
+    evaluatorLoads: Record<string, number>,
+  ): void {
+    const eligibleUids = eligibleUsers
+      .map((user) => user.uid)
+      .filter((uid): uid is string => Boolean(uid));
+    const maxIterations = rows.length * eligibleUids.length;
+
+    for (let iteration = 0; iteration < maxIterations; iteration += 1) {
+      const loads = eligibleUids.map((uid) => ({ uid, load: evaluatorLoads[uid] ?? 0 }));
+      const min = loads.reduce((best, item) => item.load < best.load ? item : best);
+      const max = loads.reduce((best, item) => item.load > best.load ? item : best);
+
+      if (max.load - min.load <= 1) return;
+
+      const swapped = this.swapOverloadedEvaluator(rows, evaluatorLoads, max.uid, min.uid);
+      if (!swapped) return;
+    }
+  }
+
+  private swapOverloadedEvaluator(
+    rows: RandomAssignmentPreviewRow[],
+    evaluatorLoads: Record<string, number>,
+    overloadedUid: string,
+    underloadedUid: string,
+  ): boolean {
+    for (const row of rows) {
+      if (row.evaluateeUid === underloadedUid) continue;
+      if (row.lockedEvaluatorUids.includes(overloadedUid)) continue;
+      if (row.evaluatorUids.includes(underloadedUid)) continue;
+
+      const replaceIndex = row.evaluatorUids.indexOf(overloadedUid);
+      if (replaceIndex === -1) continue;
+
+      row.evaluatorUids[replaceIndex] = underloadedUid;
+      evaluatorLoads[overloadedUid] = (evaluatorLoads[overloadedUid] ?? 0) - 1;
+      evaluatorLoads[underloadedUid] = (evaluatorLoads[underloadedUid] ?? 0) + 1;
+      return true;
+    }
+
+    return false;
   }
 
   private pickEvaluator(

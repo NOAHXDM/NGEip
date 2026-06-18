@@ -162,6 +162,47 @@ describe('EvaluationAssignmentService', () => {
       expect(row.warnings).toEqual([]);
     });
 
+    it('可用使用者超過 10 位時，每位受評者最多只取 10 位評核者', () => {
+      const users = Array.from({ length: 12 }, (_, index) =>
+        makeUser(`u${index + 1}`, `使用者${index + 1}`, '工程師'),
+      );
+
+      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, []);
+
+      expect(preview.rows.length).toBe(12);
+      for (const row of preview.rows) {
+        expect(row.targetEvaluatorCount).toBe(10);
+        expect(row.evaluatorUids.length).toBe(10);
+        expect(row.evaluatorUids).not.toContain(row.evaluateeUid);
+      }
+    });
+
+    it('多人隨機快選時評核者負載差距應不超過 1', () => {
+      const users = Array.from({ length: 12 }, (_, index) =>
+        makeUser(`u${index + 1}`, `使用者${index + 1}`, index % 2 === 0 ? '工程師' : '設計師'),
+      );
+
+      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, []);
+      const loads = Object.values(preview.evaluatorLoads);
+      const minLoad = Math.min(...loads);
+      const maxLoad = Math.max(...loads);
+
+      expect(maxLoad - minLoad).toBeLessThanOrEqual(1);
+    });
+
+    it('負載相同時應優先選擇相同 jobTitle 且非空白的評核者', () => {
+      const users = [
+        makeUser('u1', '使用者1', '工程師'),
+        makeUser('u2', '使用者2', '工程師'),
+        makeUser('u3', '使用者3', '設計師'),
+      ];
+
+      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, []);
+      const row = preview.rows.find((item) => item.evaluateeUid === 'u1')!;
+
+      expect(row.evaluatorUids[0]).toBe('u2');
+    });
+
     it('已完成指派超過目標人數時應保留並警示且不補派', () => {
       const users = [
         makeUser('u1', '使用者1', '工程師'),
@@ -255,10 +296,10 @@ describe('EvaluationAssignmentService', () => {
       await service.createAssignments(CYCLE_ID, assignments);
 
       expect(service._fn.runTransaction).toHaveBeenCalledTimes(2);
-      expect(transactions[0].set).toHaveBeenCalledTimes(499);
-      expect(transactions[1].set).toHaveBeenCalledTimes(1);
-      expect(service._fn.increment).toHaveBeenCalledWith(499);
-      expect(service._fn.increment).toHaveBeenCalledWith(1);
+      expect(transactions[0].set).toHaveBeenCalledTimes(498);
+      expect(transactions[1].set).toHaveBeenCalledTimes(2);
+      expect(service._fn.increment).toHaveBeenCalledWith(498);
+      expect(service._fn.increment).toHaveBeenCalledWith(2);
       expect(transactions[0].update).toHaveBeenCalled();
       expect(transactions[1].update).toHaveBeenCalled();
       expect(service._fn.writeBatch).not.toHaveBeenCalled();
