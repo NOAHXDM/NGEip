@@ -121,6 +121,8 @@ describe('UserService（離職流程 updateUserAdvanced）', () => {
     // Firestore 仍已寫入（photoUrl 清空），離職本身視為成功
     expect(docSpy).toHaveBeenCalledWith(jasmine.anything(), 'users', MOCK_UID);
     expect(updateDocSpy).toHaveBeenCalledTimes(1);
+    const writtenData = updateDocSpy.calls.mostRecent().args[1] as Record<string, unknown>;
+    expect(writtenData['photoUrl']).toBe('');
     expect(storageServiceSpy.deleteAvatar).toHaveBeenCalledOnceWith(MOCK_UID);
   });
 });
