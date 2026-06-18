@@ -27,6 +27,7 @@ import { subMonths, subYears } from 'date-fns';
 import {
   catchError,
   combineLatest,
+  defer,
   from,
   map,
   Observable,
@@ -61,11 +62,15 @@ export class UserService {
   );
   readonly list$ = combineLatest([
     this.currentUser$,
-    collectionData(
-      query(collection(this.firestore, 'users'), orderBy('startDate', 'asc')),
-      {
-        idField: 'uid',
-      }
+    // defer：延後 collection 查詢至實際訂閱時才建立，避免欄位初始化階段即呼叫
+    // Firebase SDK（同時讓服務在單元測試中可被建構）。
+    defer(() =>
+      collectionData(
+        query(collection(this.firestore, 'users'), orderBy('startDate', 'asc')),
+        {
+          idField: 'uid',
+        }
+      )
     ),
   ]).pipe(
     map(([currentUser, users]) => {
@@ -81,6 +86,12 @@ export class UserService {
   );
   readonly timezoneService = inject(TimezoneService);
   private readonly storageService = inject(StorageService);
+
+  /**
+   * Firestore 模組層級函式的 seam：以 instance 屬性持有，供單元測試直接覆寫攔截，
+   * 規避 ES module 匯出 non-configurable 無法 spyOn 的限制（與 evaluation 服務同策略）。
+   */
+  readonly _fn = { doc, updateDoc };
 
   createUser(email: string, password: string, name: string) {
     let totalUsers = 0;
@@ -152,7 +163,7 @@ export class UserService {
   }
 
   updateUser(user: User) {
-    const docRef = doc(this.firestore, 'users', user.uid!);
+    const docRef = this._fn.doc(this.firestore, 'users', user.uid!);
     const data = {
       name: user.name,
       phone: user.phone,
@@ -160,19 +171,19 @@ export class UserService {
       remoteWorkRecommender: user.remoteWorkRecommender,
       birthday: user.birthday,
     };
-    return from(updateDoc(docRef, data));
+    return from(this._fn.updateDoc(docRef, data));
   }
 
   updateUserPhotoUrl(user: User) {
-    const docRef = doc(this.firestore, 'users', user.uid!);
+    const docRef = this._fn.doc(this.firestore, 'users', user.uid!);
     const data = {
       photoUrl: user.photoUrl,
     };
-    return from(updateDoc(docRef, data));
+    return from(this._fn.updateDoc(docRef, data));
   }
 
   updateUserAdvanced(user: User) {
-    const docRef = doc(this.firestore, 'users', user.uid!);
+    const docRef = this._fn.doc(this.firestore, 'users', user.uid!);
     const data = {
       jobRank: user.jobRank,
       jobTitle: user.jobTitle,
@@ -182,13 +193,13 @@ export class UserService {
     };
 
     if (!data.exitDate) {
-      return from(updateDoc(docRef, data));
+      return from(this._fn.updateDoc(docRef, data));
     }
 
     // 離職：一併清除頭像參照，並於更新成功後刪除 Storage 頭像檔
     // （孤兒檔清理第二道防線）。清理失敗不影響離職流程，
     // 留待 storage-orphan-audit 稽核腳本兜底。
-    return from(updateDoc(docRef, { ...data, photoUrl: '' })).pipe(
+    return from(this._fn.updateDoc(docRef, { ...data, photoUrl: '' })).pipe(
       switchMap(() =>
         this.storageService
           .deleteAvatar(user.uid!)

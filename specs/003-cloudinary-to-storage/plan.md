@@ -1,6 +1,6 @@
 # 實作計畫：Cloudinary 移植至 Firebase Storage
 
-**分支**：`003-cloudinary-to-storage` | **日期**：2026-06-17 | **規格**：spec.md（待補）
+**分支**：`003-cloudinary-to-storage` | **日期**：2026-06-17 | **規格**：[spec.md](./spec.md)
 **輸入**：使用者頭像上傳功能由 Cloudinary 移植至 Firebase Storage 的需求
 
 **注意**：所有內容 MUST 以繁體中文（zh-TW）撰寫，且技術實作與決策必須記錄於本檔，不得回寫到 spec.md。本檔僅記錄技術實作、架構決策、Firebase 設計、安全規則與測試策略。
