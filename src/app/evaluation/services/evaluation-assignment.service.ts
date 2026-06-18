@@ -79,11 +79,20 @@ export const EVALUATION_ASSIGNMENT_FIRESTORE_FNS = new InjectionToken<Evaluation
   },
 );
 
+export const EVALUATION_ASSIGNMENT_RANDOM_FN = new InjectionToken<() => number>(
+  'EVALUATION_ASSIGNMENT_RANDOM_FN',
+  {
+    providedIn: 'root',
+    factory: () => Math.random,
+  },
+);
+
 @Injectable({ providedIn: 'root' })
 export class EvaluationAssignmentService {
   private readonly firestore = inject(Firestore);
   private readonly auth = inject(Auth);
   private readonly firestoreFns = inject(EVALUATION_ASSIGNMENT_FIRESTORE_FNS);
+  private readonly randomFn = inject(EVALUATION_ASSIGNMENT_RANDOM_FN);
 
   // =====================
   // 讀取方法
@@ -465,7 +474,7 @@ export class EvaluationAssignmentService {
         user: candidate,
         load: evaluatorLoads[candidate.uid!] ?? 0,
         sameJobTitle: Boolean(evaluateeJobTitle && candidate.jobTitle?.trim() === evaluateeJobTitle),
-        random: Math.random(),
+        random: this.randomFn(),
       }))
       .sort((a, b) =>
         a.load - b.load ||

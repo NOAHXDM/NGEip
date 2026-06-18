@@ -660,12 +660,14 @@ export class AssignmentManagementDialogComponent {
         this.users() as User[],
         this.rawAssignments() ?? [],
       );
+      if (preview.rows.length === 0) {
+        this.randomPreview.set(null);
+        this.previewMessage.set('可用使用者不足，無法產生隨機指派。');
+        return;
+      }
+
       this.randomPreview.set(preview);
-      this.previewMessage.set(
-        preview.rows.length === 0
-          ? '可用使用者不足，無法產生隨機指派。'
-          : `已產生 ${preview.rows.length} 位受評者的預覽清單，確認儲存後才會寫入。`,
-      );
+      this.previewMessage.set(`已產生 ${preview.rows.length} 位受評者的預覽清單，確認儲存後才會寫入。`);
     } catch (err) {
       console.error('產生隨機快選失敗：', err);
       this.previewMessage.set('產生隨機快選失敗，請重新整理後再試。');

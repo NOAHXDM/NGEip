@@ -7,6 +7,7 @@ import { Firestore } from '@angular/fire/firestore';
 import { User } from '../../services/user.service';
 import {
   EVALUATION_ASSIGNMENT_FIRESTORE_FNS,
+  EVALUATION_ASSIGNMENT_RANDOM_FN,
   EvaluationAssignmentFirestoreFns,
   EvaluationAssignmentService,
 } from './evaluation-assignment.service';
@@ -109,6 +110,7 @@ describe('EvaluationAssignmentService', () => {
         { provide: Firestore, useValue: mockFirestore },
         { provide: Auth, useValue: mockAuth },
         { provide: EVALUATION_ASSIGNMENT_FIRESTORE_FNS, useValue: mockFns },
+        { provide: EVALUATION_ASSIGNMENT_RANDOM_FN, useValue: () => 0.5 },
       ],
     });
 
