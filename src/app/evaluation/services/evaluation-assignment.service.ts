@@ -40,8 +40,12 @@ import { User } from '../../services/user.service';
 /** Firestore 集合路徑 */
 const ASSIGNMENTS_COLLECTION = 'evaluationAssignments';
 const CYCLES_COLLECTION = 'evaluationCycles';
-// Firestore transaction 最多 500 writes；498 sets + 1 cycleRef update = 499，保留 1 個擴充 slot。
+// Firestore transaction 最多 500 writes（reads 不計入）：498 sets + 1 cycleRef update = 499 writes。
 const TRANSACTION_SET_LIMIT = 498;
+const WARNING_COMPLETED_EVALUATOR_INELIGIBLE =
+  '已完成指派包含管理員、已離職或不在候選名單中的評核者，系統已保留並計入。';
+const WARNING_COMPLETED_OVER_TARGET =
+  '已完成指派已超過本次目標人數，系統已保留並不再補派。';
 
 export interface EvaluationAssignmentFirestoreFns {
   collection: typeof collection;
@@ -186,12 +190,12 @@ export class EvaluationAssignmentService {
 
         const evaluator = userByUid.get(assignment.evaluatorUid);
         if (!evaluator || evaluator.exitDate || evaluator.role === 'admin') {
-          warnings.push('已完成指派包含管理員、已離職或不在候選名單中的評核者，系統已保留並計入。');
+          warnings.push(WARNING_COMPLETED_EVALUATOR_INELIGIBLE);
         }
       }
 
       if (lockedEvaluatorUids.length > targetEvaluatorCount) {
-        warnings.push('已完成指派已超過本次目標人數，系統已保留並不再補派。');
+        warnings.push(WARNING_COMPLETED_OVER_TARGET);
       }
 
       for (const assignment of pending) {
@@ -352,7 +356,7 @@ export class EvaluationAssignmentService {
     const result: { evaluatorUid: string; evaluateeUid: string }[] = [];
 
     for (const assignment of assignments) {
-      const key = JSON.stringify([assignment.evaluatorUid, assignment.evaluateeUid]);
+      const key = `${assignment.evaluatorUid}\u0000${assignment.evaluateeUid}`;
       if (seen.has(key)) continue;
       seen.add(key);
       result.push(assignment);
@@ -423,6 +427,7 @@ export class EvaluationAssignmentService {
       const replaceIndex = row.evaluatorUids.indexOf(overloadedUid);
       if (replaceIndex === -1) continue;
 
+      // rows 是本次預覽的局部資料；回傳前就地替換以同步 evaluatorLoads。
       row.evaluatorUids[replaceIndex] = underloadedUid;
       evaluatorLoads[overloadedUid] = (evaluatorLoads[overloadedUid] ?? 0) - 1;
       evaluatorLoads[underloadedUid] = (evaluatorLoads[underloadedUid] ?? 0) + 1;

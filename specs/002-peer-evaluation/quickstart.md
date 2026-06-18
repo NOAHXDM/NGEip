@@ -142,6 +142,8 @@ npm start
 
 使用 Firebase Emulator 測試套件，確認以下關鍵拒絕案例：
 
+> 注意：`src/app/evaluation/testing/firestore-rules.spec.ts` 與 `us1-integration.spec.ts` 目前以 `xdescribe` 標記，需本地 Firebase Emulator 手動切換執行；一般 `npm test` / CI 不會執行這些整合與安全規則案例。
+
 ```bash
 npx jasmine src/app/evaluation/**/*.spec.ts  # 或對應測試指令
 ```

@@ -77,6 +77,8 @@ interface PreviewRowView extends RandomAssignmentPreviewRow {
   warningsText: string;
 }
 
+type RandomCandidateUser = User & { uid: string };
+
 // =====================================================================
 // 狀態對應
 // =====================================================================
@@ -248,7 +250,7 @@ const ASSIGNMENT_STATUS_LABEL: Record<EvaluationAssignment['status'], string> = 
                         @for (user of randomCandidateUsers(); track user.uid) {
                           <mat-option
                             [value]="user.uid"
-                            [disabled]="user.uid === row.evaluateeUid || row.lockedEvaluatorUids.includes(user.uid!)"
+                            [disabled]="user.uid === row.evaluateeUid || row.lockedEvaluatorUids.includes(user.uid)"
                           >
                             {{ user.name }}{{ user.jobTitle ? ' / ' + user.jobTitle : '' }}
                           </mat-option>
@@ -559,8 +561,10 @@ export class AssignmentManagementDialogComponent {
   );
 
   /** 隨機快選候選人：在職且非管理員 */
-  readonly randomCandidateUsers = computed(() =>
-    (this.users() as User[]).filter((user) => user.uid && !user.exitDate && user.role !== 'admin'),
+  readonly randomCandidateUsers = computed((): RandomCandidateUser[] =>
+    (this.users() as User[]).filter((user): user is RandomCandidateUser =>
+      Boolean(user.uid) && !user.exitDate && user.role !== 'admin',
+    ),
   );
 
   /**
@@ -677,7 +681,7 @@ export class AssignmentManagementDialogComponent {
     this.randomPreview.set({
       ...preview,
       rows: nextRows,
-      evaluatorLoads: this.calculatePreviewLoads(nextRows),
+      evaluatorLoads: this.calculatePreviewLoads(nextRows, preview.evaluatorLoads),
     });
   }
 
@@ -746,11 +750,14 @@ export class AssignmentManagementDialogComponent {
     }
   }
 
-  private calculatePreviewLoads(rows: RandomAssignmentPreviewRow[]): Record<string, number> {
-    const loads: Record<string, number> = {};
-    for (const user of this.randomCandidateUsers()) {
-      loads[user.uid!] = 0;
-    }
+  private calculatePreviewLoads(
+    rows: RandomAssignmentPreviewRow[],
+    seedLoads: Record<string, number> = {},
+  ): Record<string, number> {
+    const loads = Object.fromEntries(
+      Object.keys(seedLoads).map((uid) => [uid, 0]),
+    ) as Record<string, number>;
+
     for (const row of rows) {
       for (const evaluatorUid of row.evaluatorUids) {
         loads[evaluatorUid] = (loads[evaluatorUid] ?? 0) + 1;
