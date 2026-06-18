@@ -1,12 +1,15 @@
 import { AsyncPipe, DatePipe, DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import {
   Component,
+  DestroyRef,
   Inject,
+  inject,
   Optional,
   signal,
   TemplateRef,
   ViewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormControl,
   FormGroup,
@@ -140,6 +143,7 @@ export class UserProfileComponent {
   myProfileMode = true;
   title = 'My Profile';
   readonly avatarUploading = signal(false);
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(
     private userService: UserService,
@@ -353,26 +357,31 @@ export class UserProfileComponent {
     }
 
     this.avatarUploading.set(true);
-    this.storageService.uploadAvatar(uid, file).subscribe({
-      next: (downloadUrl) => {
-        this.profileForm.get('photoUrl')?.setValue(downloadUrl);
-        const userData = { uid, photoUrl: downloadUrl } as User;
-        this.userService.updateUserPhotoUrl(userData).subscribe({
-          next: () => {
-            this.avatarUploading.set(false);
-            this.openSnackBar('頭像更新成功');
-          },
-          error: () => {
-            this.avatarUploading.set(false);
-            this.openSnackBar('頭像更新失敗，請稍後再試');
-          },
-        });
-      },
-      error: (err) => {
-        this.avatarUploading.set(false);
-        this.openSnackBar(err?.message ?? '頭像上傳失敗，請稍後再試');
-      },
-    });
+    // 以 switchMap 串接「上傳 → 寫入 photoUrl」，避免巢狀 subscribe；
+    // takeUntilDestroyed 確保元件銷毀後自動取消，不對已銷毀元件寫入。
+    this.storageService
+      .uploadAvatar(uid, file)
+      .pipe(
+        switchMap((downloadUrl) => {
+          this.profileForm.get('photoUrl')?.setValue(downloadUrl);
+          const userData = { uid, photoUrl: downloadUrl } as User;
+          return this.userService.updateUserPhotoUrl(userData);
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: () => {
+          this.avatarUploading.set(false);
+          this.openSnackBar('頭像更新成功');
+        },
+        // 固定顯示友善訊息，避免將 Firebase 內部錯誤（如 bucket 路徑）洩漏給使用者；
+        // 原始錯誤改以 console.error 記錄供除錯。
+        error: (err) => {
+          console.error('Avatar upload error:', err);
+          this.avatarUploading.set(false);
+          this.openSnackBar('頭像上傳失敗，請稍後再試');
+        },
+      });
   }
 
   getProgressPercentage(used: number, total: number): number {
