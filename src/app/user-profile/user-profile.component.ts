@@ -379,7 +379,7 @@ export class UserProfileComponent {
           this.openSnackBar('頭像更新成功');
         },
         // 固定顯示友善訊息，避免將 Firebase 內部錯誤（如 bucket 路徑）洩漏給使用者；
-        // 原始錯誤改以 console.error 記錄供除錯（含階段前綴以利辨別上傳/寫入）。
+        // 原始錯誤改以 console.error 記錄供除錯。
         error: (err) => {
           console.error('[UserProfile] avatar pipeline error:', err);
           this.avatarUploading.set(false);
