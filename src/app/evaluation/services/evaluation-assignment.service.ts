@@ -240,7 +240,10 @@ export class EvaluationAssignmentService {
   async saveRandomAssignmentPreview(preview: RandomAssignmentPreview): Promise<void> {
     const assignments = preview.rows.flatMap((row) =>
       row.evaluatorUids
-        .filter((evaluatorUid) => !row.lockedEvaluatorUids.includes(evaluatorUid))
+        .filter((evaluatorUid) =>
+          evaluatorUid !== row.evaluateeUid &&
+          !row.lockedEvaluatorUids.includes(evaluatorUid),
+        )
         .map((evaluatorUid) => ({
           evaluatorUid,
           evaluateeUid: row.evaluateeUid,

@@ -210,6 +210,25 @@ describe('EvaluationAssignmentService', () => {
       expect(row.evaluatorUids[0]).toBe('u2');
     });
 
+    it('產生預覽時應優先保留既有 pending 指派且不超過目標人數', () => {
+      const users = [
+        makeUser('u1', '使用者1', '工程師'),
+        makeUser('u2', '使用者2', '工程師'),
+        makeUser('u3', '使用者3', '設計師'),
+      ];
+      const existing = [
+        makeAssignment('u3', 'u1', 'pending'),
+      ];
+
+      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, existing);
+      const row = preview.rows.find((item) => item.evaluateeUid === 'u1')!;
+
+      expect(row.targetEvaluatorCount).toBe(2);
+      expect(row.evaluatorUids).toContain('u3');
+      expect(row.evaluatorUids.length).toBe(2);
+      expect(row.lockedEvaluatorUids).toEqual([]);
+    });
+
     it('已完成指派超過目標人數時應保留並警示且不補派', () => {
       const users = [
         makeUser('u1', '使用者1', '工程師'),
@@ -275,7 +294,7 @@ describe('EvaluationAssignmentService', () => {
       expect(mockFns.writeBatch).not.toHaveBeenCalled();
     });
 
-    it('全部指派都已存在時不應 commit batch 或遞增應提交總數', async () => {
+    it('全部指派都已存在時不應建立指派或遞增應提交總數', async () => {
       mockTransaction.get.and.returnValue(Promise.resolve(makeSnapshot(true) as any));
 
       await service.createAssignments(CYCLE_ID, [
@@ -337,6 +356,35 @@ describe('EvaluationAssignmentService', () => {
         `new-evaluator_${CYCLE_ID}_target`,
       );
       expect(mockTransaction.set).toHaveBeenCalledTimes(1);
+    });
+
+    it('應排除自評，且非鎖定指派若已存在也不應重複寫入或遞增', async () => {
+      mockTransaction.get.and.returnValue(Promise.resolve(makeSnapshot(true) as any));
+
+      await service.saveRandomAssignmentPreview({
+        cycleId: CYCLE_ID,
+        generatedAt: new Date(),
+        evaluatorLoads: {},
+        rows: [
+          {
+            evaluateeUid: 'target',
+            evaluatorUids: ['target', 'existing-evaluator'],
+            lockedEvaluatorUids: [],
+            targetEvaluatorCount: 2,
+            warnings: [],
+          },
+        ],
+      });
+
+      expect(mockTransaction.get).toHaveBeenCalledTimes(1);
+      expect(mockFns.doc as jasmine.Spy).toHaveBeenCalledWith(
+        mockFirestore,
+        'evaluationAssignments',
+        `existing-evaluator_${CYCLE_ID}_target`,
+      );
+      expect(mockTransaction.set).not.toHaveBeenCalled();
+      expect(mockTransaction.update).not.toHaveBeenCalled();
+      expect(mockFns.increment).not.toHaveBeenCalled();
     });
   });
 });

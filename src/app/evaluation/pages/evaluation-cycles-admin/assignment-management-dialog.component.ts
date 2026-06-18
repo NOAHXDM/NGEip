@@ -211,7 +211,7 @@ const ASSIGNMENT_STATUS_LABEL: Record<EvaluationAssignment['status'], string> = 
                 mat-raised-button
                 color="primary"
                 type="button"
-                [disabled]="isSavingPreview() || previewRows().length === 0"
+                [disabled]="isSavingPreview() || !hasWritablePreviewAssignments()"
                 (click)="saveRandomPreview()"
               >
                 @if (isSavingPreview()) {
@@ -546,6 +546,19 @@ export class AssignmentManagementDialogComponent {
   /** 預覽提示文字 */
   readonly previewMessage = signal('');
 
+  /** 預覽中是否有可新增的非鎖定指派 */
+  readonly hasWritablePreviewAssignments = computed(() => {
+    const preview = this.randomPreview();
+    if (!preview) return false;
+
+    return preview.rows.some((row) =>
+      row.evaluatorUids.some((evaluatorUid) =>
+        evaluatorUid !== row.evaluateeUid &&
+        !row.lockedEvaluatorUids.includes(evaluatorUid),
+      ),
+    );
+  });
+
   // ── 資料訊號 ──
 
   /**
@@ -681,7 +694,7 @@ export class AssignmentManagementDialogComponent {
     this.randomPreview.set({
       ...preview,
       rows: nextRows,
-      evaluatorLoads: this.calculatePreviewLoads(nextRows, preview.evaluatorLoads),
+      evaluatorLoads: this.calculatePreviewLoads(nextRows, Object.keys(preview.evaluatorLoads)),
     });
   }
 
@@ -752,10 +765,10 @@ export class AssignmentManagementDialogComponent {
 
   private calculatePreviewLoads(
     rows: RandomAssignmentPreviewRow[],
-    seedLoads: Record<string, number> = {},
+    knownEvaluatorUids: string[] = [],
   ): Record<string, number> {
     const loads = Object.fromEntries(
-      Object.keys(seedLoads).map((uid) => [uid, 0]),
+      knownEvaluatorUids.map((uid) => [uid, 0]),
     ) as Record<string, number>;
 
     for (const row of rows) {
