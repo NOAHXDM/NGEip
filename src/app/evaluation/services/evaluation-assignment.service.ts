@@ -22,7 +22,6 @@ import {
   collectionData,
   doc,
   getDoc,
-  getDocs,
   query,
   where,
   serverTimestamp,
@@ -40,6 +39,7 @@ import { User } from '../../services/user.service';
 /** Firestore 集合路徑 */
 const ASSIGNMENTS_COLLECTION = 'evaluationAssignments';
 const CYCLES_COLLECTION = 'evaluationCycles';
+const BATCH_SET_LIMIT = 499;
 
 @Injectable({ providedIn: 'root' })
 export class EvaluationAssignmentService {
@@ -48,13 +48,14 @@ export class EvaluationAssignmentService {
 
   /**
    * Firestore 函式參照（instance 屬性），供單元測試替換。
+   *
+   * @internal
    */
   readonly _fn = {
     collection,
     collectionData,
     doc,
     getDoc,
-    getDocs,
     query,
     where,
     serverTimestamp,
@@ -213,10 +214,12 @@ export class EvaluationAssignmentService {
    */
   async saveRandomAssignmentPreview(preview: RandomAssignmentPreview): Promise<void> {
     const assignments = preview.rows.flatMap((row) =>
-      row.evaluatorUids.map((evaluatorUid) => ({
-        evaluatorUid,
-        evaluateeUid: row.evaluateeUid,
-      })),
+      row.evaluatorUids
+        .filter((evaluatorUid) => !row.lockedEvaluatorUids.includes(evaluatorUid))
+        .map((evaluatorUid) => ({
+          evaluatorUid,
+          evaluateeUid: row.evaluateeUid,
+        })),
     );
 
     await this.createAssignments(preview.cycleId, assignments);
@@ -242,43 +245,49 @@ export class EvaluationAssignmentService {
 
     const uniqueAssignments = this.dedupeAssignments(assignments)
       .filter((assignment) => assignment.evaluatorUid !== assignment.evaluateeUid);
-    const assignmentsToCreate: { evaluatorUid: string; evaluateeUid: string; key: string }[] = [];
 
-    for (const assignment of uniqueAssignments) {
-      const key = this.buildAssignmentKey(assignment.evaluatorUid, cycleId, assignment.evaluateeUid);
-      const assignmentRef = this._fn.doc(this.firestore, ASSIGNMENTS_COLLECTION, key);
-      const existingSnap = await this._fn.getDoc(assignmentRef);
-
-      if (!existingSnap.exists()) {
-        assignmentsToCreate.push({ ...assignment, key });
-      }
-    }
+    const checkedAssignments = await Promise.all(
+      uniqueAssignments.map(async (assignment) => {
+        const key = this.buildAssignmentKey(assignment.evaluatorUid, cycleId, assignment.evaluateeUid);
+        const assignmentRef = this._fn.doc(this.firestore, ASSIGNMENTS_COLLECTION, key);
+        const existingSnap = await this._fn.getDoc(assignmentRef);
+        return {
+          ...assignment,
+          key,
+          exists: existingSnap.exists(),
+        };
+      }),
+    );
+    const assignmentsToCreate = checkedAssignments.filter((assignment) => !assignment.exists);
 
     if (assignmentsToCreate.length === 0) return;
 
-    const batch = this._fn.writeBatch(this.firestore);
-
-    for (const assignment of assignmentsToCreate) {
-      // 確定性 Key：確保相同組合不會產生重複文件
-      const assignmentRef = this._fn.doc(this.firestore, ASSIGNMENTS_COLLECTION, assignment.key);
-
-      batch.set(assignmentRef, {
-        id: assignment.key,
-        cycleId,
-        evaluatorUid: assignment.evaluatorUid,
-        evaluateeUid: assignment.evaluateeUid,
-        status: 'pending' as const,
-        createdAt: this._fn.serverTimestamp(),
-      });
-    }
-
-    // 原子性遞增週期的 totalAssignments 計數
     const cycleRef = this._fn.doc(this.firestore, CYCLES_COLLECTION, cycleId);
-    batch.update(cycleRef, {
-      totalAssignments: this._fn.increment(assignmentsToCreate.length),
-    });
 
-    await batch.commit();
+    for (const chunk of this.chunkAssignments(assignmentsToCreate, BATCH_SET_LIMIT)) {
+      const batch = this._fn.writeBatch(this.firestore);
+
+      for (const assignment of chunk) {
+        // 確定性 Key：確保相同組合不會產生重複文件
+        const assignmentRef = this._fn.doc(this.firestore, ASSIGNMENTS_COLLECTION, assignment.key);
+
+        batch.set(assignmentRef, {
+          id: assignment.key,
+          cycleId,
+          evaluatorUid: assignment.evaluatorUid,
+          evaluateeUid: assignment.evaluateeUid,
+          status: 'pending' as const,
+          createdAt: this._fn.serverTimestamp(),
+        });
+      }
+
+      // 原子性遞增週期的 totalAssignments 計數
+      batch.update(cycleRef, {
+        totalAssignments: this._fn.increment(chunk.length),
+      });
+
+      await batch.commit();
+    }
   }
 
   /**
@@ -332,6 +341,16 @@ export class EvaluationAssignmentService {
     }
 
     return result;
+  }
+
+  private chunkAssignments<T>(items: T[], chunkSize: number): T[][] {
+    const chunks: T[][] = [];
+
+    for (let i = 0; i < items.length; i += chunkSize) {
+      chunks.push(items.slice(i, i + chunkSize));
+    }
+
+    return chunks;
   }
 
   private groupAssignmentsByEvaluatee(assignments: EvaluationAssignment[]): Map<string, EvaluationAssignment[]> {

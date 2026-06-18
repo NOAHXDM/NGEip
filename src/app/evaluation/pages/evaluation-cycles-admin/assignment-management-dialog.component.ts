@@ -564,7 +564,7 @@ export class AssignmentManagementDialogComponent {
 
   /** 隨機快選候選人：在職且非管理員 */
   readonly randomCandidateUsers = computed(() =>
-    (this.users() as User[]).filter((user) => user.uid && user.role !== 'admin'),
+    (this.users() as User[]).filter((user) => user.uid && !user.exitDate && user.role !== 'admin'),
   );
 
   /**

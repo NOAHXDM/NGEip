@@ -53,15 +53,19 @@ describe('EvaluationAssignmentService', () => {
     commit: jasmine.Spy;
   };
 
-  beforeEach(() => {
-    mockFirestore = jasmine.createSpyObj('Firestore', ['_dummy']);
-    mockAuth = jasmine.createSpyObj('Auth', ['_dummy']);
-    mockBatch = {
+  function makeBatch() {
+    return {
       set: jasmine.createSpy('batch.set'),
       update: jasmine.createSpy('batch.update'),
       delete: jasmine.createSpy('batch.delete'),
       commit: jasmine.createSpy('batch.commit').and.returnValue(Promise.resolve()),
     };
+  }
+
+  beforeEach(() => {
+    mockFirestore = jasmine.createSpyObj('Firestore', ['_dummy']);
+    mockAuth = jasmine.createSpyObj('Auth', ['_dummy']);
+    mockBatch = makeBatch();
 
     TestBed.configureTestingModule({
       providers: [
@@ -216,6 +220,52 @@ describe('EvaluationAssignmentService', () => {
       expect(mockBatch.update).not.toHaveBeenCalled();
       expect(mockBatch.commit).not.toHaveBeenCalled();
       expect(service._fn.increment).not.toHaveBeenCalled();
+    });
+
+    it('超過單一 Firestore batch 上限時應分批 commit，且每批各自遞增實際新增數', async () => {
+      const batches = [makeBatch(), makeBatch()];
+      (service._fn.writeBatch as jasmine.Spy).and.returnValues(batches[0] as any, batches[1] as any);
+      const assignments = Array.from({ length: 500 }, (_, index) => ({
+        evaluatorUid: `u${index}`,
+        evaluateeUid: 'target',
+      }));
+
+      await service.createAssignments(CYCLE_ID, assignments);
+
+      expect(service._fn.writeBatch).toHaveBeenCalledTimes(2);
+      expect(batches[0].set).toHaveBeenCalledTimes(499);
+      expect(batches[1].set).toHaveBeenCalledTimes(1);
+      expect(service._fn.increment).toHaveBeenCalledWith(499);
+      expect(service._fn.increment).toHaveBeenCalledWith(1);
+      expect(batches[0].commit).toHaveBeenCalled();
+      expect(batches[1].commit).toHaveBeenCalled();
+    });
+  });
+
+  describe('saveRandomAssignmentPreview()', () => {
+    it('應跳過 lockedEvaluatorUids，避免對已完成指派做多餘存在性檢查', async () => {
+      await service.saveRandomAssignmentPreview({
+        cycleId: CYCLE_ID,
+        generatedAt: new Date(),
+        evaluatorLoads: {},
+        rows: [
+          {
+            evaluateeUid: 'target',
+            evaluatorUids: ['locked', 'new-evaluator'],
+            lockedEvaluatorUids: ['locked'],
+            targetEvaluatorCount: 2,
+            warnings: [],
+          },
+        ],
+      });
+
+      expect(service._fn.getDoc).toHaveBeenCalledTimes(1);
+      expect(service._fn.doc as jasmine.Spy).toHaveBeenCalledWith(
+        mockFirestore,
+        'evaluationAssignments',
+        `new-evaluator_${CYCLE_ID}_target`,
+      );
+      expect(mockBatch.set).toHaveBeenCalledTimes(1);
     });
   });
 });
