@@ -223,6 +223,31 @@ xdescribe('Security Rules 整合測試 - 評量考核系統', () => {
     );
   });
 
+  it('案例 7b：Admin 更新 evaluationCycle.totalAssignments → ALLOWED', async () => {
+    const adminCtx = createAdminContext(ADMIN_UID);
+    const db = adminCtx.firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, `evaluationCycles/${CYCLE_ID}`), {
+        totalAssignments: 2,
+      })
+    );
+  });
+
+  it('案例 7c：Admin 建立 evaluationAssignment → ALLOWED', async () => {
+    const adminCtx = createAdminContext(ADMIN_UID);
+    const db = adminCtx.firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'evaluationAssignments/admin-created-assignment'), {
+        id: 'admin-created-assignment',
+        cycleId: CYCLE_ID,
+        evaluatorUid: 'new-evaluator-001',
+        evaluateeUid: EVALUATEE_UID,
+        status: 'pending',
+        createdAt: new Date(),
+      })
+    );
+  });
+
   // =====================
   // 測試案例 8：非 Admin 建立 evaluationCycle → DENIED
   // =====================
@@ -239,6 +264,31 @@ xdescribe('Security Rules 整合測試 - 評量考核系統', () => {
         totalAssignments: 0,
         completedAssignments: 0,
         createdBy: EVALUATOR_UID,
+        createdAt: new Date(),
+      })
+    );
+  });
+
+  it('案例 8b：非管理者更新 evaluationCycle.totalAssignments → DENIED', async () => {
+    const evaluatorCtx = createEvaluatorContext(EVALUATOR_UID);
+    const db = evaluatorCtx.firestore();
+    await assertFails(
+      updateDoc(doc(db, `evaluationCycles/${CYCLE_ID}`), {
+        totalAssignments: 2,
+      })
+    );
+  });
+
+  it('案例 8c：非管理者建立 evaluationAssignment → DENIED', async () => {
+    const evaluatorCtx = createEvaluatorContext(EVALUATOR_UID);
+    const db = evaluatorCtx.firestore();
+    await assertFails(
+      setDoc(doc(db, 'evaluationAssignments/user-created-assignment'), {
+        id: 'user-created-assignment',
+        cycleId: CYCLE_ID,
+        evaluatorUid: EVALUATOR_UID,
+        evaluateeUid: 'other-evaluatee-001',
+        status: 'pending',
         createdAt: new Date(),
       })
     );

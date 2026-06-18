@@ -105,6 +105,7 @@ service cloud.firestore {
     // =============================================
 
     // 考核週期：所有已登入使用者可讀，僅管理者可寫
+    // 隨機快選儲存時，管理者可在 transaction 中更新 totalAssignments。
     // 例外：一般使用者提交考評時可遞增 completedAssignments（原子性加一）
     match /evaluationCycles/{cycleId} {
       allow read: if isSignedIn();
@@ -114,7 +115,7 @@ service cloud.firestore {
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['completedAssignments']));
     }
 
-    // 評核指派：評核者讀自己的指派 or 管理者；建立/刪除僅管理者；更新評核者自己 or 管理者
+    // 評核指派：評核者讀自己的指派 or 管理者；隨機快選與手動建立/刪除僅管理者；更新評核者自己 or 管理者
     match /evaluationAssignments/{assignmentId} {
       allow read: if isAdmin() ||
         (isSignedIn() && resource.data.evaluatorUid == request.auth.uid);
