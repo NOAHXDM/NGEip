@@ -363,21 +363,25 @@ export class UserProfileComponent {
       .uploadAvatar(uid, file)
       .pipe(
         switchMap((downloadUrl) => {
-          this.profileForm.get('photoUrl')?.setValue(downloadUrl);
           const userData = { uid, photoUrl: downloadUrl } as User;
-          return this.userService.updateUserPhotoUrl(userData);
+          // 寫入成功後才回傳 downloadUrl 供更新表單，避免 Firestore 寫入失敗時
+          // 表單已顯示新 URL 但資料庫未更新的狀態不一致。
+          return this.userService
+            .updateUserPhotoUrl(userData)
+            .pipe(map(() => downloadUrl));
         }),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
-        next: () => {
+        next: (downloadUrl) => {
+          this.profileForm.get('photoUrl')?.setValue(downloadUrl);
           this.avatarUploading.set(false);
           this.openSnackBar('頭像更新成功');
         },
         // 固定顯示友善訊息，避免將 Firebase 內部錯誤（如 bucket 路徑）洩漏給使用者；
-        // 原始錯誤改以 console.error 記錄供除錯。
+        // 原始錯誤改以 console.error 記錄供除錯（含階段前綴以利辨別上傳/寫入）。
         error: (err) => {
-          console.error('Avatar upload error:', err);
+          console.error('[UserProfile] avatar pipeline error:', err);
           this.avatarUploading.set(false);
           this.openSnackBar('頭像上傳失敗，請稍後再試');
         },
