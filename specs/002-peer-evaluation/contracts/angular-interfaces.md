@@ -163,7 +163,7 @@ interface EvaluationAssignmentService {
   getAssignmentsByCycle(cycleId: string): Observable<EvaluationAssignment[]>;
 
   // 管理者：建立指派（單筆或批次）
-  createAssignments(cycleId: string, assignments: {evaluatorUid: string; evaluateeUid: string}[]): Promise<void>;
+  createAssignments(cycleId: string, assignments: {evaluatorUid: string; evaluateeUid: string}[]): Promise<number>;
 
   // 管理者：產生隨機快選預覽（不寫入 Firestore）
   generateRandomAssignmentPreview(
@@ -173,7 +173,7 @@ interface EvaluationAssignmentService {
   ): RandomAssignmentPreview;
 
   // 管理者：儲存隨機快選預覽，僅寫入新的 pending 指派且不異動 completed 指派
-  saveRandomAssignmentPreview(preview: RandomAssignmentPreview): Promise<void>;
+  saveRandomAssignmentPreview(preview: RandomAssignmentPreview): Promise<number>;
 
   // 管理者：刪除指派
   deleteAssignment(assignmentId: string): Promise<void>;

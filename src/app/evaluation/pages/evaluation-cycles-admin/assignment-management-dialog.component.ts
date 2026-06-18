@@ -705,12 +705,16 @@ export class AssignmentManagementDialogComponent {
 
     this.isSavingPreview.set(true);
     try {
-      await this.assignmentService.saveRandomAssignmentPreview(preview);
+      const createdCount = await this.assignmentService.saveRandomAssignmentPreview(preview);
       this.randomPreview.set(null);
-      this.previewMessage.set('隨機快選指派已儲存。');
+      this.previewMessage.set(
+        createdCount === 0
+          ? '沒有新的指派需要寫入。'
+          : `已新增 ${createdCount} 筆隨機快選指派。`,
+      );
     } catch (err) {
       console.error('儲存隨機快選失敗：', err);
-      this.previewMessage.set('儲存隨機快選失敗，請稍後再試。');
+      this.previewMessage.set('儲存隨機快選失敗，可能只有部分指派已寫入，請重新整理後確認指派狀態。');
     } finally {
       this.isSavingPreview.set(false);
     }

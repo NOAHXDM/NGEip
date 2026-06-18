@@ -236,8 +236,10 @@ export class EvaluationAssignmentService {
   /**
    * 儲存隨機快選預覽。
    * 僅建立新的 pending 指派，不刪除或覆寫既有 completed 指派。
+   *
+   * @returns 實際新增的 pending 指派數
    */
-  async saveRandomAssignmentPreview(preview: RandomAssignmentPreview): Promise<void> {
+  async saveRandomAssignmentPreview(preview: RandomAssignmentPreview): Promise<number> {
     const assignments = preview.rows.flatMap((row) =>
       row.evaluatorUids
         .filter((evaluatorUid) =>
@@ -250,7 +252,7 @@ export class EvaluationAssignmentService {
         })),
     );
 
-    await this.createAssignments(preview.cycleId, assignments);
+    return this.createAssignments(preview.cycleId, assignments);
   }
 
   /**
@@ -264,21 +266,23 @@ export class EvaluationAssignmentService {
    *
    * @param cycleId    目標週期 ID
    * @param assignments 要建立的指派清單（evaluatorUid + evaluateeUid）
+   * @returns 實際新增的 pending 指派數
    */
   async createAssignments(
     cycleId: string,
     assignments: { evaluatorUid: string; evaluateeUid: string }[],
-  ): Promise<void> {
+  ): Promise<number> {
     // 空陣列直接返回，避免空 batch commit
-    if (assignments.length === 0) return;
+    if (assignments.length === 0) return 0;
 
     const uniqueAssignments = this.dedupeAssignments(assignments)
       .filter((assignment) => assignment.evaluatorUid !== assignment.evaluateeUid);
 
     const cycleRef = this.firestoreFns.doc(this.firestore, CYCLES_COLLECTION, cycleId);
+    let createdCount = 0;
 
     for (const chunk of this.chunkAssignments(uniqueAssignments, TRANSACTION_SET_LIMIT)) {
-      await this.firestoreFns.runTransaction(this.firestore, async (transaction) => {
+      const createdInChunk = await this.firestoreFns.runTransaction(this.firestore, async (transaction) => {
         const checkedAssignments = await Promise.all(chunk.map(async (assignment) => {
           const key = this.buildAssignmentKey(assignment.evaluatorUid, cycleId, assignment.evaluateeUid);
           const assignmentRef = this.firestoreFns.doc(this.firestore, ASSIGNMENTS_COLLECTION, key);
@@ -293,7 +297,7 @@ export class EvaluationAssignmentService {
 
         const assignmentsToCreate = checkedAssignments.filter((assignment) => !assignment.exists);
 
-        if (assignmentsToCreate.length === 0) return;
+        if (assignmentsToCreate.length === 0) return 0;
 
         for (const assignment of assignmentsToCreate) {
           // 確定性 Key：確保相同組合不會產生重複文件
@@ -311,8 +315,14 @@ export class EvaluationAssignmentService {
         transaction.update(cycleRef, {
           totalAssignments: this.firestoreFns.increment(assignmentsToCreate.length),
         });
+
+        return assignmentsToCreate.length;
       });
+
+      createdCount += createdInChunk ?? 0;
     }
+
+    return createdCount;
   }
 
   /**

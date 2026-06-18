@@ -98,7 +98,8 @@ describe('EvaluationAssignmentService', () => {
       increment: jasmine.createSpy('increment').and.callFake((value: number) => ({ increment: value }) as any) as any,
       writeBatch: jasmine.createSpy('writeBatch').and.returnValue(mockBatch as any) as any,
       runTransaction: jasmine.createSpy('runTransaction').and.callFake(
-        (_firestore: unknown, updateFn: (transaction: typeof mockTransaction) => Promise<void>) => updateFn(mockTransaction),
+        (_firestore: unknown, updateFn: (transaction: typeof mockTransaction) => Promise<unknown>) =>
+          updateFn(mockTransaction),
       ) as any,
     };
 
@@ -280,7 +281,7 @@ describe('EvaluationAssignmentService', () => {
         Promise.resolve(makeSnapshot(ref.id.startsWith('u2_')) as any),
       );
 
-      await service.createAssignments(CYCLE_ID, [
+      const createdCount = await service.createAssignments(CYCLE_ID, [
         { evaluatorUid: 'u1', evaluateeUid: 'target' },
         { evaluatorUid: 'u1', evaluateeUid: 'target' },
         { evaluatorUid: 'u2', evaluateeUid: 'target' },
@@ -292,12 +293,13 @@ describe('EvaluationAssignmentService', () => {
       expect(mockTransaction.update).toHaveBeenCalledTimes(1);
       expect(mockFns.increment).toHaveBeenCalledWith(1);
       expect(mockFns.writeBatch).not.toHaveBeenCalled();
+      expect(createdCount).toBe(1);
     });
 
     it('全部指派都已存在時不應建立指派或遞增應提交總數', async () => {
       mockTransaction.get.and.returnValue(Promise.resolve(makeSnapshot(true) as any));
 
-      await service.createAssignments(CYCLE_ID, [
+      const createdCount = await service.createAssignments(CYCLE_ID, [
         { evaluatorUid: 'u1', evaluateeUid: 'target' },
       ]);
 
@@ -305,13 +307,14 @@ describe('EvaluationAssignmentService', () => {
       expect(mockTransaction.set).not.toHaveBeenCalled();
       expect(mockTransaction.update).not.toHaveBeenCalled();
       expect(mockFns.increment).not.toHaveBeenCalled();
+      expect(createdCount).toBe(0);
     });
 
     it('超過單一 Firestore transaction 寫入上限時應分批執行，且每批各自遞增實際新增數', async () => {
       const transactions = [makeTransaction(), makeTransaction()];
       let transactionIndex = 0;
       (mockFns.runTransaction as jasmine.Spy).and.callFake(
-        (_firestore: unknown, updateFn: (transaction: typeof mockTransaction) => Promise<void>) =>
+        (_firestore: unknown, updateFn: (transaction: typeof mockTransaction) => Promise<unknown>) =>
           updateFn(transactions[transactionIndex++]),
       );
       const assignments = Array.from({ length: 500 }, (_, index) => ({
@@ -319,7 +322,7 @@ describe('EvaluationAssignmentService', () => {
         evaluateeUid: 'target',
       }));
 
-      await service.createAssignments(CYCLE_ID, assignments);
+      const createdCount = await service.createAssignments(CYCLE_ID, assignments);
 
       expect(mockFns.runTransaction).toHaveBeenCalledTimes(2);
       expect(transactions[0].set).toHaveBeenCalledTimes(498);
@@ -329,12 +332,13 @@ describe('EvaluationAssignmentService', () => {
       expect(transactions[0].update).toHaveBeenCalled();
       expect(transactions[1].update).toHaveBeenCalled();
       expect(mockFns.writeBatch).not.toHaveBeenCalled();
+      expect(createdCount).toBe(500);
     });
   });
 
   describe('saveRandomAssignmentPreview()', () => {
     it('應跳過 lockedEvaluatorUids，避免對已完成指派做多餘存在性檢查', async () => {
-      await service.saveRandomAssignmentPreview({
+      const createdCount = await service.saveRandomAssignmentPreview({
         cycleId: CYCLE_ID,
         generatedAt: new Date(),
         evaluatorLoads: {},
@@ -356,12 +360,13 @@ describe('EvaluationAssignmentService', () => {
         `new-evaluator_${CYCLE_ID}_target`,
       );
       expect(mockTransaction.set).toHaveBeenCalledTimes(1);
+      expect(createdCount).toBe(1);
     });
 
     it('應排除自評，且非鎖定指派若已存在也不應重複寫入或遞增', async () => {
       mockTransaction.get.and.returnValue(Promise.resolve(makeSnapshot(true) as any));
 
-      await service.saveRandomAssignmentPreview({
+      const createdCount = await service.saveRandomAssignmentPreview({
         cycleId: CYCLE_ID,
         generatedAt: new Date(),
         evaluatorLoads: {},
@@ -385,6 +390,7 @@ describe('EvaluationAssignmentService', () => {
       expect(mockTransaction.set).not.toHaveBeenCalled();
       expect(mockTransaction.update).not.toHaveBeenCalled();
       expect(mockFns.increment).not.toHaveBeenCalled();
+      expect(createdCount).toBe(0);
     });
   });
 });
