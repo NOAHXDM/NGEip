@@ -47,6 +47,20 @@ npm start
 - ✅ evaluator@test.com 的「我的考評任務」出現「評核 evaluatee」的任務（狀態：待填寫）。
 - ✅ evaluatee@test.com 的任務清單中**不顯示**評核者是誰。
 
+**隨機快選驗收（FR-026）**：
+1. 準備至少 2 位在職且非管理員使用者；管理員帳號不納入互評。
+2. 以 `admin@test.com` 開啟同一週期的「指派管理」。
+3. 點擊「隨機快選」→ ✅ 系統先顯示預覽清單，不立即寫入正式指派。
+4. 檢查每位受評者的評核者清單：
+   - ✅ 不包含受評者本人。
+   - ✅ 每位受評者最多取得 `min(10, 可用使用者總數 - 1)` 位評核者。
+   - ✅ 評核者負載大致平均，並在此前提下優先同 `jobTitle`。
+5. 點擊「重新隨機」→ ✅ 預覽清單重新產生，但正式指派尚未變更。
+6. 刪除或更換一位未鎖定評核者後確認儲存 → ✅ 只有確認後的清單寫入正式指派。
+7. 若該受評者已有已完成指派 → ✅ 已完成指派鎖定保留；若超過目標人數，顯示警示且不補派。
+8. 若已完成指派的評核者為管理員或已離職者 → ✅ 系統保留且計入，並顯示警示。
+9. 若可用使用者少於 2 人 → ✅ 系統顯示「可用使用者不足，無法產生隨機指派」。
+
 ---
 
 ## 流程 2：評核者填寫考評表 (US2)
@@ -128,6 +142,8 @@ npm start
 
 使用 Firebase Emulator 測試套件，確認以下關鍵拒絕案例：
 
+> 注意：`src/app/evaluation/testing/firestore-rules.spec.ts` 與 `us1-integration.spec.ts` 目前以 `xdescribe` 標記，需本地 Firebase Emulator 手動切換執行；一般 `npm test` / CI 不會執行這些整合與安全規則案例。
+
 ```bash
 npx jasmine src/app/evaluation/**/*.spec.ts  # 或對應測試指令
 ```
@@ -135,6 +151,8 @@ npx jasmine src/app/evaluation/**/*.spec.ts  # 或對應測試指令
 - ✅ `evaluateeUid` 的使用者讀取 `evaluationForms` → **403 DENIED**
 - ✅ 評核者讀取他人的 `evaluationForms` → **403 DENIED**
 - ✅ 普通使用者試圖建立 `evaluationCycles` → **403 DENIED**
+- ✅ 普通使用者試圖建立 `evaluationAssignments` 或更新 `evaluationCycles.totalAssignments` → **403 DENIED**
+- ✅ 管理者建立 `evaluationAssignments` 並更新 `evaluationCycles.totalAssignments` → **ALLOWED**
 - ✅ 受評者嘗試將自己的 `userAttributeSnapshot` 更新為 `status: 'final'` → **403 DENIED**
 
 ---

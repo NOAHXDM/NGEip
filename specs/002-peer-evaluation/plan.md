@@ -124,6 +124,15 @@ userAttributeSnapshots/{cycleId}_{userId}
   → evaluationAssignments 批次建立（status: 'pending'）
   → evaluationCycles.totalAssignments += N
 
+[管理者隨機快選]
+  → 前端讀取 users 與該週期既有 evaluationAssignments
+  → 僅納入在職且 role !== 'admin' 的使用者作為候選
+  → 產生 RandomAssignmentPreview（不寫入 Firestore）
+  → 管理者在預覽清單中刪除或更換評核者，也可重新隨機
+  → 管理者確認後，僅將預覽中新的 pending 指派批次寫入
+  → 已 completed 指派不得被刪除、覆寫或替換
+  → 寫入時依實際新增文件數更新 evaluationCycles.totalAssignments，避免重複指派造成統計失真
+
 [評核者提交/更新表單]
   → Firestore batch():
     1. pending 任務：evaluationForms 建立（含 scores, feedbacks, overallComment）
@@ -158,6 +167,37 @@ userAttributeSnapshots/{cycleId}_{userId}
 | 受評者查看報告（6 週期歷史） | ~6 | 0 |
 | 管理者結束並發布（30 份表單，20 受評者） | ~30 | ~52 |
 | 管理者排名視圖（第一頁 20 筆） | ~20 | 0 |
+| 管理者隨機快選預覽（20 位使用者） | users + 該週期 assignments | 0 |
+| 管理者儲存隨機快選（20 位使用者、每人 10 位評核者） | transaction 內既有指派驗證 | 實際新增 pending 指派數 + 每個 transaction chunk 0 或 1 次週期統計更新（每 chunk 最多 498 筆新增，保留 cycle update 與擴充 write slot） |
+
+---
+
+## 隨機快選指派演算法
+
+**執行時機**：管理者在週期尚未截止前於「指派管理」點擊「隨機快選」。
+
+**輸入資料**：
+- 該週期所有在職使用者，排除 `role === 'admin'`。
+- 該週期既有 `evaluationAssignments`，用於保護已完成指派與避免重複。
+
+**輸出資料**：
+- `RandomAssignmentPreview`：以受評者為單位彙整多列預覽資料，包含受評者、系統建議評核者、已完成且不可動的評核者、以及不足或衝突警示。
+- 預覽階段不寫入 Firestore；只有管理者確認儲存後才建立正式指派。
+
+**規則優先序**：
+1. 不可自評：`evaluateeUid !== evaluatorUid`。
+2. 每位受評者足額：目標評核者數為 `min(10, eligibleUsers.length - 1)`。
+3. 評核者負載平均：每次挑選候選評核者時，優先挑目前預覽總負載較低者。
+4. 同職稱優先：在滿足前 3 條後，優先選擇 `jobTitle` 相同且非空白的候選評核者；缺少 `jobTitle` 者不屬於同職稱群組。
+
+**邊界處理**：
+- `eligibleUsers.length < 2`：不產生預覽，顯示「可用使用者不足，無法產生隨機指派」。
+- `eligibleUsers.length === 2`：兩人互相指派，各 1 筆。
+- 已完成指派：視為不可動且計入該受評者已擁有的評核者；預覽不可移除或替換。
+- 已完成指派超過目標人數：保留並顯示警示，不再補派。
+- 已完成指派包含管理員或已離職者：保留且計入該受評者既有評核者數，並顯示警示。
+- 既有 pending 指派：可在預覽中保留、刪除或替換；正式儲存時需避免重複寫入。
+- 重複文件防護：寫入前以 `{evaluatorUid}_{cycleId}_{evaluateeUid}` 檢查既有文件，只對實際新增的指派遞增 `totalAssignments`。
 
 ---
 
@@ -291,6 +331,7 @@ private ensureInsightsAutoScroll(): void {
 - `userAttributeSnapshots` 的 write 規則限制：evaluator 只能在 `status == 'preview'` 時 update，且不能修改 `status`；防止受評者自己修改快照。
 - `evaluationForms` 的 `delete` 規則設為 `if false`，永久保留考評數據。
 - `evaluationCycles` 的 `update` 開放已登入使用者僅限修改 `completedAssignments` 欄位，允許評核者提交表單的原子性 batch 寫入（遞增完成計數）；其餘欄位付管理者操作。
+- 隨機快選儲存沿用既有管理者權限：管理者可在 transaction 中建立 `evaluationAssignments` 並更新 `evaluationCycles.totalAssignments`；一般使用者不得建立指派或修改 `totalAssignments`。
 
 ---
 
@@ -347,5 +388,3 @@ private ensureInsightsAutoScroll(): void {
 |----------|----------|------------------|
 | 前端執行 Z-score 批次計算（非 Cloud Functions） | 專案無 Cloud Functions，無法後端觸發 | Cloud Functions（不可用）；Cloud Scheduler（不可用） |
 | `userAttributeSnapshots` 允許非本人的已登入使用者 update（preview 狀態） | 評核者需原子性批次寫入 form + snapshot，且沒有 server-side trigger | 另建 `evaluationOverallComments` 集合（引入額外集合與複雜度）；Cloud Functions（不可用） |
-
-

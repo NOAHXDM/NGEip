@@ -55,6 +55,21 @@ export interface EvaluationAssignment {
   completedAt?: Timestamp;
 }
 
+export interface RandomAssignmentPreviewRow {
+  evaluateeUid: string;
+  evaluatorUids: string[];
+  lockedEvaluatorUids: string[];
+  targetEvaluatorCount: number;
+  warnings: string[];
+}
+
+export interface RandomAssignmentPreview {
+  cycleId: string;
+  rows: RandomAssignmentPreviewRow[];
+  evaluatorLoads: Record<string, number>;
+  generatedAt: Date;
+}
+
 export interface EvaluationFormScores {
   q1: number;  // COL：溝通與協作能力
   q2: number;  // INS：問題解決能力

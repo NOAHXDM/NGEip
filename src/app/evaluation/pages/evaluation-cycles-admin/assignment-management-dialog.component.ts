@@ -38,7 +38,11 @@ import {
 
 import { map } from 'rxjs';
 
-import { EvaluationAssignment } from '../../models/evaluation.models';
+import {
+  EvaluationAssignment,
+  RandomAssignmentPreview,
+  RandomAssignmentPreviewRow,
+} from '../../models/evaluation.models';
 import { EvaluationAssignmentService } from '../../services/evaluation-assignment.service';
 import { User } from '../../../services/user.service';
 
@@ -64,6 +68,16 @@ interface AssignmentRow {
   /** 僅 pending 狀態允許刪除 */
   canDelete: boolean;
 }
+
+/** 隨機快選預覽列表項目 */
+interface PreviewRowView extends RandomAssignmentPreviewRow {
+  evaluateeName: string;
+  editableEvaluatorUids: string[];
+  lockedEvaluatorNames: string[];
+  warningsText: string;
+}
+
+type RandomCandidateUser = User & { uid: string };
 
 // =====================================================================
 // 狀態對應
@@ -141,7 +155,12 @@ const ASSIGNMENT_STATUS_LABEL: Record<EvaluationAssignment['status'], string> = 
               <mat-label>評核者（可多選）</mat-label>
               <mat-select formControlName="evaluatorUids" multiple>
                 @for (user of users(); track user.uid) {
-                  <mat-option [value]="user.uid">{{ user.name }}</mat-option>
+                  <mat-option
+                    [value]="user.uid"
+                    [disabled]="user.uid === addForm.controls.evaluateeUid.value"
+                  >
+                    {{ user.name }}
+                  </mat-option>
                 }
               </mat-select>
               @if (
@@ -166,7 +185,88 @@ const ASSIGNMENT_STATUS_LABEL: Record<EvaluationAssignment['status'], string> = 
               新增
             </button>
           </form>
+
+          <div class="quick-actions">
+            <button
+              mat-stroked-button
+              color="primary"
+              type="button"
+              [disabled]="isDeadlinePassed()"
+              (click)="generateRandomPreview()"
+            >
+              <mat-icon>shuffle</mat-icon>
+              {{ randomPreview() ? '重新隨機' : '隨機快選' }}
+            </button>
+            @if (previewMessage()) {
+              <span class="preview-message">{{ previewMessage() }}</span>
+            }
+          </div>
         </section>
+
+        @if (randomPreview()) {
+          <section class="preview-section">
+            <div class="preview-header">
+              <h3 class="section-title">隨機快選預覽</h3>
+              <button
+                mat-raised-button
+                color="primary"
+                type="button"
+                [disabled]="isSavingPreview() || !hasWritablePreviewAssignments()"
+                (click)="saveRandomPreview()"
+              >
+                @if (isSavingPreview()) {
+                  <mat-progress-bar mode="indeterminate" class="btn-loader" />
+                }
+                確認儲存
+              </button>
+            </div>
+
+            @if (previewRows().length > 0) {
+              <div class="preview-list">
+                @for (row of previewRows(); track row.evaluateeUid) {
+                  <div class="preview-row">
+                    <div class="preview-title">
+                      <span class="role-hint">受評：</span>
+                      <span class="user-name">{{ row.evaluateeName }}</span>
+                      <span class="target-count">
+                        目標 {{ row.targetEvaluatorCount }} 人，目前 {{ row.evaluatorUids.length }} 人
+                      </span>
+                    </div>
+
+                    @if (row.lockedEvaluatorNames.length > 0) {
+                      <div class="locked-line">
+                        <mat-icon>lock</mat-icon>
+                        <span>已完成鎖定：{{ row.lockedEvaluatorNames.join('、') }}</span>
+                      </div>
+                    }
+
+                    <mat-form-field appearance="outline" class="preview-select">
+                      <mat-label>可調整評核者</mat-label>
+                      <mat-select
+                        multiple
+                        [value]="row.editableEvaluatorUids"
+                        (selectionChange)="updatePreviewEvaluators(row, $event.value)"
+                      >
+                        @for (user of randomCandidateUsers(); track user.uid) {
+                          <mat-option
+                            [value]="user.uid"
+                            [disabled]="user.uid === row.evaluateeUid || row.lockedEvaluatorUids.includes(user.uid)"
+                          >
+                            {{ user.name }}{{ user.jobTitle ? ' / ' + user.jobTitle : '' }}
+                          </mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+
+                    @if (row.warningsText) {
+                      <p class="preview-warning">{{ row.warningsText }}</p>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </section>
+        }
 
         <mat-divider class="section-divider" />
       }
@@ -264,6 +364,85 @@ const ASSIGNMENT_STATUS_LABEL: Record<EvaluationAssignment['status'], string> = 
     }
     .form-field { flex: 1; min-width: 180px; }
 
+    .quick-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+    .quick-actions button {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .preview-message {
+      color: #757575;
+      font-size: 0.82rem;
+    }
+
+    .preview-section {
+      margin: 14px 0 12px;
+      padding: 10px 12px;
+      border: 1px solid #d7e3f5;
+      border-radius: 8px;
+      background: #f7fbff;
+    }
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .preview-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 360px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .preview-row {
+      padding: 10px;
+      border: 1px solid #e3edf8;
+      border-radius: 8px;
+      background: #fff;
+    }
+    .preview-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .target-count {
+      color: #607d8b;
+      font-size: 0.78rem;
+    }
+    .locked-line {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: #607d8b;
+      font-size: 0.8rem;
+      margin-bottom: 8px;
+    }
+    .locked-line mat-icon {
+      width: 16px;
+      height: 16px;
+      font-size: 16px;
+    }
+    .preview-select {
+      width: 100%;
+    }
+    .preview-warning {
+      margin: 0;
+      color: #b26a00;
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
     /* 按鈕載入條定位 */
     button { position: relative; overflow: hidden; }
     .btn-loader {
@@ -355,8 +534,30 @@ export class AssignmentManagementDialogComponent {
   /** 新增中旗標 */
   readonly isAdding = signal(false);
 
+  /** 是否正在儲存隨機預覽 */
+  readonly isSavingPreview = signal(false);
+
   /** 目前正在刪除的指派 ID */
   readonly deletingId = signal<string | null>(null);
+
+  /** 隨機快選預覽 */
+  readonly randomPreview = signal<RandomAssignmentPreview | null>(null);
+
+  /** 預覽提示文字 */
+  readonly previewMessage = signal('');
+
+  /** 預覽中是否有可新增的非鎖定指派 */
+  readonly hasWritablePreviewAssignments = computed(() => {
+    const preview = this.randomPreview();
+    if (!preview) return false;
+
+    return preview.rows.some((row) =>
+      row.evaluatorUids.some((evaluatorUid) =>
+        evaluatorUid !== row.evaluateeUid &&
+        !row.lockedEvaluatorUids.includes(evaluatorUid),
+      ),
+    );
+  });
 
   // ── 資料訊號 ──
 
@@ -370,6 +571,13 @@ export class AssignmentManagementDialogComponent {
       map(users => users.filter(u => !u.exitDate)),
     ),
     { initialValue: [] as User[] },
+  );
+
+  /** 隨機快選候選人：在職且非管理員 */
+  readonly randomCandidateUsers = computed((): RandomCandidateUser[] =>
+    (this.users() as User[]).filter((user): user is RandomCandidateUser =>
+      Boolean(user.uid) && !user.exitDate && user.role !== 'admin',
+    ),
   );
 
   /**
@@ -401,6 +609,23 @@ export class AssignmentManagementDialogComponent {
     }));
   });
 
+  /** 隨機快選預覽顯示列表 */
+  readonly previewRows = computed((): PreviewRowView[] => {
+    const preview = this.randomPreview();
+    if (!preview) return [];
+
+    const usersArr = this.users() as User[];
+    const userMap = new Map(usersArr.map((u) => [u.uid!, u.name]));
+
+    return preview.rows.map((row) => ({
+      ...row,
+      evaluateeName: userMap.get(row.evaluateeUid) ?? row.evaluateeUid,
+      editableEvaluatorUids: row.evaluatorUids.filter((uid) => !row.lockedEvaluatorUids.includes(uid)),
+      lockedEvaluatorNames: row.lockedEvaluatorUids.map((uid) => userMap.get(uid) ?? uid),
+      warningsText: row.warnings.join('；'),
+    }));
+  });
+
   // ── 新增表單 ──
 
   readonly addForm = new FormGroup({
@@ -421,6 +646,82 @@ export class AssignmentManagementDialogComponent {
     return ASSIGNMENT_STATUS_LABEL[status] ?? status;
   }
 
+  /** 產生隨機快選預覽 */
+  generateRandomPreview(): void {
+    if (this.isDeadlinePassed()) {
+      this.previewMessage.set('考核截止日已過，無法產生隨機指派。');
+      return;
+    }
+
+    this.previewMessage.set('');
+    try {
+      const preview = this.assignmentService.generateRandomAssignmentPreview(
+        this.data.cycleId,
+        this.users() as User[],
+        this.rawAssignments() ?? [],
+      );
+      if (preview.rows.length === 0) {
+        this.randomPreview.set(null);
+        this.previewMessage.set('可用使用者不足，無法產生隨機指派。');
+        return;
+      }
+
+      this.randomPreview.set(preview);
+      this.previewMessage.set(`已產生 ${preview.rows.length} 位受評者的預覽清單，確認儲存後才會寫入。`);
+    } catch (err) {
+      console.error('產生隨機快選失敗：', err);
+      this.previewMessage.set('產生隨機快選失敗，請重新整理後再試。');
+    }
+  }
+
+  /** 更新單一受評者的預覽評核者 */
+  updatePreviewEvaluators(row: RandomAssignmentPreviewRow, editableEvaluatorUids: string[]): void {
+    const preview = this.randomPreview();
+    if (!preview) return;
+
+    const sanitizedEditable = editableEvaluatorUids.filter((uid) =>
+      uid !== row.evaluateeUid && !row.lockedEvaluatorUids.includes(uid),
+    );
+    const nextRows = preview.rows.map((previewRow) => {
+      if (previewRow.evaluateeUid !== row.evaluateeUid) return previewRow;
+      return {
+        ...previewRow,
+        evaluatorUids: Array.from(new Set([
+          ...previewRow.lockedEvaluatorUids,
+          ...sanitizedEditable,
+        ])),
+      };
+    });
+
+    this.randomPreview.set({
+      ...preview,
+      rows: nextRows,
+      evaluatorLoads: this.calculatePreviewLoads(nextRows, Object.keys(preview.evaluatorLoads)),
+    });
+  }
+
+  /** 儲存隨機快選預覽 */
+  async saveRandomPreview(): Promise<void> {
+    const preview = this.randomPreview();
+    if (!preview) return;
+
+    this.isSavingPreview.set(true);
+    try {
+      const createdCount = await this.assignmentService.saveRandomAssignmentPreview(preview);
+      this.randomPreview.set(null);
+      this.previewMessage.set(
+        createdCount === 0
+          ? '沒有新的指派需要寫入。'
+          : `已新增 ${createdCount} 筆隨機快選指派。`,
+      );
+    } catch (err) {
+      console.error('儲存隨機快選失敗：', err);
+      this.previewMessage.set('儲存隨機快選失敗，可能只有部分指派已寫入，請重新整理後確認指派狀態。');
+    } finally {
+      this.isSavingPreview.set(false);
+    }
+  }
+
   /**
    * 批次新增指派
    * 使用 EvaluationAssignmentService.createAssignments()
@@ -434,10 +735,12 @@ export class AssignmentManagementDialogComponent {
     this.isAdding.set(true);
     try {
       const { evaluateeUid, evaluatorUids } = this.addForm.getRawValue();
-      const assignments = evaluatorUids.map((evaluatorUid) => ({
-        evaluatorUid,
-        evaluateeUid,
-      }));
+      const assignments = evaluatorUids
+        .filter((evaluatorUid) => evaluatorUid !== evaluateeUid)
+        .map((evaluatorUid) => ({
+          evaluatorUid,
+          evaluateeUid,
+        }));
       await this.assignmentService.createAssignments(this.data.cycleId, assignments);
       // 成功後重置表單
       this.addForm.reset({ evaluateeUid: '', evaluatorUids: [] });
@@ -464,5 +767,21 @@ export class AssignmentManagementDialogComponent {
     } finally {
       this.deletingId.set(null);
     }
+  }
+
+  private calculatePreviewLoads(
+    rows: RandomAssignmentPreviewRow[],
+    knownEvaluatorUids: string[] = [],
+  ): Record<string, number> {
+    const loads = Object.fromEntries(
+      knownEvaluatorUids.map((uid) => [uid, 0]),
+    ) as Record<string, number>;
+
+    for (const row of rows) {
+      for (const evaluatorUid of row.evaluatorUids) {
+        loads[evaluatorUid] = (loads[evaluatorUid] ?? 0) + 1;
+      }
+    }
+    return loads;
   }
 }
