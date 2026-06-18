@@ -5,7 +5,11 @@ import { Auth } from '@angular/fire/auth';
 import { Firestore } from '@angular/fire/firestore';
 
 import { User } from '../../services/user.service';
-import { EvaluationAssignmentService } from './evaluation-assignment.service';
+import {
+  EVALUATION_ASSIGNMENT_FIRESTORE_FNS,
+  EvaluationAssignmentFirestoreFns,
+  EvaluationAssignmentService,
+} from './evaluation-assignment.service';
 import { EvaluationAssignment } from '../models/evaluation.models';
 
 const CYCLE_ID = 'cycle-001';
@@ -46,6 +50,7 @@ describe('EvaluationAssignmentService', () => {
   let service: EvaluationAssignmentService;
   let mockFirestore: jasmine.SpyObj<Firestore>;
   let mockAuth: jasmine.SpyObj<Auth>;
+  let mockFns: EvaluationAssignmentFirestoreFns;
   let mockBatch: {
     set: jasmine.Spy;
     update: jasmine.Spy;
@@ -80,31 +85,33 @@ describe('EvaluationAssignmentService', () => {
     mockAuth = jasmine.createSpyObj('Auth', ['_dummy']);
     mockBatch = makeBatch();
     mockTransaction = makeTransaction();
+    mockFns = {
+      collection: jasmine.createSpy('collection').and.returnValue({} as any) as any,
+      collectionData: jasmine.createSpy('collectionData').and.returnValue(of([])) as any,
+      doc: jasmine.createSpy('doc').and.callFake(
+        (_firestore: unknown, collectionName: string, id: string) => ({ collectionName, id }) as any,
+      ) as any,
+      getDoc: jasmine.createSpy('getDoc').and.returnValue(Promise.resolve(makeSnapshot(false) as any)) as any,
+      query: jasmine.createSpy('query').and.returnValue({} as any) as any,
+      where: jasmine.createSpy('where').and.returnValue({} as any) as any,
+      serverTimestamp: jasmine.createSpy('serverTimestamp').and.returnValue({ serverTimestamp: true } as any) as any,
+      increment: jasmine.createSpy('increment').and.callFake((value: number) => ({ increment: value }) as any) as any,
+      writeBatch: jasmine.createSpy('writeBatch').and.returnValue(mockBatch as any) as any,
+      runTransaction: jasmine.createSpy('runTransaction').and.callFake(
+        (_firestore: unknown, updateFn: (transaction: typeof mockTransaction) => Promise<void>) => updateFn(mockTransaction),
+      ) as any,
+    };
 
     TestBed.configureTestingModule({
       providers: [
         EvaluationAssignmentService,
         { provide: Firestore, useValue: mockFirestore },
         { provide: Auth, useValue: mockAuth },
+        { provide: EVALUATION_ASSIGNMENT_FIRESTORE_FNS, useValue: mockFns },
       ],
     });
 
     service = TestBed.inject(EvaluationAssignmentService);
-
-    service._fn.collection = jasmine.createSpy('collection').and.returnValue({} as any) as any;
-    service._fn.collectionData = jasmine.createSpy('collectionData').and.returnValue(of([])) as any;
-    service._fn.doc = jasmine.createSpy('doc').and.callFake(
-      (_firestore: unknown, collectionName: string, id: string) => ({ collectionName, id }) as any,
-    ) as any;
-    service._fn.getDoc = jasmine.createSpy('getDoc').and.returnValue(Promise.resolve(makeSnapshot(false) as any)) as any;
-    service._fn.query = jasmine.createSpy('query').and.returnValue({} as any) as any;
-    service._fn.where = jasmine.createSpy('where').and.returnValue({} as any) as any;
-    service._fn.serverTimestamp = jasmine.createSpy('serverTimestamp').and.returnValue({ serverTimestamp: true } as any) as any;
-    service._fn.increment = jasmine.createSpy('increment').and.callFake((value: number) => ({ increment: value }) as any) as any;
-    service._fn.writeBatch = jasmine.createSpy('writeBatch').and.returnValue(mockBatch as any) as any;
-    service._fn.runTransaction = jasmine.createSpy('runTransaction').and.callFake(
-      (_firestore: unknown, updateFn: (transaction: typeof mockTransaction) => Promise<void>) => updateFn(mockTransaction),
-    ) as any;
   });
 
   describe('generateRandomAssignmentPreview()', () => {
@@ -261,11 +268,11 @@ describe('EvaluationAssignmentService', () => {
         { evaluatorUid: 'target', evaluateeUid: 'target' },
       ]);
 
-      expect(service._fn.runTransaction).toHaveBeenCalledTimes(1);
+      expect(mockFns.runTransaction).toHaveBeenCalledTimes(1);
       expect(mockTransaction.set).toHaveBeenCalledTimes(1);
       expect(mockTransaction.update).toHaveBeenCalledTimes(1);
-      expect(service._fn.increment).toHaveBeenCalledWith(1);
-      expect(service._fn.writeBatch).not.toHaveBeenCalled();
+      expect(mockFns.increment).toHaveBeenCalledWith(1);
+      expect(mockFns.writeBatch).not.toHaveBeenCalled();
     });
 
     it('全部指派都已存在時不應 commit batch 或遞增應提交總數', async () => {
@@ -275,16 +282,16 @@ describe('EvaluationAssignmentService', () => {
         { evaluatorUid: 'u1', evaluateeUid: 'target' },
       ]);
 
-      expect(service._fn.runTransaction).toHaveBeenCalledTimes(1);
+      expect(mockFns.runTransaction).toHaveBeenCalledTimes(1);
       expect(mockTransaction.set).not.toHaveBeenCalled();
       expect(mockTransaction.update).not.toHaveBeenCalled();
-      expect(service._fn.increment).not.toHaveBeenCalled();
+      expect(mockFns.increment).not.toHaveBeenCalled();
     });
 
     it('超過單一 Firestore transaction 寫入上限時應分批執行，且每批各自遞增實際新增數', async () => {
       const transactions = [makeTransaction(), makeTransaction()];
       let transactionIndex = 0;
-      (service._fn.runTransaction as jasmine.Spy).and.callFake(
+      (mockFns.runTransaction as jasmine.Spy).and.callFake(
         (_firestore: unknown, updateFn: (transaction: typeof mockTransaction) => Promise<void>) =>
           updateFn(transactions[transactionIndex++]),
       );
@@ -295,14 +302,14 @@ describe('EvaluationAssignmentService', () => {
 
       await service.createAssignments(CYCLE_ID, assignments);
 
-      expect(service._fn.runTransaction).toHaveBeenCalledTimes(2);
+      expect(mockFns.runTransaction).toHaveBeenCalledTimes(2);
       expect(transactions[0].set).toHaveBeenCalledTimes(498);
       expect(transactions[1].set).toHaveBeenCalledTimes(2);
-      expect(service._fn.increment).toHaveBeenCalledWith(498);
-      expect(service._fn.increment).toHaveBeenCalledWith(2);
+      expect(mockFns.increment).toHaveBeenCalledWith(498);
+      expect(mockFns.increment).toHaveBeenCalledWith(2);
       expect(transactions[0].update).toHaveBeenCalled();
       expect(transactions[1].update).toHaveBeenCalled();
-      expect(service._fn.writeBatch).not.toHaveBeenCalled();
+      expect(mockFns.writeBatch).not.toHaveBeenCalled();
     });
   });
 
@@ -324,7 +331,7 @@ describe('EvaluationAssignmentService', () => {
       });
 
       expect(mockTransaction.get).toHaveBeenCalledTimes(1);
-      expect(service._fn.doc as jasmine.Spy).toHaveBeenCalledWith(
+      expect(mockFns.doc as jasmine.Spy).toHaveBeenCalledWith(
         mockFirestore,
         'evaluationAssignments',
         `new-evaluator_${CYCLE_ID}_target`,

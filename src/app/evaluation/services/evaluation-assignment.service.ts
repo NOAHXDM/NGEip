@@ -13,7 +13,7 @@
  *   {evaluatorUid}_{cycleId}_{evaluateeUid}
  */
 
-import { Injectable, inject } from '@angular/core';
+import { Injectable, InjectionToken, inject } from '@angular/core';
 import { Observable, of, switchMap } from 'rxjs';
 import { shareReplay } from 'rxjs/operators';
 import {
@@ -40,31 +40,46 @@ import { User } from '../../services/user.service';
 /** Firestore 集合路徑 */
 const ASSIGNMENTS_COLLECTION = 'evaluationAssignments';
 const CYCLES_COLLECTION = 'evaluationCycles';
-// Firestore transaction 最多 500 writes；保留 cycleRef update 與未來擴充各 1 個 slot。
+// Firestore transaction 最多 500 writes；498 sets + 1 cycleRef update = 499，保留 1 個擴充 slot。
 const TRANSACTION_SET_LIMIT = 498;
+
+export interface EvaluationAssignmentFirestoreFns {
+  collection: typeof collection;
+  collectionData: typeof collectionData;
+  doc: typeof doc;
+  getDoc: typeof getDoc;
+  query: typeof query;
+  where: typeof where;
+  serverTimestamp: typeof serverTimestamp;
+  increment: typeof increment;
+  writeBatch: typeof writeBatch;
+  runTransaction: typeof runTransaction;
+}
+
+export const EVALUATION_ASSIGNMENT_FIRESTORE_FNS = new InjectionToken<EvaluationAssignmentFirestoreFns>(
+  'EVALUATION_ASSIGNMENT_FIRESTORE_FNS',
+  {
+    providedIn: 'root',
+    factory: () => ({
+      collection,
+      collectionData,
+      doc,
+      getDoc,
+      query,
+      where,
+      serverTimestamp,
+      increment,
+      writeBatch,
+      runTransaction,
+    }),
+  },
+);
 
 @Injectable({ providedIn: 'root' })
 export class EvaluationAssignmentService {
   private readonly firestore = inject(Firestore);
   private readonly auth = inject(Auth);
-
-  /**
-   * Firestore 函式參照（instance 屬性），供單元測試替換。
-   *
-   * @internal
-   */
-  readonly _fn = {
-    collection,
-    collectionData,
-    doc,
-    getDoc,
-    query,
-    where,
-    serverTimestamp,
-    increment,
-    writeBatch,
-    runTransaction,
-  };
+  private readonly firestoreFns = inject(EVALUATION_ASSIGNMENT_FIRESTORE_FNS);
 
   // =====================
   // 讀取方法
@@ -87,18 +102,18 @@ export class EvaluationAssignmentService {
           return of<EvaluationAssignment[]>([]);
         }
 
-        const assignmentsRef = this._fn.collection(this.firestore, ASSIGNMENTS_COLLECTION);
+        const assignmentsRef = this.firestoreFns.collection(this.firestore, ASSIGNMENTS_COLLECTION);
 
         // 依是否提供 cycleId 選擇查詢條件
         const q = cycleId
-          ? this._fn.query(
+          ? this.firestoreFns.query(
               assignmentsRef,
-              this._fn.where('evaluatorUid', '==', user.uid),
-              this._fn.where('cycleId', '==', cycleId),
+              this.firestoreFns.where('evaluatorUid', '==', user.uid),
+              this.firestoreFns.where('cycleId', '==', cycleId),
             )
-          : this._fn.query(assignmentsRef, this._fn.where('evaluatorUid', '==', user.uid));
+          : this.firestoreFns.query(assignmentsRef, this.firestoreFns.where('evaluatorUid', '==', user.uid));
 
-        return this._fn.collectionData(q, { idField: 'id' }) as Observable<EvaluationAssignment[]>;
+        return this.firestoreFns.collectionData(q, { idField: 'id' }) as Observable<EvaluationAssignment[]>;
       }),
       shareReplay(1),
     );
@@ -110,9 +125,9 @@ export class EvaluationAssignmentService {
    * @param cycleId 目標週期 ID
    */
   getAssignmentsByCycle(cycleId: string): Observable<EvaluationAssignment[]> {
-    const assignmentsRef = this._fn.collection(this.firestore, ASSIGNMENTS_COLLECTION);
-    const q = this._fn.query(assignmentsRef, this._fn.where('cycleId', '==', cycleId));
-    return this._fn.collectionData(q, { idField: 'id' }) as Observable<EvaluationAssignment[]>;
+    const assignmentsRef = this.firestoreFns.collection(this.firestore, ASSIGNMENTS_COLLECTION);
+    const q = this.firestoreFns.query(assignmentsRef, this.firestoreFns.where('cycleId', '==', cycleId));
+    return this.firestoreFns.collectionData(q, { idField: 'id' }) as Observable<EvaluationAssignment[]>;
   }
 
   // =====================
@@ -253,13 +268,13 @@ export class EvaluationAssignmentService {
     const uniqueAssignments = this.dedupeAssignments(assignments)
       .filter((assignment) => assignment.evaluatorUid !== assignment.evaluateeUid);
 
-    const cycleRef = this._fn.doc(this.firestore, CYCLES_COLLECTION, cycleId);
+    const cycleRef = this.firestoreFns.doc(this.firestore, CYCLES_COLLECTION, cycleId);
 
     for (const chunk of this.chunkAssignments(uniqueAssignments, TRANSACTION_SET_LIMIT)) {
-      await this._fn.runTransaction(this.firestore, async (transaction) => {
+      await this.firestoreFns.runTransaction(this.firestore, async (transaction) => {
         const checkedAssignments = await Promise.all(chunk.map(async (assignment) => {
           const key = this.buildAssignmentKey(assignment.evaluatorUid, cycleId, assignment.evaluateeUid);
-          const assignmentRef = this._fn.doc(this.firestore, ASSIGNMENTS_COLLECTION, key);
+          const assignmentRef = this.firestoreFns.doc(this.firestore, ASSIGNMENTS_COLLECTION, key);
           const existingSnap = await transaction.get(assignmentRef);
           return {
             ...assignment,
@@ -281,13 +296,13 @@ export class EvaluationAssignmentService {
             evaluatorUid: assignment.evaluatorUid,
             evaluateeUid: assignment.evaluateeUid,
             status: 'pending' as const,
-            createdAt: this._fn.serverTimestamp(),
+            createdAt: this.firestoreFns.serverTimestamp(),
           });
         }
 
         // 原子性遞增週期的 totalAssignments 計數
         transaction.update(cycleRef, {
-          totalAssignments: this._fn.increment(assignmentsToCreate.length),
+          totalAssignments: this.firestoreFns.increment(assignmentsToCreate.length),
         });
       });
     }
@@ -304,23 +319,23 @@ export class EvaluationAssignmentService {
    * @throws Error 指派文件不存在時
    */
   async deleteAssignment(assignmentId: string): Promise<void> {
-    const assignmentRef = this._fn.doc(this.firestore, ASSIGNMENTS_COLLECTION, assignmentId);
-    const assignmentSnap = await this._fn.getDoc(assignmentRef);
+    const assignmentRef = this.firestoreFns.doc(this.firestore, ASSIGNMENTS_COLLECTION, assignmentId);
+    const assignmentSnap = await this.firestoreFns.getDoc(assignmentRef);
 
     if (!assignmentSnap.exists()) {
       throw new Error(`考評指派 ${assignmentId} 不存在`);
     }
 
     const assignment = assignmentSnap.data() as EvaluationAssignment;
-    const batch = this._fn.writeBatch(this.firestore);
+    const batch = this.firestoreFns.writeBatch(this.firestore);
 
     // 刪除指派文件
     batch.delete(assignmentRef);
 
     // 遞減週期的 totalAssignments 計數（不低於 0 由業務邏輯保障）
-    const cycleRef = this._fn.doc(this.firestore, CYCLES_COLLECTION, assignment.cycleId);
+    const cycleRef = this.firestoreFns.doc(this.firestore, CYCLES_COLLECTION, assignment.cycleId);
     batch.update(cycleRef, {
-      totalAssignments: this._fn.increment(-1),
+      totalAssignments: this.firestoreFns.increment(-1),
     });
 
     await batch.commit();
@@ -368,6 +383,10 @@ export class EvaluationAssignmentService {
     return grouped;
   }
 
+  /**
+   * 就地微調 preview rows 的可編輯評核者，使整體負載差距盡量收斂至 1 以內。
+   * 不替換 locked completed 指派，也不產生自評或重複評核者。
+   */
   private rebalancePreviewLoads(
     rows: RandomAssignmentPreviewRow[],
     eligibleUsers: User[],

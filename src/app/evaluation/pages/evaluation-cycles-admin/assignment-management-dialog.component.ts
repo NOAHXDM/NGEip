@@ -189,6 +189,7 @@ const ASSIGNMENT_STATUS_LABEL: Record<EvaluationAssignment['status'], string> = 
               mat-stroked-button
               color="primary"
               type="button"
+              [disabled]="isDeadlinePassed()"
               (click)="generateRandomPreview()"
             >
               <mat-icon>shuffle</mat-icon>
@@ -630,18 +631,28 @@ export class AssignmentManagementDialogComponent {
 
   /** 產生隨機快選預覽 */
   generateRandomPreview(): void {
+    if (this.isDeadlinePassed()) {
+      this.previewMessage.set('考核截止日已過，無法產生隨機指派。');
+      return;
+    }
+
     this.previewMessage.set('');
-    const preview = this.assignmentService.generateRandomAssignmentPreview(
-      this.data.cycleId,
-      this.users() as User[],
-      this.rawAssignments() ?? [],
-    );
-    this.randomPreview.set(preview);
-    this.previewMessage.set(
-      preview.rows.length === 0
-        ? '可用使用者不足，無法產生隨機指派。'
-        : `已產生 ${preview.rows.length} 位受評者的預覽清單，確認儲存後才會寫入。`,
-    );
+    try {
+      const preview = this.assignmentService.generateRandomAssignmentPreview(
+        this.data.cycleId,
+        this.users() as User[],
+        this.rawAssignments() ?? [],
+      );
+      this.randomPreview.set(preview);
+      this.previewMessage.set(
+        preview.rows.length === 0
+          ? '可用使用者不足，無法產生隨機指派。'
+          : `已產生 ${preview.rows.length} 位受評者的預覽清單，確認儲存後才會寫入。`,
+      );
+    } catch (err) {
+      console.error('產生隨機快選失敗：', err);
+      this.previewMessage.set('產生隨機快選失敗，請重新整理後再試。');
+    }
   }
 
   /** 更新單一受評者的預覽評核者 */
