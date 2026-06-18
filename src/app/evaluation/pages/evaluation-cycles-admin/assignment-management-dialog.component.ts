@@ -72,6 +72,7 @@ interface AssignmentRow {
 /** 隨機快選預覽列表項目 */
 interface PreviewRowView extends RandomAssignmentPreviewRow {
   evaluateeName: string;
+  editableEvaluatorUids: string[];
   lockedEvaluatorNames: string[];
   warningsText: string;
 }
@@ -188,7 +189,6 @@ const ASSIGNMENT_STATUS_LABEL: Record<EvaluationAssignment['status'], string> = 
               mat-stroked-button
               color="primary"
               type="button"
-              [disabled]="isGeneratingPreview()"
               (click)="generateRandomPreview()"
             >
               <mat-icon>shuffle</mat-icon>
@@ -241,7 +241,7 @@ const ASSIGNMENT_STATUS_LABEL: Record<EvaluationAssignment['status'], string> = 
                       <mat-label>可調整評核者</mat-label>
                       <mat-select
                         multiple
-                        [value]="getEditableEvaluatorUids(row)"
+                        [value]="row.editableEvaluatorUids"
                         (selectionChange)="updatePreviewEvaluators(row, $event.value)"
                       >
                         @for (user of randomCandidateUsers(); track user.uid) {
@@ -531,9 +531,6 @@ export class AssignmentManagementDialogComponent {
   /** 新增中旗標 */
   readonly isAdding = signal(false);
 
-  /** 是否正在產生隨機預覽 */
-  readonly isGeneratingPreview = signal(false);
-
   /** 是否正在儲存隨機預覽 */
   readonly isSavingPreview = signal(false);
 
@@ -605,6 +602,7 @@ export class AssignmentManagementDialogComponent {
     return preview.rows.map((row) => ({
       ...row,
       evaluateeName: userMap.get(row.evaluateeUid) ?? row.evaluateeUid,
+      editableEvaluatorUids: row.evaluatorUids.filter((uid) => !row.lockedEvaluatorUids.includes(uid)),
       lockedEvaluatorNames: row.lockedEvaluatorUids.map((uid) => userMap.get(uid) ?? uid),
       warningsText: row.warnings.join('；'),
     }));
@@ -630,29 +628,20 @@ export class AssignmentManagementDialogComponent {
     return ASSIGNMENT_STATUS_LABEL[status] ?? status;
   }
 
-  /** 取得預覽列中可編輯的評核者 UID */
-  getEditableEvaluatorUids(row: RandomAssignmentPreviewRow): string[] {
-    return row.evaluatorUids.filter((uid) => !row.lockedEvaluatorUids.includes(uid));
-  }
-
   /** 產生隨機快選預覽 */
   generateRandomPreview(): void {
-    this.isGeneratingPreview.set(true);
-    try {
-      const preview = this.assignmentService.generateRandomAssignmentPreview(
-        this.data.cycleId,
-        this.users() as User[],
-        this.rawAssignments() ?? [],
-      );
-      this.randomPreview.set(preview);
-      this.previewMessage.set(
-        preview.rows.length === 0
-          ? '可用使用者不足，無法產生隨機指派。'
-          : `已產生 ${preview.rows.length} 位受評者的預覽清單，確認儲存後才會寫入。`,
-      );
-    } finally {
-      this.isGeneratingPreview.set(false);
-    }
+    this.previewMessage.set('');
+    const preview = this.assignmentService.generateRandomAssignmentPreview(
+      this.data.cycleId,
+      this.users() as User[],
+      this.rawAssignments() ?? [],
+    );
+    this.randomPreview.set(preview);
+    this.previewMessage.set(
+      preview.rows.length === 0
+        ? '可用使用者不足，無法產生隨機指派。'
+        : `已產生 ${preview.rows.length} 位受評者的預覽清單，確認儲存後才會寫入。`,
+    );
   }
 
   /** 更新單一受評者的預覽評核者 */

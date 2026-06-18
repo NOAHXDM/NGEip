@@ -27,6 +27,7 @@ import {
   serverTimestamp,
   increment,
   writeBatch,
+  runTransaction,
 } from '@angular/fire/firestore';
 import { Auth, authState } from '@angular/fire/auth';
 import {
@@ -39,8 +40,7 @@ import { User } from '../../services/user.service';
 /** Firestore 集合路徑 */
 const ASSIGNMENTS_COLLECTION = 'evaluationAssignments';
 const CYCLES_COLLECTION = 'evaluationCycles';
-const BATCH_SET_LIMIT = 499;
-const EXISTENCE_READ_LIMIT = 50;
+const TRANSACTION_SET_LIMIT = 499;
 
 @Injectable({ providedIn: 'root' })
 export class EvaluationAssignmentService {
@@ -62,6 +62,7 @@ export class EvaluationAssignmentService {
     serverTimestamp,
     increment,
     writeBatch,
+    runTransaction,
   };
 
   // =====================
@@ -231,9 +232,10 @@ export class EvaluationAssignmentService {
    * 批次建立評核指派
    *
    * 指派文件使用確定性 Key：{evaluatorUid}_{cycleId}_{evaluateeUid}
-   * 若相同 Key 的文件已存在，setDoc 會覆寫（防止重複記錄）
+   * 若相同 Key 的文件已存在，交易會略過該筆（防止重複記錄與統計失真）。
    *
-   * 同時以原子性操作遞增週期的 totalAssignments 計數。
+   * 同時在同一個 Firestore transaction 內遞增週期的 totalAssignments 計數，
+   * 避免並發儲存造成 check-then-write race condition。
    *
    * @param cycleId    目標週期 ID
    * @param assignments 要建立的指派清單（evaluatorUid + evaluateeUid）
@@ -248,56 +250,43 @@ export class EvaluationAssignmentService {
     const uniqueAssignments = this.dedupeAssignments(assignments)
       .filter((assignment) => assignment.evaluatorUid !== assignment.evaluateeUid);
 
-    const checkedAssignments: Array<{
-      evaluatorUid: string;
-      evaluateeUid: string;
-      key: string;
-      exists: boolean;
-    }> = [];
-
-    for (const chunk of this.chunkAssignments(uniqueAssignments, EXISTENCE_READ_LIMIT)) {
-      const checkedChunk = await Promise.all(chunk.map(async (assignment) => {
-        const key = this.buildAssignmentKey(assignment.evaluatorUid, cycleId, assignment.evaluateeUid);
-        const assignmentRef = this._fn.doc(this.firestore, ASSIGNMENTS_COLLECTION, key);
-        const existingSnap = await this._fn.getDoc(assignmentRef);
-        return {
-          ...assignment,
-          key,
-          exists: existingSnap.exists(),
-        };
-      }));
-      checkedAssignments.push(...checkedChunk);
-    }
-
-    const assignmentsToCreate = checkedAssignments.filter((assignment) => !assignment.exists);
-
-    if (assignmentsToCreate.length === 0) return;
-
     const cycleRef = this._fn.doc(this.firestore, CYCLES_COLLECTION, cycleId);
 
-    for (const chunk of this.chunkAssignments(assignmentsToCreate, BATCH_SET_LIMIT)) {
-      const batch = this._fn.writeBatch(this.firestore);
+    for (const chunk of this.chunkAssignments(uniqueAssignments, TRANSACTION_SET_LIMIT)) {
+      await this._fn.runTransaction(this.firestore, async (transaction) => {
+        const checkedAssignments = await Promise.all(chunk.map(async (assignment) => {
+          const key = this.buildAssignmentKey(assignment.evaluatorUid, cycleId, assignment.evaluateeUid);
+          const assignmentRef = this._fn.doc(this.firestore, ASSIGNMENTS_COLLECTION, key);
+          const existingSnap = await transaction.get(assignmentRef);
+          return {
+            ...assignment,
+            key,
+            ref: assignmentRef,
+            exists: existingSnap.exists(),
+          };
+        }));
 
-      for (const assignment of chunk) {
-        // 確定性 Key：確保相同組合不會產生重複文件
-        const assignmentRef = this._fn.doc(this.firestore, ASSIGNMENTS_COLLECTION, assignment.key);
+        const assignmentsToCreate = checkedAssignments.filter((assignment) => !assignment.exists);
 
-        batch.set(assignmentRef, {
-          id: assignment.key,
-          cycleId,
-          evaluatorUid: assignment.evaluatorUid,
-          evaluateeUid: assignment.evaluateeUid,
-          status: 'pending' as const,
-          createdAt: this._fn.serverTimestamp(),
+        if (assignmentsToCreate.length === 0) return;
+
+        for (const assignment of assignmentsToCreate) {
+          // 確定性 Key：確保相同組合不會產生重複文件
+          transaction.set(assignment.ref, {
+            id: assignment.key,
+            cycleId,
+            evaluatorUid: assignment.evaluatorUid,
+            evaluateeUid: assignment.evaluateeUid,
+            status: 'pending' as const,
+            createdAt: this._fn.serverTimestamp(),
+          });
+        }
+
+        // 原子性遞增週期的 totalAssignments 計數
+        transaction.update(cycleRef, {
+          totalAssignments: this._fn.increment(assignmentsToCreate.length),
         });
-      }
-
-      // 原子性遞增週期的 totalAssignments 計數
-      batch.update(cycleRef, {
-        totalAssignments: this._fn.increment(chunk.length),
       });
-
-      await batch.commit();
     }
   }
 

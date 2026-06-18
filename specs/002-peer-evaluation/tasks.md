@@ -53,7 +53,7 @@
 ### 實作
 
 - [X] T012 [P] [US1] 建立 EvaluationCycleService 於 `src/app/evaluation/services/evaluation-cycle.service.ts`，實作 getCycles()（orderBy createdAt DESC）、getCycleById()、createCycle()（寫入 totalAssignments/completedAssignments 初始值）、updateDeadline()、closeAndPublish()（stub，Phase 6 完整實作）
-- [X] T013 [P] [US1] 建立 EvaluationAssignmentService 於 `src/app/evaluation/services/evaluation-assignment.service.ts`，實作 getMyAssignments()（where evaluatorUid + shareReplay(1)）、getAssignmentsByCycle()、createAssignments()（批次 setDoc 以確定性鍵防重複）、deleteAssignment()
+- [X] T013 [P] [US1] 建立 EvaluationAssignmentService 於 `src/app/evaluation/services/evaluation-assignment.service.ts`，實作 getMyAssignments()（where evaluatorUid + shareReplay(1)）、getAssignmentsByCycle()、createAssignments()（transaction 內以確定性鍵檢查後建立，避免重複計數）、deleteAssignment()
 - [X] T014 [US1] 建立 EvaluationCyclesAdminComponent 頁面於 `src/app/evaluation/pages/evaluation-cycles-admin/`（週期卡片清單含完成率、新增週期 Dialog 含年份/H1 H2/截止日欄位、截止日修改 inline 或 Dialog、「結束並發布」按鈕，截止日已過時顯示「已截止，待確認」標籤）
 - [X] T015 [US1] 建立指派管理子頁面或 Dialog 於 `src/app/evaluation/pages/evaluation-cycles-admin/`（從使用者清單選擇受評者，為每位受評者選擇一到多位評核者，呈現已指派清單，支援刪除未提交的指派，截止日已過後禁用新增指派，受評者與評核者選單排除已離職使用者即 exitDate 已設定者）
 
@@ -160,7 +160,7 @@
 - [X] T049 [P] [US1] 更新 `src/app/evaluation/models/evaluation.models.ts`，新增 `RandomAssignmentPreview` 與 `RandomAssignmentPreviewRow` 介面，包含受評者、建議評核者、已完成且不可動評核者、目標人數、負載統計與警示訊息
 - [X] T050 [P] [US1] 建立或更新 `src/app/evaluation/services/evaluation-assignment.service.spec.ts`，覆蓋隨機快選演算法：排除自評、排除管理員、每位受評者達 `min(10, 可用使用者總數 - 1)`、2 人互評、0/1 人顯示無法產生、缺 `jobTitle` 不視為同職稱、負載盡量平均、同 `jobTitle` 在低負載候選中優先、已完成指派超過目標人數時保留並警示且不補派、已完成指派包含管理員或已離職者時保留且計入並警示
 - [X] T051 [US1] 更新 `src/app/evaluation/services/evaluation-assignment.service.ts`，實作 `generateRandomAssignmentPreview()` 純計算流程，不寫入 Firestore；輸入在職使用者與該週期既有指派，輸出可編輯預覽資料
-- [X] T052 [US1] 更新 `src/app/evaluation/services/evaluation-assignment.service.ts` 的寫入流程，新增 `saveRandomAssignmentPreview()` 或調整 `createAssignments()`，寫入前以確定性 key 檢查既有文件，只建立實際新增指派，且應提交總數僅依實際新增數遞增，避免重複覆寫造成完成率統計失真
+- [X] T052 [US1] 更新 `src/app/evaluation/services/evaluation-assignment.service.ts` 的寫入流程，新增 `saveRandomAssignmentPreview()` 或調整 `createAssignments()`，於 Firestore transaction 內以確定性 key 檢查既有文件，只建立實際新增指派，且應提交總數僅依實際新增數遞增，避免並發重複儲存造成完成率統計失真
 - [X] T053 [P] [US1] 更新 `src/app/evaluation/testing/us1-integration.spec.ts`，新增隨機快選儲存整合測試：正式儲存後評核者可看到待辦；重複儲存不重複增加應提交總數；既有 completed 指派不被刪除、覆寫或替換；completed 超過目標人數時不新增補派；completed 評核者為管理員或已離職者時仍保留且計入
 - [X] T054 [US1] 更新 `src/app/evaluation/pages/evaluation-cycles-admin/assignment-management-dialog.component.ts`，新增「隨機快選」、「重新隨機」、「確認儲存」流程；預覽清單可依受評者顯示評核者、鎖定 completed 指派、刪除或更換未鎖定評核者，並在候選不足時顯示明確提示
 - [X] T055 [P] [US1] 更新 `README.md` 或 `specs/002-peer-evaluation/quickstart.md`，補充管理者使用隨機快選的手動驗證流程：0/1 人、2 人、多人同職稱與缺職稱、既有 completed 指派保護、重複儲存不污染完成率
