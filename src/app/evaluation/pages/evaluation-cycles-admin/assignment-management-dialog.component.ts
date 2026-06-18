@@ -218,9 +218,7 @@ const ASSIGNMENT_STATUS_LABEL: Record<EvaluationAssignment['status'], string> = 
               </button>
             </div>
 
-            @if (previewRows().length === 0) {
-              <p class="empty-list">可用使用者不足，無法產生隨機指派。</p>
-            } @else {
+            @if (previewRows().length > 0) {
               <div class="preview-list">
                 @for (row of previewRows(); track row.evaluateeUid) {
                   <div class="preview-row">

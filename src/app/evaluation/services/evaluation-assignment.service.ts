@@ -40,6 +40,7 @@ import { User } from '../../services/user.service';
 const ASSIGNMENTS_COLLECTION = 'evaluationAssignments';
 const CYCLES_COLLECTION = 'evaluationCycles';
 const BATCH_SET_LIMIT = 499;
+const EXISTENCE_READ_LIMIT = 50;
 
 @Injectable({ providedIn: 'root' })
 export class EvaluationAssignmentService {
@@ -161,7 +162,9 @@ export class EvaluationAssignmentService {
 
       for (const assignment of completed) {
         if (assignment.evaluatorUid === evaluateeUid) continue;
-        this.addUnique(evaluatorUids, assignment.evaluatorUid);
+        if (this.addUnique(evaluatorUids, assignment.evaluatorUid)) {
+          evaluatorLoads[assignment.evaluatorUid] = (evaluatorLoads[assignment.evaluatorUid] ?? 0) + 1;
+        }
         this.addUnique(lockedEvaluatorUids, assignment.evaluatorUid);
 
         const evaluator = userByUid.get(assignment.evaluatorUid);
@@ -178,17 +181,16 @@ export class EvaluationAssignmentService {
         if (evaluatorUids.length >= targetEvaluatorCount) break;
         if (assignment.evaluatorUid === evaluateeUid) continue;
         if (!eligibleUidSet.has(assignment.evaluatorUid)) continue;
-        this.addUnique(evaluatorUids, assignment.evaluatorUid);
+        if (this.addUnique(evaluatorUids, assignment.evaluatorUid)) {
+          evaluatorLoads[assignment.evaluatorUid] = (evaluatorLoads[assignment.evaluatorUid] ?? 0) + 1;
+        }
       }
 
       while (evaluatorUids.length < targetEvaluatorCount) {
         const candidate = this.pickEvaluator(evaluatee, eligibleUsers, evaluatorUids, evaluatorLoads);
         if (!candidate?.uid) break;
         evaluatorUids.push(candidate.uid);
-      }
-
-      for (const evaluatorUid of evaluatorUids) {
-        evaluatorLoads[evaluatorUid] = (evaluatorLoads[evaluatorUid] ?? 0) + 1;
+        evaluatorLoads[candidate.uid] = (evaluatorLoads[candidate.uid] ?? 0) + 1;
       }
 
       return {
@@ -246,8 +248,15 @@ export class EvaluationAssignmentService {
     const uniqueAssignments = this.dedupeAssignments(assignments)
       .filter((assignment) => assignment.evaluatorUid !== assignment.evaluateeUid);
 
-    const checkedAssignments = await Promise.all(
-      uniqueAssignments.map(async (assignment) => {
+    const checkedAssignments: Array<{
+      evaluatorUid: string;
+      evaluateeUid: string;
+      key: string;
+      exists: boolean;
+    }> = [];
+
+    for (const chunk of this.chunkAssignments(uniqueAssignments, EXISTENCE_READ_LIMIT)) {
+      const checkedChunk = await Promise.all(chunk.map(async (assignment) => {
         const key = this.buildAssignmentKey(assignment.evaluatorUid, cycleId, assignment.evaluateeUid);
         const assignmentRef = this._fn.doc(this.firestore, ASSIGNMENTS_COLLECTION, key);
         const existingSnap = await this._fn.getDoc(assignmentRef);
@@ -256,8 +265,10 @@ export class EvaluationAssignmentService {
           key,
           exists: existingSnap.exists(),
         };
-      }),
-    );
+      }));
+      checkedAssignments.push(...checkedChunk);
+    }
+
     const assignmentsToCreate = checkedAssignments.filter((assignment) => !assignment.exists);
 
     if (assignmentsToCreate.length === 0) return;
@@ -389,9 +400,12 @@ export class EvaluationAssignmentService {
       )[0]?.user;
   }
 
-  private addUnique(target: string[], value: string): void {
+  private addUnique(target: string[], value: string): boolean {
     if (!target.includes(value)) {
       target.push(value);
+      return true;
     }
+
+    return false;
   }
 }

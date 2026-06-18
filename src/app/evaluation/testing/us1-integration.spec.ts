@@ -31,6 +31,10 @@ import {
   query,
   where,
 } from 'firebase/firestore';
+import { TestBed } from '@angular/core/testing';
+import { Auth } from '@angular/fire/auth';
+import { Firestore } from '@angular/fire/firestore';
+import { EvaluationAssignmentService } from '../services/evaluation-assignment.service';
 import {
   initTestEnv,
   teardownTestEnv,
@@ -103,6 +107,7 @@ xdescribe('US1 整合測試：評核週期與指派建立流程', () => {
     await clearFirestoreData();
     // 種入管理者帳號（供 isAdmin() security rule 判斷）
     await seedAdminUser(ADMIN_UID);
+    TestBed.resetTestingModule();
   });
 
   // =====================
@@ -329,9 +334,25 @@ xdescribe('US1 整合測試：評核週期與指派建立流程', () => {
 
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       const db = ctx.firestore();
+      const service = createServiceWithFirestore(db);
+
+      await service.saveRandomAssignmentPreview({
+        cycleId: CYCLE_ID,
+        generatedAt: new Date(),
+        evaluatorLoads: {},
+        rows: [
+          {
+            evaluateeUid: randomEvaluateeUid,
+            evaluatorUids: [randomEvaluatorUid],
+            lockedEvaluatorUids: [],
+            targetEvaluatorCount: 1,
+            warnings: [],
+          },
+        ],
+      });
+
       const existingSnap = await getDoc(doc(db, `evaluationAssignments/${randomKey}`));
       expect(existingSnap.exists()).toBeTrue();
-
       const cycleSnap = await getDoc(doc(db, `evaluationCycles/${CYCLE_ID}`));
       expect(cycleSnap.data()!['totalAssignments']).toBe(1);
     });
@@ -340,11 +361,16 @@ xdescribe('US1 整合測試：評核週期與指派建立流程', () => {
   it('Case 5b：隨機快選遇到 completed 指派時，應保留既有文件且不得覆寫狀態', async () => {
     const completedEvaluatorUid = 'us1-completed-evaluator-001';
     const completedEvaluateeUid = 'us1-completed-evaluatee-001';
+    const newEvaluatorUid = 'us1-new-evaluator-001';
     const completedKey = `${completedEvaluatorUid}_${CYCLE_ID}_${completedEvaluateeUid}`;
+    const newKey = `${newEvaluatorUid}_${CYCLE_ID}_${completedEvaluateeUid}`;
 
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       const db = ctx.firestore();
-      await db.doc(`evaluationCycles/${CYCLE_ID}`).set(VALID_CYCLE_DATA);
+      await db.doc(`evaluationCycles/${CYCLE_ID}`).set({
+        ...VALID_CYCLE_DATA,
+        totalAssignments: 1,
+      });
       await db.doc(`evaluationAssignments/${completedKey}`).set({
         id: completedKey,
         cycleId: CYCLE_ID,
@@ -357,9 +383,46 @@ xdescribe('US1 整合測試：評核週期與指派建立流程', () => {
     });
 
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
-      const snap = await getDoc(doc(ctx.firestore(), `evaluationAssignments/${completedKey}`));
-      expect(snap.exists()).toBeTrue();
-      expect(snap.data()!['status']).toBe('completed');
+      const db = ctx.firestore();
+      const service = createServiceWithFirestore(db);
+
+      await service.saveRandomAssignmentPreview({
+        cycleId: CYCLE_ID,
+        generatedAt: new Date(),
+        evaluatorLoads: {},
+        rows: [
+          {
+            evaluateeUid: completedEvaluateeUid,
+            evaluatorUids: [completedEvaluatorUid, newEvaluatorUid],
+            lockedEvaluatorUids: [completedEvaluatorUid],
+            targetEvaluatorCount: 2,
+            warnings: [],
+          },
+        ],
+      });
+
+      const completedSnap = await getDoc(doc(db, `evaluationAssignments/${completedKey}`));
+      expect(completedSnap.exists()).toBeTrue();
+      expect(completedSnap.data()!['status']).toBe('completed');
+
+      const newSnap = await getDoc(doc(db, `evaluationAssignments/${newKey}`));
+      expect(newSnap.exists()).toBeTrue();
+      expect(newSnap.data()!['status']).toBe('pending');
+
+      const cycleSnap = await getDoc(doc(db, `evaluationCycles/${CYCLE_ID}`));
+      expect(cycleSnap.data()!['totalAssignments']).toBe(2);
     });
   });
 });
+
+function createServiceWithFirestore(db: unknown): EvaluationAssignmentService {
+  TestBed.configureTestingModule({
+    providers: [
+      EvaluationAssignmentService,
+      { provide: Firestore, useValue: db },
+      { provide: Auth, useValue: {} },
+    ],
+  });
+
+  return TestBed.inject(EvaluationAssignmentService);
+}
