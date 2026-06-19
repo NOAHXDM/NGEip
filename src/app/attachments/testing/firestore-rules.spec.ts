@@ -45,7 +45,7 @@ xdescribe('request attachment Firestore rules contract', () => {
     const batch = writeBatch(db);
     batch.update(request, { attachments: [] });
     batch.set(doc(db, 'requestAttachmentCleanupQueue', 'old'), {
-      requestKind: 'attendance', requestId: 'pending', actorUid: OWNER_UID, attachment,
+      requestKind: 'attendance', requestId: 'cleanup-source', actorUid: OWNER_UID, attachment,
     });
     await assertSucceeds(batch.commit());
     const cleanup = doc(db, 'requestAttachmentCleanupQueue', 'old');

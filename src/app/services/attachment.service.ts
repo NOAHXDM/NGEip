@@ -159,7 +159,7 @@ export class AttachmentService {
     }
     const sessionRef = doc(collection(this.firestore, 'requestAttachmentUploadSessions'));
     const planned = files.map((file) => {
-      const id = doc(collection(this.firestore, 'requestAttachmentIds')).id;
+      const id = crypto.randomUUID();
       return {
         id,
         storagePath: this.storage.attachmentPath(kind, requestId, sessionRef.id, id),
@@ -180,7 +180,11 @@ export class AttachmentService {
     const uploaded: AttachmentMetadata[] = [];
     try {
       for (let i = 0; i < attachments.length; i++) {
-        await firstValueFrom(this.storage.uploadAttachment(attachments[i], files[i]));
+        await firstValueFrom(this.storage.uploadAttachment(attachments[i], files[i], {
+          requestKind: kind,
+          requestId,
+          ownerUid,
+        }));
         uploaded.push(attachments[i]);
       }
       return { sessionId: sessionRef.id, attachments };

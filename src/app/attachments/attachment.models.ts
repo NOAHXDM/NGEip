@@ -39,6 +39,12 @@ export interface AttachmentChanges {
   removedAttachmentIds: string[];
 }
 
+export interface AttachmentUploadContext {
+  requestKind: RequestKind;
+  requestId: string;
+  ownerUid: string;
+}
+
 export interface PreparedAttachmentBatch {
   sessionId: string;
   attachments: AttachmentMetadata[];

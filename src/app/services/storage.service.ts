@@ -13,7 +13,12 @@ import {
 import { from, Observable } from 'rxjs';
 
 import { resizeImage, ResizeOptions } from '../utils/image-resize';
-import { AttachmentMetadata, MAX_ATTACHMENT_BYTES, RequestKind } from '../attachments/attachment.models';
+import {
+  AttachmentMetadata,
+  AttachmentUploadContext,
+  MAX_ATTACHMENT_BYTES,
+  RequestKind,
+} from '../attachments/attachment.models';
 
 /**
  * 集中所有 Firebase Storage 存取的服務層（憲章：Firebase 存取集中於可測試的服務）。
@@ -43,14 +48,21 @@ export class StorageService {
     return `request-attachments/${kind}/${requestId}/${sessionId}/${attachmentId}`;
   }
 
-  uploadAttachment(metadata: AttachmentMetadata, file: File): Observable<void> {
+  uploadAttachment(
+    metadata: AttachmentMetadata,
+    file: File,
+    context: AttachmentUploadContext
+  ): Observable<void> {
     const storageRef = this.storageRef(metadata.storagePath);
     return from(
       this.storageUploadBytes(storageRef, file, {
         contentType: metadata.contentType,
         cacheControl: 'private,max-age=3600',
         customMetadata: {
+          requestKind: context.requestKind,
+          requestId: context.requestId,
           attachmentId: metadata.id,
+          ownerUid: context.ownerUid,
           uploadedBy: metadata.uploadedBy,
         },
       }).then(() => void 0)
