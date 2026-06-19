@@ -21,6 +21,7 @@ import {
   SubsidyStatus,
 } from '../../services/subsidy.service';
 import { switchMap, take } from 'rxjs';
+import { AttachmentListComponent } from '../../attachments/attachment-list.component';
 
 @Component({
   selector: 'app-subsidy-status-change',
@@ -36,6 +37,7 @@ import { switchMap, take } from 'rxjs';
     MatFormFieldModule,
     MatInputModule,
     ReactiveFormsModule,
+    AttachmentListComponent,
   ],
   templateUrl: './subsidy-status-change.component.html',
   styleUrl: './subsidy-status-change.component.scss',

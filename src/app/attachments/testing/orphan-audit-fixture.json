@@ -1,0 +1,10 @@
+{
+  "storagePaths": [
+    "request-attachments/attendance/parent/session/formal",
+    "request-attachments/subsidy/draft/session/uploading",
+    "request-attachments/attendance/removed/session/cleanup"
+  ],
+  "parentPaths": ["request-attachments/attendance/parent/session/formal"],
+  "sessionPaths": ["request-attachments/subsidy/draft/session/uploading"],
+  "queuePaths": ["request-attachments/attendance/removed/session/cleanup"]
+}

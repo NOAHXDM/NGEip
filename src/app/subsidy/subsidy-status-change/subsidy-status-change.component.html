@@ -26,6 +26,10 @@
       <strong>注意！</strong> 拒絕此申請後，申請人可重新提交。
     </div>
   }
+  <app-attachment-list
+    [attachments]="data.application.attachments || []"
+    [canManage]="false"
+  />
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button type="button" mat-button mat-dialog-close>取消</button>

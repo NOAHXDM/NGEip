@@ -1,0 +1,12 @@
+[
+  {
+    "origin": [
+      "https://noahxdm-eip.web.app",
+      "https://noahxdm-eip.firebaseapp.com",
+      "http://localhost:4200"
+    ],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type", "Content-Length", "Content-Range"],
+    "maxAgeSeconds": 3600
+  }
+]

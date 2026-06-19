@@ -30,6 +30,8 @@ import {
   SelectOption,
 } from '../../services/subsidy.service';
 import { UserService, User } from '../../services/user.service';
+import { AttachmentListComponent } from '../../attachments/attachment-list.component';
+import { AttachmentMetadata } from '../../attachments/attachment.models';
 
 @Component({
   selector: 'app-subsidy-application',
@@ -46,6 +48,7 @@ import { UserService, User } from '../../services/user.service';
     MatInputModule,
     MatSelectModule,
     MatDatepickerModule,
+    AttachmentListComponent,
   ],
   providers: [provideNativeDateAdapter()],
   templateUrl: './subsidy-application.component.html',
@@ -67,6 +70,23 @@ export class SubsidyApplicationComponent implements OnInit {
 
   readonly userList$: Observable<User[]>;
   readonly currentUser$: Observable<User | null>;
+  currentUser: User | null = null;
+  pendingFiles: File[] = [];
+  removedAttachmentIds = new Set<string>();
+  saving = false;
+  saveError = '';
+
+  get visibleAttachments(): AttachmentMetadata[] {
+    return (this.data.application?.attachments ?? []).filter(
+      (attachment) => !this.removedAttachmentIds.has(attachment.id)
+    );
+  }
+
+  get canManageAttachments(): boolean {
+    if (!this.data.application) return true;
+    return this.currentUser?.role === 'admin' ||
+      (this.data.application.userId === this.currentUser?.uid && this.data.application.status === 'pending');
+  }
 
   // 動態欄位顯示控制
   showContent = signal(false);
@@ -99,6 +119,7 @@ export class SubsidyApplicationComponent implements OnInit {
     // 設定當前使用者為預設申請人
     this.currentUser$.pipe(take(1)).subscribe({
       next: (user) => {
+        this.currentUser = user;
         if (user && !this.data.application) {
           this.subsidyForm.patchValue({ userId: user.uid });
         }
@@ -220,9 +241,11 @@ export class SubsidyApplicationComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.subsidyForm.invalid) {
+    if (this.subsidyForm.invalid || this.saving || !this.currentUser?.uid) {
       return;
     }
+    this.saving = true;
+    this.saveError = '';
 
     const formValue = {
       ...this.subsidyForm.value,
@@ -234,7 +257,7 @@ export class SubsidyApplicationComponent implements OnInit {
     if (this.data.application) {
       // 更新模式
       this.subsidyService
-        .update(formValue, this.data.application)
+        .update(formValue, this.data.application, this.currentUser.uid, this.pendingFiles, [...this.removedAttachmentIds])
         .pipe(take(1))
         .subscribe({
           next: () => {
@@ -242,13 +265,14 @@ export class SubsidyApplicationComponent implements OnInit {
           },
           error: (error) => {
             console.error('更新失敗：', error);
-            this.dialogRef.close('更新失敗');
+            this.saving = false;
+            this.saveError = error.message;
           },
         });
     } else {
       // 新增模式
       this.subsidyService
-        .create(formValue)
+        .create(formValue, this.currentUser.uid, this.pendingFiles)
         .pipe(take(1))
         .subscribe({
           next: () => {
@@ -256,9 +280,14 @@ export class SubsidyApplicationComponent implements OnInit {
           },
           error: (error) => {
             console.error('建立失敗：', error);
-            this.dialogRef.close('建立失敗');
+            this.saving = false;
+            this.saveError = error.message;
           },
         });
     }
   }
+
+  addFiles(files: File[]): void { this.pendingFiles = [...this.pendingFiles, ...files]; }
+  removePending(file: File): void { this.pendingFiles = this.pendingFiles.filter((item) => item !== file); }
+  removeExisting(id: string): void { this.removedAttachmentIds.add(id); }
 }

@@ -18,6 +18,7 @@ import {
   AttendanceType,
 } from '../../services/attendance.service';
 import { switchMap, take } from 'rxjs';
+import { AttachmentListComponent } from '../../attachments/attachment-list.component';
 
 @Component({
   selector: 'app-attendance-status-change',
@@ -30,6 +31,7 @@ import { switchMap, take } from 'rxjs';
     MatDialogTitle,
     MatIconModule,
     MatProgressBarModule,
+    AttachmentListComponent,
   ],
   templateUrl: './attendance-status-change.component.html',
   styleUrl: './attendance-status-change.component.scss',
