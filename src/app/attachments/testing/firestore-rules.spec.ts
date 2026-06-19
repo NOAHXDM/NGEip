@@ -1,5 +1,5 @@
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { Timestamp, doc, getDoc, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { ADMIN_UID, OTHER_UID, OWNER_UID } from './emulator-setup';
 
 // Executed by tools/request-attachment-emulator-tests.cjs; retained as a typed contract beside the feature.
@@ -31,12 +31,25 @@ xdescribe('request attachment Firestore rules contract', () => {
   it('atomically transfers a removed attachment to cleanup queue', async () => {
     const contexts = (globalThis as any).attachmentRuleContexts;
     const db = contexts.owner.firestore();
-    const attachment = { id: 'old', storagePath: 'request-attachments/attendance/r/s/old' };
+    const request = doc(db, 'attendanceLogs', 'cleanup-source');
+    await assertSucceeds(setDoc(request, {
+      userId: OWNER_UID,
+      status: 'pending',
+      attachments: [{
+        id: 'old',
+        storagePath: 'request-attachments/attendance/cleanup-source/session/old',
+        uploadedAt: Timestamp.now(),
+      }],
+    }));
+    const attachment = ((await getDoc(request)).data()?.['attachments'] ?? [])[0];
     const batch = writeBatch(db);
-    batch.update(doc(db, 'attendanceLogs', 'pending'), { attachments: [] });
+    batch.update(request, { attachments: [] });
     batch.set(doc(db, 'requestAttachmentCleanupQueue', 'old'), {
       requestKind: 'attendance', requestId: 'pending', actorUid: OWNER_UID, attachment,
     });
     await assertSucceeds(batch.commit());
+    const cleanup = doc(db, 'requestAttachmentCleanupQueue', 'old');
+    await assertSucceeds(updateDoc(cleanup, { attemptCount: 1 }));
+    await assertFails(updateDoc(cleanup, { actorUid: OTHER_UID }));
   });
 });

@@ -77,15 +77,20 @@ async function main() {
       contentType: 'application/pdf', customMetadata: { attachmentId: 'bad', uploadedBy: ownerUid },
     }));
 
+    const persistedRequest = await getDoc(doc(ownerDb, 'attendanceLogs', 'pending'));
+    const persistedAttachment = persistedRequest.data().attachments[0];
     const cleanupBatch = writeBatch(ownerDb);
     cleanupBatch.update(doc(ownerDb, 'attendanceLogs', 'pending'), { attachments: [] });
     cleanupBatch.set(doc(ownerDb, 'requestAttachmentCleanupQueue', 'a1'), {
       requestKind: 'attendance', requestId: 'pending', ownerUid, actorUid: ownerUid,
-      attachment, attemptCount: 0,
+      attachment: persistedAttachment, attemptCount: 0,
     });
     await assertSucceeds(cleanupBatch.commit());
+    const cleanupRef = doc(ownerDb, 'requestAttachmentCleanupQueue', 'a1');
+    await assertSucceeds(updateDoc(cleanupRef, { attemptCount: 1, lastAttemptAt: new Date(), lastErrorCode: 'storage-delete-failed' }));
+    await assertFails(updateDoc(cleanupRef, { actorUid: otherUid }));
     await assertSucceeds(deleteObject(fileRef));
-    await assertFails(updateDoc(doc(ownerDb, 'requestAttachmentCleanupQueue', 'a1'), { attachment: { id: 'evil' } }));
+    await assertFails(updateDoc(cleanupRef, { attachment: { id: 'evil' } }));
 
     const avatarRef = ref(owner.storage(), `avatars/${ownerUid}/avatar.webp`);
     await assertSucceeds(uploadBytes(avatarRef, new Blob(['RIFFxxxxWEBP'], { type: 'image/webp' }), { contentType: 'image/webp' }));

@@ -100,10 +100,12 @@ deleteAttachment(storagePath: string): Observable<void>;
 
 ### AttachmentListComponent
 
-Inputs：`attachments`、`pendingFiles`、`canManage`、`maxFiles=5`。
+Inputs：`attachments`、`pendingFiles`、`canManage`。
 
-Outputs：`filesSelected`、`pendingFileRemoved`、`existingAttachmentRemoved`、`previewRequested`。
+Outputs：`filesSelected`、`pendingFileRemoved`、`existingAttachmentRemoved`。
 
+- `maxFiles` 是由規格固定為 5 的唯讀顯示／驗證上限，不提供外部覆寫，避免畫面與 service、Firestore Rules 的上限分歧。
+- 預覽由元件直接開啟 `AttachmentPreviewDialogComponent`，不對外送出事件。
 - readonly 模式仍顯示原始檔名、大小、格式與預覽。
 - manage 模式才顯示選檔與刪除。
 - 最終數量以 `existing - markedRemoved + pending` 計算。
