@@ -31,7 +31,7 @@ import { AttachmentMetadata } from '../attachments/attachment.models';
 export class AttendanceService {
   readonly firestore: Firestore = inject(Firestore);
   readonly timezoneService = inject(TimezoneService);
-  readonly attachmentService = inject(AttachmentService);
+  private readonly attachmentService = inject(AttachmentService);
   readonly typeList = Object.keys(AttendanceType)
     .filter((key) => isNaN(Number(key)))
     .map((key) => {

@@ -136,9 +136,7 @@ export class AttachmentService {
     } catch (error) {
       if (prepared?.sessionId) await this.rollbackPrepared(prepared);
       throw this.friendlyError(
-        error instanceof Error && error.message === 'attachment-conflict'
-          ? '附件已被其他人變更，請重新載入後再試。'
-          : '申請與附件未能更新，原資料未變更。',
+        this.updateErrorMessage(error),
         error
       );
     }
@@ -233,5 +231,15 @@ export class AttachmentService {
   private friendlyError(message: string, error: unknown): Error {
     console.error(message, error);
     return new Error(message);
+  }
+
+  private updateErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message === 'attachment-conflict') {
+      return '附件已被其他人變更，請重新載入後再試。';
+    }
+    if (error instanceof Error && error.message === 'too-many-files') {
+      return '每筆申請最多五個附件，請刪除部分附件後再試。';
+    }
+    return '申請與附件未能更新，原資料未變更。';
   }
 }

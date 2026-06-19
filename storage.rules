@@ -32,6 +32,26 @@ service firebase.storage {
         || request.resource.contentType == 'image/webp';
     }
 
+    function hasValidUploadSession(kind, requestId, sessionId, attachmentId) {
+      let session = firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data;
+      return session.status == 'uploading'
+        && session.actorUid == request.auth.uid
+        && session.requestKind == kind
+        && session.requestId == requestId
+        && request.resource.metadata.ownerUid == session.ownerUid
+        && session.plannedPaths.hasAny([
+          'request-attachments/' + kind + '/' + requestId + '/' + sessionId + '/' + attachmentId
+        ]);
+    }
+
+    function ownsUploadSessionPath(kind, requestId, sessionId, attachmentId) {
+      let session = firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data;
+      return session.actorUid == request.auth.uid
+        && session.plannedPaths.hasAny([
+          'request-attachments/' + kind + '/' + requestId + '/' + sessionId + '/' + attachmentId
+        ]);
+    }
+
     match /request-attachments/{kind}/{requestId}/{sessionId}/{attachmentId} {
       allow get: if request.auth != null;
       allow list: if false;
@@ -45,26 +65,14 @@ service firebase.storage {
         && request.resource.metadata.requestKind == kind
         && request.resource.metadata.requestId == requestId
         && request.resource.metadata.attachmentId == attachmentId
-        && request.resource.metadata.ownerUid == firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data.ownerUid
         && request.resource.metadata.uploadedBy == request.auth.uid
-        && firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data.status == 'uploading'
-        && firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data.actorUid == request.auth.uid
-        && firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data.requestKind == kind
-        && firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data.requestId == requestId
-        && firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data.plannedPaths.hasAny([
-          'request-attachments/' + kind + '/' + requestId + '/' + sessionId + '/' + attachmentId
-        ]);
+        && hasValidUploadSession(kind, requestId, sessionId, attachmentId);
 
       allow update: if false;
 
       allow delete: if request.auth != null && (
         isAdmin()
-        || (
-          firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data.actorUid == request.auth.uid
-          && firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data.plannedPaths.hasAny([
-            'request-attachments/' + kind + '/' + requestId + '/' + sessionId + '/' + attachmentId
-          ])
-        )
+        || ownsUploadSessionPath(kind, requestId, sessionId, attachmentId)
         || firestore.get(/databases/(default)/documents/requestAttachmentCleanupQueue/$(attachmentId)).data.actorUid == request.auth.uid
       );
     }

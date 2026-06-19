@@ -35,4 +35,10 @@ describe('AttachmentService', () => {
     expect(audit.content).not.toContain('storagePath');
     expect(audit.content).not.toContain('secret');
   });
+
+  it('returns a specific message when the saved attachment count exceeds five', () => {
+    const service = serviceWithStorage({});
+    const message = (service as any).updateErrorMessage(new Error('too-many-files'));
+    expect(message).toBe('每筆申請最多五個附件，請刪除部分附件後再試。');
+  });
 });
