@@ -1,0 +1,55 @@
+# Training + AI Tool 共用補助池實作計畫
+
+## 技術設計
+
+在 `SubsidyLimitService` 保留 Training 與 AI Tool 的個別 Firestore 統計查詢，完成查詢後交由純函式計算單一共用池。純函式以兩類核准金額為輸入，回傳固定總額、合計已用、非負剩餘額度及分類使用量。
+
+`subsidyLimits` 不建立 AI Tool 個別設定；AI Tool 統計直接併入 Training 共用池，避免 `annualLimit` 被誤讀為獨立上限。
+
+`UserSubsidyLimitStatus.subsidies` 對這兩種類型只回傳 Training 項目，並將其 `displayName` 設為 `Training + AI Tool`。AI Tool 統計只作為共用池輸入，不作為獨立卡片輸出。
+
+## 資料流
+
+```text
+週年期間 approved Training ─┐
+                             ├─ 共用池計算 ─ 唯一額度卡
+週年期間 approved AI Tool ──┘
+```
+
+## 公式
+
+```text
+SHARED_LIMIT = 24,000
+usedAmount = trainingUsedAmount + aiToolUsedAmount
+availableAmount = max(0, SHARED_LIMIT - usedAmount)
+```
+
+## Firebase 影響
+
+- 不新增或修改集合與欄位。
+- 沿用 `subsidyApplications` 既有查詢與索引。
+- 不增加 Firestore 讀寫次數。
+- Security Rules 不需變更，因本次只調整讀取後的額度計算與顯示，不新增資料權限。
+
+## UI
+
+- 移除獨立 AI Tool 額度卡分支。
+- 共用卡顯示 24,000 固定總額與共用剩餘額度。
+- 沿用 Training／AI Tool 雙色堆疊進度條與圖例。
+
+## 測試策略
+
+對純計算函式驗證：
+
+- 一般混合使用。
+- AI Tool 使用量超過舊 10,000 子上限。
+- 共用池恰好用盡。
+- 既有核准資料超過 24,000 時剩餘額度固定為 0。
+
+建置驗證 Angular template 已移除 AI Tool 獨立分支且型別正確。
+
+## 本機建置診斷
+
+本機預設 Node 為 x64，但 `node_modules` native 套件為 arm64，直接執行會先遇到 esbuild 架構不符。改用 arm64 Node 後，Angular 20.3.29 的 LMDB persistent cache native addon 可獨立重現 allocator abort（exit 134，stack 位於 `EnvWrap::openEnv/closeEnv`），確認不是應用程式編譯錯誤。
+
+使用 `CI=true` 停用 Angular 的 local persistent cache 後，在允許連線 Google Fonts 的環境完成 production build。初始 bundle 為 2.18 MB，低於專案 2.5 MB warning budget，確認 exit 134 與本次應用程式變更無關。
