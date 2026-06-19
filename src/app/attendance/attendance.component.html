@@ -125,6 +125,15 @@
       </mat-select>
     </mat-form-field>
     }
+    <app-attachment-list
+      [attachments]="visibleAttachments"
+      [pendingFiles]="pendingFiles"
+      [canManage]="canManageAttachments"
+      (filesSelected)="addFiles($event)"
+      (pendingFileRemoved)="removePending($event)"
+      (existingAttachmentRemoved)="removeExisting($event)"
+    />
+    @if (saveError) { <p class="text-danger" role="alert">{{ saveError }}</p> }
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
@@ -132,7 +141,7 @@
   <button
     mat-button
     (click)="save()"
-    [disabled]="attendanceForm.invalid"
+    [disabled]="attendanceForm.invalid || saving"
   >
     儲存
   </button>

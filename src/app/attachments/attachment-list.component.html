@@ -1,0 +1,29 @@
+<section class="attachments" aria-labelledby="attachment-title">
+  <div class="header">
+    <h3 id="attachment-title">附件（{{ attachments.length + pendingFiles.length }}/{{ maxFiles }}）</h3>
+    @if (canManage) {
+      <button type="button" class="pick" mat-stroked-button (click)="fileInput.click()">
+        <mat-icon>attach_file</mat-icon>選擇檔案
+      </button>
+      <input #fileInput class="file-input" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" aria-label="選擇申請附件" (change)="onSelected($event)" />
+    }
+  </div>
+  <p class="hint">支援 PDF、JPEG、PNG、WebP；每檔最多 3 MiB，附件為選填。</p>
+  @if (error) { <p class="error" role="alert">{{ error }}</p> }
+  <ul>
+    @for (attachment of attachments; track attachment.id) {
+      <li>
+        <button type="button" class="file-name" mat-button [title]="attachment.originalName" (click)="previewAttachment(attachment)">{{ attachment.originalName }}</button>
+        <span>{{ formatSize(attachment.size) }}</span>
+        @if (canManage) { <button type="button" mat-icon-button [attr.aria-label]="'刪除附件 ' + attachment.originalName" (click)="existingAttachmentRemoved.emit(attachment.id)"><mat-icon>delete</mat-icon></button> }
+      </li>
+    }
+    @for (file of pendingFiles; track file) {
+      <li>
+        <button type="button" class="file-name" mat-button [title]="file.name" (click)="previewFile(file)">{{ file.name }}</button>
+        <span>{{ formatSize(file.size) }}（待上傳）</span>
+        <button type="button" mat-icon-button [attr.aria-label]="'移除待上傳附件 ' + file.name" (click)="pendingFileRemoved.emit(file)"><mat-icon>close</mat-icon></button>
+      </li>
+    }
+  </ul>
+</section>

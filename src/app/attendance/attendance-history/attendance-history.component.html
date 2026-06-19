@@ -9,7 +9,7 @@
       </ng-template>
       <figure class="text-end">
         <blockquote class="blockquote">
-          <p>{{ auditTrail.content }}</p>
+          <p>{{ getContentLabel(auditTrail.content, auditTrail.action) }}</p>
         </blockquote>
         <figcaption class="blockquote-footer">
           {{ auditTrail.actionBy | userName }}

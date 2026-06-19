@@ -7,24 +7,40 @@
 
 ## [未發布]
 
+### 新增
+- Attendance 與 subsidy 申請支援選填附件：
+  - 每筆申請最多 5 個檔案，每檔最多 3 MiB。
+  - 支援 PDF、JPEG、PNG、WebP，並於 client 驗證副檔名、MIME 與 magic bytes。
+  - 新增／編輯表單及審核狀態 dialog 可直接預覽圖片與 PDF。
+- 新增附件 upload session、cleanup queue 與預設 dry-run 的孤兒檔稽核工具，確保實體檔皆可追溯至申請、上傳工作階段或清理工作。
+
 ### 變更
 - Training 與 AI Tool 額度改為單一週年制年度池：
   - 共用總額維持 24,000。
   - 移除 AI Tool 10,000 個別子上限；任一類型皆可使用全部共用剩餘額度。
   - 個人資料「補助上限」改為只顯示一張「Training + AI Tool」卡片，保留雙色堆疊呈現兩類使用量。
   - 共用剩餘額度統一為 `max(0, 24,000 − Training 已核准金額 − AI Tool 已核准金額)`。
+- Pending 申請的附件可由申請人管理；管理員可在既有可開啟的表單中管理任意狀態附件。替換流程先上傳新檔再移除舊檔，上傳或 transaction 失敗時保留原附件。
+
+### 安全
+- 新增 Firestore／Storage Rules 附件權限矩陣：登入者可預覽、owner 僅能修改自己的 pending 申請、admin 可代辦，未登入、Storage list 與同路徑 overwrite 均拒絕。
+- Storage attachment path 採 create-only，正式 bucket CORS 僅允許 Firebase Hosting origins 與本機 `http://localhost:4200` 的 `GET`／`HEAD`。
+- 附件新增與刪除 audit trail 記錄實際 `uploadedBy`／`actionBy`，歷程不保存 download URL 或 Storage path。
 
 ### 測試
 - 新增共用池純計算單元測試，涵蓋一般使用、AI Tool 超過舊 10,000 門檻、用盡 24,000 與既有資料超額等情境。
 - 補充服務整合測試，確認回傳結果只包含一張共用池卡片。
+- 新增附件格式、3 MiB 邊界、五檔替換、預覽清理、owner/admin UI、audit 顯示、孤兒分類與 Emulator Rules 測試；完整 Angular 測試共 195 項通過。
 
 ### 維護
 - AI Tool 不再建立假的個別 `annualLimit` 設定，統計結果直接併入共用池。
 - 補助額度模板改用 `SubsidyType` enum，移除類型判斷魔法數字。
+- 附件列表沿用 parent request query，不增加列表查詢；Blob 下載限制 3 MiB 並使用 private cache。
 
 ### 文件
 - 新增 `specs/004-training-ai-shared-pool` 產品規格與實作計畫，並同步 README 與程式註解。
 - 本節規則取代 3.0.8 與更早版本記載的 AI Tool 10,000 個別上限；歷史段落保留原版本行為紀錄。
+- 新增 `specs/005-request-attachments` 規格、資料模型、Rules／CORS 契約、快速驗證與任務紀錄，並同步 README 的附件操作與部署說明。
 
 ## [3.1.0] - 2026-06-18
 

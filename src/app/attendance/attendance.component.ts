@@ -35,6 +35,8 @@ import {
 } from '../services/attendance.service';
 import { UserService, User } from '../services/user.service';
 import { TimezoneService } from '../services/timezone.service';
+import { AttachmentListComponent } from '../attachments/attachment-list.component';
+import { AttachmentMetadata } from '../attachments/attachment.models';
 
 @Component({
   selector: 'app-attendance',
@@ -51,6 +53,7 @@ import { TimezoneService } from '../services/timezone.service';
     MatInputModule,
     MatSelectModule,
     MtxDatetimepickerModule,
+    AttachmentListComponent,
   ],
   providers: [
     provideDateFnsDatetimeAdapter({
@@ -103,6 +106,24 @@ export class AttendanceComponent implements OnInit {
   readonly leaveSelectableUserList$: Observable<User[]>;
   endDatetimePickerMaxDate: Date | null = null;
   startDatetimePickerMinDate: Date | null = null;
+  currentUser: User | null = null;
+  pendingFiles: File[] = [];
+  removedAttachmentIds = new Set<string>();
+  saving = false;
+  saveError = '';
+
+  get visibleAttachments(): AttachmentMetadata[] {
+    return (this.data.attendance?.attachments ?? []).filter(
+      (attachment) => !this.removedAttachmentIds.has(attachment.id)
+    );
+  }
+
+  get canManageAttachments(): boolean {
+    if (!this.data.attendance) return true;
+    return this.currentUser?.role === 'admin' ||
+      (this.data.attendance.userId === this.currentUser?.uid &&
+        this.data.attendance.status === 'pending');
+  }
 
   constructor(
     private dialogRef: MatDialogRef<AttendanceComponent>,
@@ -119,6 +140,10 @@ export class AttendanceComponent implements OnInit {
   ngOnInit() {
     this.typeList = this.attendanceService.typeList;
     this.reasonPriorityList = this.attendanceService.reasonPriorityList;
+    this.userService.currentUser$.pipe(take(1)).subscribe((user) => {
+      this.currentUser = user;
+      if (!this.data.attendance) this.attendanceForm.get('userId')?.setValue(user.uid!);
+    });
     // Detect attendanceForm type changes
     this.attendanceForm.get('type')?.valueChanges.subscribe({
       next: (value) => {
@@ -157,13 +182,6 @@ export class AttendanceComponent implements OnInit {
         ),
       };
       this.attendanceForm.patchValue(value);
-    } else {
-      // Set current user to the form
-      this.userService.currentUser$.pipe(take(1)).subscribe({
-        next: (user) => {
-          this.attendanceForm.get('userId')?.setValue(user.uid!);
-        },
-      });
     }
 
     this.attendanceForm
@@ -196,18 +214,22 @@ export class AttendanceComponent implements OnInit {
   }
 
   save() {
+    if (this.saving || this.attendanceForm.invalid) return;
+    this.saving = true;
+    this.saveError = '';
     if (!this.data.attendance) {
       this.userService.currentUser$
         .pipe(
           take(1),
           // Create new attendance
           switchMap((user: User) =>
-            this.attendanceService.create(this.attendanceForm.value, user.uid!)
+            this.attendanceService.create(this.attendanceForm.value, user.uid!, this.pendingFiles)
           ),
           take(1)
         )
         .subscribe({
           next: () => this.dialogRef.close(true),
+          error: (error) => { this.saving = false; this.saveError = error.message; },
         });
     } else {
       this.userService.currentUser$
@@ -218,7 +240,9 @@ export class AttendanceComponent implements OnInit {
             this.attendanceService.update(
               this.attendanceForm.value,
               this.data.attendance,
-              user.uid!
+              user.uid!,
+              this.pendingFiles,
+              [...this.removedAttachmentIds]
             )
           ),
           take(1)
@@ -228,7 +252,12 @@ export class AttendanceComponent implements OnInit {
             this.dialogRef.close(
               result ? 'Request updated successfully' : 'No changes'
             ),
+          error: (error) => { this.saving = false; this.saveError = error.message; },
         });
     }
   }
+
+  addFiles(files: File[]): void { this.pendingFiles = [...this.pendingFiles, ...files]; }
+  removePending(file: File): void { this.pendingFiles = this.pendingFiles.filter((item) => item !== file); }
+  removeExisting(id: string): void { this.removedAttachmentIds.add(id); }
 }

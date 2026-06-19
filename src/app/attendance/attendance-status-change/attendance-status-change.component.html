@@ -10,6 +10,10 @@
       <strong>注意！</strong> 變更狀態將會增加或扣除該使用者的假時數。
     </div>
   }
+  <app-attachment-list
+    [attachments]="data.attendance.attachments || []"
+    [canManage]="false"
+  />
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button type="button" mat-button mat-dialog-close>放棄</button>

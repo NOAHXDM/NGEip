@@ -6,7 +6,11 @@
     "build": "ng build",
     "deploy": "npm run build && firebase deploy --config firebase.prod.json",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "test:attachment-audit": "node --test tools/request-attachment-orphan-audit.test.js",
+    "test:attachment-rules": "firebase emulators:exec --config firebase.local.json --project demo-request-attachments --only firestore,storage \"node tools/request-attachment-emulator-tests.cjs\"",
+    "audit:request-attachments": "node tools/request-attachment-orphan-audit.js",
+    "audit:request-attachments:local": "node tools/request-attachment-orphan-audit.js --fixture src/app/attachments/testing/orphan-audit-fixture.json"
   },
   "private": true,
   "dependencies": {

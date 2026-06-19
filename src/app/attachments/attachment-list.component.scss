@@ -1,0 +1,17 @@
+.attachments { border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
+.header, li { display: flex; align-items: center; gap: 8px; }
+.header { justify-content: space-between; }
+h3 { margin: 0; font-size: 1rem; }
+ul { list-style: none; padding: 0; margin: 8px 0 0; }
+li span { color: #666; font-size: .85rem; flex: 1; }
+.file-name { min-width: 0; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick { cursor: pointer; }
+.file-input { display: none; }
+.hint { color: #666; font-size: .85rem; }
+.error { color: #b3261e; }
+@media (max-width: 600px) {
+  .header { align-items: flex-start; flex-direction: column; }
+  li { flex-wrap: wrap; }
+  .file-name { max-width: calc(100% - 48px); }
+  li span { flex-basis: 100%; margin-left: 12px; }
+}
