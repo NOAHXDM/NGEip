@@ -58,6 +58,7 @@ describe('Training + AI Tool shared quota', () => {
             { type: SubsidyType.Travel, totalAmount: 0, count: 0, applications: [] },
           ],
         }),
+      // getUserSubsidyLimitStatus 只透過此方法查詢跨年度健檢資料。
       getUserSubsidyStatsByType: () =>
         of({
           type: SubsidyType.HealthCheck,

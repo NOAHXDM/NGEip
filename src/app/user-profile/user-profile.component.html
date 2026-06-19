@@ -359,12 +359,12 @@
               <div class="text-end text-muted small mt-1">
                 完成度：{{ getProgressPercentage(subsidy.laptopInstallmentInfo.receivedCount, 36) | number: '1.0-0' }}%
               </div>
-            } @else if (subsidy.type === 1) {
+            } @else if (subsidy.type === subsidyType.Laptop) {
               <!-- 筆電補助：沒有正在領取的申請 -->
               <div class="text-muted small">
                 沒有進行中的筆電補助
               </div>
-            } @else if (subsidy.type === 2) {
+            } @else if (subsidy.type === subsidyType.HealthCheck) {
               <!-- 健檢補助：水桶模型，已使用為近兩年紀錄 -->
               <div class="amount-info mb-2">
                 <div class="d-flex justify-content-between text-sm">
@@ -385,7 +385,7 @@
               <div class="text-end text-muted small mt-1">
                 已使用 {{ getProgressPercentage(subsidy.usedAmount, subsidy.usedAmount + subsidy.availableAmount) | number: '1.0-0' }}%（每滿一年 +{{ subsidy.annualLimit | number: '1.0-0' }}，上限 {{ subsidy.totalLimit | number: '1.0-0' }}）
               </div>
-            } @else if (subsidy.type === 3) {
+            } @else if (subsidy.type === subsidyType.Training) {
               <!-- Training + AI Tool：唯一共用池卡片與雙色使用量 -->
               <div class="amount-info mb-2">
                 <div class="d-flex justify-content-between text-sm">

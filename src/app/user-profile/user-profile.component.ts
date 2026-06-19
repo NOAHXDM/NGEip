@@ -51,6 +51,7 @@ import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
 import { TimezoneService } from '../services/timezone.service';
 import { StorageService } from '../services/storage.service';
 import { SubsidyLimitService, UserSubsidyLimitStatus } from '../services/subsidy-limit.service';
+import { SubsidyType } from '../services/subsidy.service';
 import { UserAttributeReportEmbedComponent } from '../evaluation/components/user-attribute-report-embed/user-attribute-report-embed.component';
 @Component({
   selector: 'app-user-profile',
@@ -104,6 +105,7 @@ import { UserAttributeReportEmbedComponent } from '../evaluation/components/user
   styleUrl: './user-profile.component.scss',
 })
 export class UserProfileComponent {
+  protected readonly subsidyType = SubsidyType;
   profileForm = new FormGroup({
     birthday: new FormControl(''),
     name: new FormControl('', [Validators.required]),
