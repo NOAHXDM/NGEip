@@ -8,6 +8,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  increment,
   runTransaction,
   serverTimestamp,
   setDoc,
@@ -131,7 +132,7 @@ export class AttachmentService {
         return removedItems;
       });
 
-      for (const attachment of removed) await this.processCleanup(attachment, options.actorUid);
+      for (const attachment of removed) await this.processCleanup(attachment);
     } catch (error) {
       if (prepared?.sessionId) await this.rollbackPrepared(prepared);
       throw this.friendlyError(
@@ -204,13 +205,17 @@ export class AttachmentService {
     }
   }
 
-  private async processCleanup(attachment: AttachmentMetadata, actorUid: string): Promise<void> {
+  private async processCleanup(attachment: AttachmentMetadata): Promise<void> {
     const queueRef = doc(this.firestore, 'requestAttachmentCleanupQueue', attachment.id);
     try {
       await firstValueFrom(this.storage.deleteAttachment(attachment.storagePath));
       await deleteDoc(queueRef);
     } catch (error) {
-      await updateDoc(queueRef, { attemptCount: 1, lastAttemptAt: serverTimestamp(), lastErrorCode: 'storage-delete-failed', actorUid });
+      await updateDoc(queueRef, {
+        attemptCount: increment(1),
+        lastAttemptAt: serverTimestamp(),
+        lastErrorCode: 'storage-delete-failed',
+      });
     }
   }
 
