@@ -37,6 +37,14 @@ Firebase Authentication、Cloud Firestore、Firebase Storage 與 Firebase Hostin
 - 補助申請、審核與統計
 - 系統設定與 Firebase Emulator 本地開發流程
 
+### Training + AI Tool 補助額度
+
+- Training 與 AI Tool 依員工到職日週年期間共用一個 24,000 額度池。
+- 兩種類型皆無個別子上限，任一類型都可使用尚未被另一類型占用的全部剩餘額度。
+- 額度只計入該週年期間內狀態為 `approved` 的 `approvedAmount`；pending 與 rejected 申請不占用額度。
+- 個人資料的「補助上限」僅顯示一張「Training + AI Tool」卡片，以雙色區分兩類已使用金額。
+- 共用剩餘額度公式為 `max(0, 24,000 − Training 已核准金額 − AI Tool 已核准金額)`。
+
 ## 技術堆疊
 
 - **Frontend**：Angular 20、TypeScript、Angular Material、Bootstrap 5
