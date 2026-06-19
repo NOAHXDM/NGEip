@@ -46,21 +46,13 @@ export class SubsidyLimitService {
   /**
    * 補助限額配置
    */
-  private readonly subsidyLimits: Record<SubsidyType, SubsidyLimitConfig> = {
+  private readonly subsidyLimits: Partial<Record<SubsidyType, SubsidyLimitConfig>> = {
     [SubsidyType.Training]: {
       annualLimit: TRAINING_AI_SHARED_LIMIT,
       requiresFullYear: false,
       requiresProbationEnd: true,
       canCarryOver: false,
       displayName: 'Training + AI Tool',
-    },
-    [SubsidyType.AITool]: {
-      // 僅供取得 AI Tool 使用量；UI 與資格判斷統一由共用池處理。
-      annualLimit: TRAINING_AI_SHARED_LIMIT,
-      requiresFullYear: false,
-      requiresProbationEnd: true,
-      canCarryOver: false,
-      displayName: 'AI Tool',
     },
     [SubsidyType.HealthCheck]: {
       annualLimit: 6000,
@@ -364,6 +356,10 @@ export class SubsidyLimitService {
         Object.values(SubsidyType).forEach((type) => {
           if (typeof type === 'number') {
             const config = this.subsidyLimits[type];
+            // AI Tool 沒有個別額度設定；其使用量會併入 Training 共用池卡片。
+            if (!config) {
+              return;
+            }
             const currentTypeStats = currentStats.byType.find(
               (s) => s.type === type
             );
@@ -492,16 +488,16 @@ export class SubsidyLimitService {
           }
         });
 
-        // 將 Training 與 AI Tool 合併成單一共用池額度卡。
-        // AI Tool 明細先用於取得個別使用量，完成合併後即從回傳陣列移除。
+        // 將兩類統計合併成單一共用池額度卡；AI Tool 不建立個別額度設定或卡片。
         const trainingDetail = subsidies.find(
           (s) => s.type === SubsidyType.Training
         );
-        const aiDetail = subsidies.find((s) => s.type === SubsidyType.AITool);
+        const aiToolUsed = currentStats.byType.find(
+          (stats) => stats.type === SubsidyType.AITool
+        )?.totalAmount || 0;
 
-        if (trainingDetail && aiDetail) {
+        if (trainingDetail) {
           const trainingOnlyUsed = trainingDetail.usedAmount;
-          const aiToolUsed = aiDetail.usedAmount;
           const sharedQuota = calculateTrainingAiSharedQuota(
             trainingOnlyUsed,
             aiToolUsed
@@ -519,8 +515,6 @@ export class SubsidyLimitService {
             trainingDetail.ineligibleReason = 'Quota exceeded';
           }
           trainingDetail.note = `Training 與 AI Tool 共用年度池：${TRAINING_AI_SHARED_LIMIT.toLocaleString()}（無個別子上限）`;
-
-          subsidies.splice(subsidies.indexOf(aiDetail), 1);
         }
 
         return {
