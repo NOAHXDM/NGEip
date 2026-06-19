@@ -57,7 +57,13 @@ async function main() {
     }));
 
     const fileRef = ref(owner.storage(), attachment.storagePath);
-    const metadata = { contentType: 'application/pdf', customMetadata: { attachmentId: 'a1', uploadedBy: ownerUid } };
+    const metadata = {
+      contentType: 'application/pdf',
+      cacheControl: 'private,max-age=3600',
+      customMetadata: {
+        requestKind: 'attendance', requestId: 'pending', attachmentId: 'a1', ownerUid, uploadedBy: ownerUid,
+      },
+    };
     await assertSucceeds(uploadBytes(fileRef, new Blob(['%PDF-'], { type: 'application/pdf' }), metadata));
     await assertSucceeds(getBytes(ref(other.storage(), attachment.storagePath), 3 * 1024 * 1024));
     await assertFails(getBytes(ref(anonymous.storage(), attachment.storagePath)));
@@ -70,11 +76,21 @@ async function main() {
       plannedAttachments: [{ id: 'bad' }], plannedPaths: [invalidPath],
     }));
     const invalidRef = ref(owner.storage(), invalidPath);
+    const invalidMetadata = {
+      cacheControl: 'private,max-age=3600',
+      customMetadata: {
+        requestKind: 'attendance', requestId: 'pending', attachmentId: 'bad', ownerUid, uploadedBy: ownerUid,
+      },
+    };
     await assertFails(uploadBytes(invalidRef, new Blob(['text'], { type: 'text/plain' }), {
-      contentType: 'text/plain', customMetadata: { attachmentId: 'bad', uploadedBy: ownerUid },
+      ...invalidMetadata, contentType: 'text/plain',
     }));
     await assertFails(uploadBytes(invalidRef, new Blob([new Uint8Array(3 * 1024 * 1024 + 1)], { type: 'application/pdf' }), {
-      contentType: 'application/pdf', customMetadata: { attachmentId: 'bad', uploadedBy: ownerUid },
+      ...invalidMetadata, contentType: 'application/pdf',
+    }));
+    await assertFails(uploadBytes(invalidRef, new Blob(['%PDF-'], { type: 'application/pdf' }), {
+      contentType: 'application/pdf', cacheControl: 'private,max-age=3600',
+      customMetadata: { attachmentId: 'bad', uploadedBy: ownerUid },
     }));
 
     const persistedRequest = await getDoc(doc(ownerDb, 'attendanceLogs', 'pending'));

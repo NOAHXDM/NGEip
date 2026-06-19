@@ -33,7 +33,7 @@ object-not-found 視為冪等完成。
 
 ## Metadata
 
-create 必須設定並驗證：
+create 必須設定：
 
 ```text
 contentType: allowlist MIME
@@ -41,7 +41,9 @@ cacheControl: private,max-age=3600
 customMetadata: requestKind, requestId, attachmentId, ownerUid, uploadedBy
 ```
 
-customMetadata 與 path/session 必須一致；不保存 originalName。
+- Rules 驗證 `contentType` 與五個 customMetadata，且 customMetadata 必須與 path、登入者及 upload session 一致；不保存 originalName。
+- Client 固定設定 `cacheControl: private,max-age=3600`，並由 `StorageService` 單元測試保護。
+- Firebase Storage Rules 的 `request.resource` 僅公開 `name`、`bucket`、`metadata`、`size`、`contentType`，無法讀取或驗證標準 `cacheControl` 欄位；這是平台限制下接受的殘餘風險，不應將 `cacheControl` 複製進 customMetadata 冒充標準 response header。
 
 ## 必測矩陣
 
@@ -52,6 +54,7 @@ customMetadata 與 path/session 必須一致；不保存 originalName。
 | 已登入 list prefix | deny |
 | 無 session create | deny |
 | session actor create 合法 MIME | allow |
+| 缺少任一必要 customMetadata | deny |
 | 他人 session create | deny |
 | size = 3145728 | allow |
 | size = 3145729 或 0 | deny |

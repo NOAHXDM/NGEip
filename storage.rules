@@ -42,7 +42,10 @@ service firebase.storage {
         && request.resource.size > 0
         && request.resource.size <= 3 * 1024 * 1024
         && isAllowedAttachmentType()
+        && request.resource.metadata.requestKind == kind
+        && request.resource.metadata.requestId == requestId
         && request.resource.metadata.attachmentId == attachmentId
+        && request.resource.metadata.ownerUid == firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data.ownerUid
         && request.resource.metadata.uploadedBy == request.auth.uid
         && firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data.status == 'uploading'
         && firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data.actorUid == request.auth.uid

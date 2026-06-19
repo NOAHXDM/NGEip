@@ -77,7 +77,6 @@ export abstract class AttachmentService {
   ): Observable<void>;
 
   loadPreview(attachment: AttachmentMetadata): Observable<Blob>;
-  retryPendingCleanup(queueId: string): Observable<void>;
 }
 ```
 
@@ -86,13 +85,18 @@ export abstract class AttachmentService {
 ## StorageService 擴充契約
 
 ```ts
-attachmentPath(kind: RequestKind, requestId: string, attachmentId: string): string;
-uploadAttachment(metadata: AttachmentMetadata, file: File): Observable<void>;
+attachmentPath(kind: RequestKind, requestId: string, sessionId: string, attachmentId: string): string;
+uploadAttachment(
+  metadata: AttachmentMetadata,
+  file: File,
+  context: { requestKind: RequestKind; requestId: string; ownerUid: string }
+): Observable<void>;
 getAttachmentBlob(attachment: AttachmentMetadata): Observable<Blob>;
 deleteAttachment(storagePath: string): Observable<void>;
 ```
 
 - upload 使用 create-only；path 已存在即失敗。
+- cleanup queue 的重試由同一次 client 補償流程或後台孤兒稽核工具執行，不提供額外 UI／公開 service 入口。
 - getBlob 最大讀取量固定 3 MiB。
 - delete 遇到 `storage/object-not-found` 視為成功。
 

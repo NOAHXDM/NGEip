@@ -201,6 +201,7 @@ request-attachments/{kind}/{requestId}/{sessionId}/{attachmentId}
 ## 風險與緩解
 
 - **跨服務無原子交易**：用 upload session／cleanup queue 保持 reference，並以補償、重試與 audit 工具兜底。
+- **Storage cacheControl 無法由 Rules 驗證**：client 固定寫入 `private,max-age=3600` 並以 `StorageService` 單元測試保護；Rules 僅能驗證 Firebase 公開的 size、contentType 與 customMetadata。若 client 回歸漏寫 cacheControl，安全性仍由 authenticated get 與不可列舉路徑維持，但瀏覽器快取策略可能偏離預期。
 - **magic bytes 無法由 Storage Rules 驗證**：官方 client 驗證實際簽章，Rules 限制 MIME/size；依使用者決策接受 client-only 內容驗證的殘餘風險。若未來要求阻擋繞過 UI 的惡意偽造，需另提後端掃描能力與憲章修訂。
 - **production CORS 漏部署**：emulator 測試可能通過但正式 `getBlob()` 失敗；將 CORS 套用與 Hosting-origin smoke test 列為上線 gate。
 - **所有登入者可讀的隱私範圍大**：此為已確認產品政策；不保存永久 URL、禁止 list，降低附件連結外流面。
