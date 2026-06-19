@@ -30,7 +30,7 @@ export interface SelectOption {
 })
 export class SubsidyService {
   readonly firestore: Firestore = inject(Firestore);
-  readonly attachmentService = inject(AttachmentService);
+  private readonly attachmentService = inject(AttachmentService);
 
   // 補助類型顯示名稱對應
   private readonly typeNameMap: Record<SubsidyType, string> = {
