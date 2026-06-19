@@ -14,6 +14,28 @@ import { combineLatest, forkJoin, from, map, Observable, of, switchMap } from 'r
 import { SubsidyStatsService } from './subsidy-stats.service';
 import { SubsidyApplication, SubsidyType } from './subsidy.service';
 
+/** Training 與 AI Tool 共用的單一週年制年度池。 */
+export const TRAINING_AI_SHARED_LIMIT = 24000;
+
+/**
+ * 計算 Training + AI Tool 共用池狀態。
+ * 兩種類型沒有個別子上限，任一類型皆可使用全部剩餘額度。
+ */
+export function calculateTrainingAiSharedQuota(
+  trainingUsedAmount: number,
+  aiToolUsedAmount: number
+): TrainingAiSharedQuota {
+  const usedAmount = trainingUsedAmount + aiToolUsedAmount;
+
+  return {
+    totalLimit: TRAINING_AI_SHARED_LIMIT,
+    usedAmount,
+    availableAmount: Math.max(0, TRAINING_AI_SHARED_LIMIT - usedAmount),
+    trainingUsedAmount,
+    aiToolUsedAmount,
+  };
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -26,14 +48,15 @@ export class SubsidyLimitService {
    */
   private readonly subsidyLimits: Record<SubsidyType, SubsidyLimitConfig> = {
     [SubsidyType.Training]: {
-      annualLimit: 24000,
+      annualLimit: TRAINING_AI_SHARED_LIMIT,
       requiresFullYear: false,
       requiresProbationEnd: true,
       canCarryOver: false,
-      displayName: 'Training',
+      displayName: 'Training + AI Tool',
     },
     [SubsidyType.AITool]: {
-      annualLimit: 10000,
+      // 僅供取得 AI Tool 使用量；UI 與資格判斷統一由共用池處理。
+      annualLimit: TRAINING_AI_SHARED_LIMIT,
       requiresFullYear: false,
       requiresProbationEnd: true,
       canCarryOver: false,
@@ -300,8 +323,8 @@ export class SubsidyLimitService {
   /**
    * 取得使用者的補助使用情況
    * - 一般補助：以到職日週年期間（startDate ~ 滿週年）計算年度額度
-   * - Training + AITool 聯合上限：Training 24,000（含 AITool），AITool 獨立上限 10,000
-   *   Training 使用量超過 14,000 時會擠壓 AITool 可用額度
+   * - Training + AITool 共用單一 24,000 年度池，兩者皆無個別子上限
+   * - UI 僅回傳一張 Training + AI Tool 額度卡，並以雙色呈現兩類使用量
    * - 健檢補助：終身累計制（水桶模型），每滿一年增加 6,000，餘額上限 12,000（超出拋棄）
    *   totalLimit 固定為 maxAvailable (12,000)，availableAmount 由逐年模擬計算
    *   usedAmount 為近兩年內核准紀錄，進度條 = usedAmount / (usedAmount + availableAmount)
@@ -469,8 +492,8 @@ export class SubsidyLimitService {
           }
         });
 
-        // 處理進修+AI聯合上限
-        // AITool 額度包含在 Training 額度內，Training 使用會擠壓 AITool 可用額度
+        // 將 Training 與 AI Tool 合併成單一共用池額度卡。
+        // AI Tool 明細先用於取得個別使用量，完成合併後即從回傳陣列移除。
         const trainingDetail = subsidies.find(
           (s) => s.type === SubsidyType.Training
         );
@@ -479,39 +502,25 @@ export class SubsidyLimitService {
         if (trainingDetail && aiDetail) {
           const trainingOnlyUsed = trainingDetail.usedAmount;
           const aiToolUsed = aiDetail.usedAmount;
-          const combinedLimit = 24000;
-          const aiToolBaseLimit = 10000;
-
-          // Training 進度條：顯示合併使用量（Training + AITool）
-          const combinedUsed = trainingOnlyUsed + aiToolUsed;
-          trainingDetail.usedAmount = combinedUsed;
-          trainingDetail.totalLimit = combinedLimit;
-          trainingDetail.availableAmount = Math.max(0, combinedLimit - combinedUsed);
-          trainingDetail.aiToolUsedAmount = aiToolUsed;
-          trainingDetail.trainingOnlyUsedAmount = trainingOnlyUsed;
-
-          // AITool 進度條：Training 使用超過 (24000 - 10000) = 14000 時，會擠壓 AITool 總額
-          const aiToolEffectiveTotal = Math.min(
-            aiToolBaseLimit,
-            Math.max(0, combinedLimit - trainingOnlyUsed)
+          const sharedQuota = calculateTrainingAiSharedQuota(
+            trainingOnlyUsed,
+            aiToolUsed
           );
-          aiDetail.totalLimit = aiToolEffectiveTotal;
-          aiDetail.usedAmount = aiToolUsed;
-          aiDetail.availableAmount = Math.max(0, aiToolEffectiveTotal - aiToolUsed);
+
+          trainingDetail.usedAmount = sharedQuota.usedAmount;
+          trainingDetail.totalLimit = sharedQuota.totalLimit;
+          trainingDetail.availableAmount = sharedQuota.availableAmount;
+          trainingDetail.aiToolUsedAmount = sharedQuota.aiToolUsedAmount;
+          trainingDetail.trainingOnlyUsedAmount = sharedQuota.trainingUsedAmount;
 
           // 更新資格狀態
           if (trainingDetail.availableAmount <= 0 && trainingDetail.eligible) {
             trainingDetail.eligible = false;
             trainingDetail.ineligibleReason = 'Quota exceeded';
           }
-          if (aiDetail.availableAmount <= 0 && aiDetail.eligible) {
-            aiDetail.eligible = false;
-            aiDetail.ineligibleReason = 'Quota exceeded';
-          }
+          trainingDetail.note = `Training 與 AI Tool 共用年度池：${TRAINING_AI_SHARED_LIMIT.toLocaleString()}（無個別子上限）`;
 
-          // 標註聯合限制
-          trainingDetail.note = `Training + AI Tool 合計上限：${combinedLimit.toLocaleString()}`;
-          aiDetail.note = `個別上限 ${aiToolBaseLimit.toLocaleString()}（Training 使用會擠壓 AI Tool 額度）`;
+          subsidies.splice(subsidies.indexOf(aiDetail), 1);
         }
 
         return {
@@ -561,13 +570,12 @@ export interface AnniversaryPeriod {
  * - usedAmount = 近兩年內已核准健檢補助總額（對應 maxAvailable = 2 年份額度）
  * - 進度條：usedAmount / (usedAmount + availableAmount)
  *
- * Training 類型特殊欄位：
+ * Training + AI Tool 共用池卡片：
  * - usedAmount = Training 實際用量 + AITool 實際用量（合併顯示）
- * - totalLimit = 24,000（Training + AITool 聯合上限）
+ * - totalLimit = 24,000（單一共用年度池，無個別子上限）
+ * - availableAmount = max(0, 24,000 − Training 用量 − AI Tool 用量)
  * - aiToolUsedAmount / trainingOnlyUsedAmount 供堆疊進度條分色顯示
- *
- * AITool 類型特殊欄位：
- * - totalLimit = min(10,000, 24,000 − Training 單獨用量)（受 Training 擠壓）
+ * - subsidies 不另外回傳 AITool 額度卡
  */
 export interface SubsidyLimitDetail {
   type: SubsidyType;
@@ -584,6 +592,14 @@ export interface SubsidyLimitDetail {
   aiToolUsedAmount?: number;
   /** Training 進度條用：純 Training 已使用金額 */
   trainingOnlyUsedAmount?: number;
+}
+
+export interface TrainingAiSharedQuota {
+  totalLimit: number;
+  usedAmount: number;
+  availableAmount: number;
+  trainingUsedAmount: number;
+  aiToolUsedAmount: number;
 }
 
 /**

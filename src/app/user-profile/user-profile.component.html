@@ -327,7 +327,7 @@
               </span>
             </div>
 
-            <!-- 備註說明（進修+AI限制） -->
+            <!-- 備註說明（Training + AI Tool 共用池） -->
             @if (subsidy.note) {
               <div class="text-muted small mb-2">
                 <mat-icon class="small-icon">info</mat-icon>
@@ -386,7 +386,7 @@
                 已使用 {{ getProgressPercentage(subsidy.usedAmount, subsidy.usedAmount + subsidy.availableAmount) | number: '1.0-0' }}%（每滿一年 +{{ subsidy.annualLimit | number: '1.0-0' }}，上限 {{ subsidy.totalLimit | number: '1.0-0' }}）
               </div>
             } @else if (subsidy.type === 3) {
-              <!-- Training：合併進度條（Training + AI Tool） -->
+              <!-- Training + AI Tool：唯一共用池卡片與雙色使用量 -->
               <div class="amount-info mb-2">
                 <div class="d-flex justify-content-between text-sm">
                   <span>已使用：{{ subsidy.usedAmount | number: '1.0-0' }}</span>
@@ -414,27 +414,6 @@
                   <span>AI Tool {{ subsidy.aiToolUsedAmount || 0 | number: '1.0-0' }}</span>
                 </div>
                 <span>使用率：{{ getProgressPercentage(subsidy.usedAmount, subsidy.totalLimit) | number: '1.0-0' }}%</span>
-              </div>
-            } @else if (subsidy.type === 4) {
-              <!-- AI Tool：獨立進度條（總額受 Training 使用影響） -->
-              <div class="amount-info mb-2">
-                <div class="d-flex justify-content-between text-sm">
-                  <span>已使用：{{ subsidy.usedAmount | number: '1.0-0' }}</span>
-                  <span>可用：{{ subsidy.availableAmount | number: '1.0-0' }}</span>
-                  <span>總額：{{ subsidy.totalLimit | number: '1.0-0' }}</span>
-                </div>
-              </div>
-
-              <!-- 進度條 -->
-              <mat-progress-bar
-                mode="determinate"
-                [value]="getProgressPercentage(subsidy.usedAmount, subsidy.totalLimit)"
-                [color]="getProgressColor(getProgressPercentage(subsidy.usedAmount, subsidy.totalLimit))"
-              ></mat-progress-bar>
-
-              <!-- 使用率 -->
-              <div class="text-end text-muted small mt-1">
-                使用率：{{ getProgressPercentage(subsidy.usedAmount, subsidy.totalLimit) | number: '1.0-0' }}%
               </div>
             } @else {
               <!-- 其他補助：顯示一般額度資訊 -->
