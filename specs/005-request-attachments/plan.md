@@ -130,7 +130,7 @@ request-attachments/{kind}/{requestId}/{sessionId}/{attachmentId}
 1. 以 `existingAttachments`、`newFiles`、`removedAttachmentIds` 計算最終集合；最終數量必須 ≤5，允許新增上傳期間暫時存在第六個物件。
 2. 新檔先由 upload session 持有並上傳，舊檔保持不動；任一新檔失敗時補償刪除新檔，原申請不變。
 3. 以 Firestore transaction 重新讀取申請，重新檢查 owner、status、最新 attachment IDs 與最終數量，避免兩個編輯視窗互相覆蓋。
-4. transaction 同時更新申請欄位／attachments、建立每批新增與刪除 audit trail、為待刪舊檔建立 cleanup queue、刪除 upload session。
+4. transaction 同時更新申請欄位／attachments、建立每批新增與刪除 audit trail、為待刪舊檔建立 cleanup queue、刪除 upload session；純附件異動時不另寫入內容為空的一般「更新」audit。
 5. transaction 成功代表使用者可見變更已全部完成；之後才執行舊 Storage 物件治理清理。每個刪除成功即刪除對應 cleanup queue；失敗項目保留在 queue，供相同 client 重試或稽核工具處理，不把治理清理延遲回報為正式申請交易部分失敗。
 
 ### 權限與 Rules
@@ -143,6 +143,7 @@ request-attachments/{kind}/{requestId}/{sessionId}/{attachmentId}
 - `requestAttachmentUploadSessions` 與 `requestAttachmentCleanupQueue` 的欄位、路徑及不可變欄位由 Rules 驗證，避免偽造他人路徑或擴權。
 - attendance 僅針對 `attachments` 欄位變更套用 owner-pending/admin 限制，既有非附件 create/update/status 行為維持原業務權限但至少要求 authenticated，避免本功能暗中改變出勤流程；全面權限重構另案處理。subsidy 延續既有 parent 權限並補上 attachment 欄位限制。
 - 管理員的附件 Rules 不受 parent status 限制，但 UI 僅沿用既有表單／dialog 入口；不新增 subsidy-list 對 approved/rejected 的編輯入口。
+- audit action allowlist 保留 `create`、`update`、`status_change` 等歷史英文值，新功能則寫入繁體中文動作；這是向下相容的過渡安排，新增動作時必須同步檢查 Rules allowlist 與歷程 UI。
 
 ### Storage CORS
 
@@ -156,6 +157,7 @@ request-attachments/{kind}/{requestId}/{sessionId}/{attachmentId}
 - 不需要新增複合索引。治理集合正常流程以確切 document ID 讀寫；稽核工具用 Admin SDK 全量掃描，不進一般 UI。
 - 每次含新附件的儲存增加：一個 session create/delete、每檔一個 Storage upload、Storage Rules 對 session/parent 的 Firestore lookup、申請與 audit 寫入。
 - 每次刪除增加：每檔一個 cleanup queue create/delete、Storage delete 與 Rules lookup。
+- cleanup queue create 的 `validCleanupTransfer` 在同一種 request kind 會對 parent 執行兩次 `get()` 與一次 `getAfter()`；Rules runtime 可快取相同文件的 access call，但仍將此視為每次刪除的最壞評估成本，以原子驗證 parent 移除與 queue 建立為優先。
 - 預覽每次最多下載 3 MiB；一小時 private cache 降低同一使用者重複預覽流量，但不公開共用快取。
 - audit trail 不保存二進位內容或 URL，只保存名稱、大小、ID 與操作者，控制文件成長。
 

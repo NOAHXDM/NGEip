@@ -30,6 +30,7 @@
 - 新增 Firestore／Storage Rules 附件權限矩陣：登入者可預覽、owner 僅能修改自己的 pending 申請、admin 可代辦；未登入、Storage list、同路徑 overwrite、缺少 actor 的 cleanup queue 刪除授權及未搭配 parent removal 的 queue create 均拒絕。
 - Storage attachment path 採 create-only，正式 bucket CORS 僅允許 Firebase Hosting origins 與本機 `http://localhost:4200` 的 `GET`／`HEAD`。
 - 附件新增與刪除 audit trail 記錄實際 `uploadedBy`／`actionBy`，歷程不保存 download URL 或 Storage path。
+- 純附件編輯僅寫入「新增附件」／「刪除附件」稽核，不再額外產生內容為空的一般「更新」紀錄。
 
 ### 測試
 - 新增共用池純計算單元測試，涵蓋一般使用、AI Tool 超過舊 10,000 門檻、用盡 24,000 與既有資料超額等情境。

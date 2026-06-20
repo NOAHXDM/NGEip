@@ -29,6 +29,8 @@ Firebase Web SDK `getBlob()` 會直接從 Cloud Storage bucket 讀取資料，pr
 
 若 production Hosting 使用額外 custom domain，必須在上線前加入精確 origin；不得使用 `*`。
 
+`http://localhost:4200` 僅為開發與正式 bucket smoke test 保留。它會允許該 origin 發出跨來源 GET／HEAD，但不會繞過 Firebase Authentication 與 Storage Rules；若未來不允許本機驗證正式附件，應從 allowlist 移除此 origin。
+
 ## 部署
 
 Firebase CLI 不會隨 `firebase deploy` 套用 bucket CORS。使用：

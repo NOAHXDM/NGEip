@@ -82,7 +82,7 @@ export class AttendanceService {
     if (!diff && !files.length && !removedAttachmentIds.length) {
       return of(null);
     }
-    // 只有附件異動時仍需進入 transaction；空 patch 會連同 attachments、updatedAt 與 audit 原子提交。
+    // 只有附件異動時仍需進入 transaction；空 patch 只寫 attachments、updatedAt 與附件專屬 audit。
     return this.attachmentService.updateRequest({
       kind: 'attendance', collectionName: 'attendanceLogs', requestId: originValue.id,
       patch: diff ?? {}, ownerUid: originValue.userId, actorUid: actionBy,

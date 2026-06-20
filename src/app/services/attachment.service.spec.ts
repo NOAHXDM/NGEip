@@ -1,5 +1,5 @@
 import { of, throwError } from 'rxjs';
-import { AttachmentService, mergeAttachmentChanges } from './attachment.service';
+import { AttachmentService, hasRequestFieldChanges, mergeAttachmentChanges } from './attachment.service';
 
 describe('AttachmentService', () => {
   const attachment = (id: string) => ({ id } as any);
@@ -43,6 +43,12 @@ describe('AttachmentService', () => {
       [],
       [attachment('new')]
     )).toThrowError('attachment-count-conflict');
+  });
+
+  it('只在一般申請欄位有異動時寫入更新稽核', () => {
+    expect(hasRequestFieldChanges({})).toBeFalse();
+    expect(hasRequestFieldChanges(null)).toBeFalse();
+    expect(hasRequestFieldChanges({ reason: '修正說明' })).toBeTrue();
   });
 
   it('rolls back only files uploaded before a later upload fails', async () => {
