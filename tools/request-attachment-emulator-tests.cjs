@@ -77,6 +77,13 @@ async function main() {
     });
     await assertFails(deleteObject(fileRef));
     await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'requestAttachmentCleanupQueue', 'a1'), { attemptCount: 0 });
+    });
+    await assertFails(deleteObject(fileRef));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await deleteDoc(doc(ctx.firestore(), 'requestAttachmentCleanupQueue', 'a1'));
+    });
+    await env.withSecurityRulesDisabled(async (ctx) => {
       await updateDoc(doc(ctx.firestore(), 'requestAttachmentUploadSessions', 'session'), { status: 'uploading' });
     });
 
@@ -171,6 +178,10 @@ async function main() {
 
     const persistedRequest = await getDoc(doc(ownerDb, 'attendanceLogs', 'pending'));
     const persistedAttachment = persistedRequest.data().attachments[0];
+    await assertFails(setDoc(doc(ownerDb, 'requestAttachmentCleanupQueue', 'standalone'), {
+      requestKind: 'attendance', requestId: 'pending', ownerUid, actorUid: ownerUid,
+      attachment: { ...persistedAttachment, id: 'standalone' }, attemptCount: 0,
+    }));
     const invalidCleanupBatch = writeBatch(ownerDb);
     invalidCleanupBatch.update(doc(ownerDb, 'attendanceLogs', 'pending'), { attachments: [] });
     invalidCleanupBatch.set(doc(ownerDb, 'requestAttachmentCleanupQueue', 'a1'), {

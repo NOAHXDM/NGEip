@@ -1,4 +1,4 @@
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { SubsidyApplicationComponent } from './subsidy-application.component';
 
 describe('SubsidyApplicationComponent attachments', () => {
@@ -35,8 +35,9 @@ describe('SubsidyApplicationComponent attachments', () => {
 
   it('submits optional files once and locks while saving', () => {
     const service = { typeList: [], create: jasmine.createSpy().and.returnValue(of('id')) };
+    const dialogRef = { close: jasmine.createSpy(), disableClose: false };
     const component = new SubsidyApplicationComponent(
-      { close: jasmine.createSpy() } as any, service as any,
+      dialogRef as any, service as any,
       { list$: of([]), currentUser$: of({ uid: 'owner', role: 'user' }) } as any,
       { title: 'new' }
     );
@@ -47,5 +48,27 @@ describe('SubsidyApplicationComponent attachments', () => {
     component.onSubmit();
     expect(service.create).toHaveBeenCalledWith(jasmine.any(Object), 'owner', files);
     expect(component.saving).toBeTrue();
+    expect(dialogRef.disableClose).toBeTrue();
+  });
+
+  it('re-enables dialog closing after a save error', () => {
+    const service = {
+      typeList: [],
+      create: jasmine.createSpy().and.returnValue(throwError(() => new Error('建立失敗'))),
+    };
+    const dialogRef = { close: jasmine.createSpy(), disableClose: false };
+    const component = new SubsidyApplicationComponent(
+      dialogRef as any, service as any,
+      { list$: of([]), currentUser$: of(null) } as any,
+      { title: 'new' }
+    );
+    component.currentUser = { uid: 'owner', role: 'user' } as any;
+    component.subsidyForm.patchValue({ type: 1, userId: 'owner', applicationDate: new Date() });
+
+    component.onSubmit();
+
+    expect(component.saving).toBeFalse();
+    expect(dialogRef.disableClose).toBeFalse();
+    expect(component.saveError).toBe('建立失敗');
   });
 });

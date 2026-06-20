@@ -11,7 +11,7 @@
     </div>
   }
   <app-attachment-list
-    [attachments]="data.attendance.attachments || []"
+    [attachments]="data.attendance.attachments ?? []"
     [canManage]="false"
   />
 </mat-dialog-content>

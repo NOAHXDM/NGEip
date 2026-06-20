@@ -221,13 +221,18 @@ export class AttendanceComponent implements OnInit {
       return;
     }
     this.saving = true;
+    this.dialogRef.disableClose = true;
     this.saveError = '';
     if (!this.data.attendance) {
       this.attendanceService.create(this.attendanceForm.value, actorUid, this.pendingFiles)
         .pipe(take(1))
         .subscribe({
           next: () => this.dialogRef.close(true),
-          error: (error) => { this.saving = false; this.saveError = error.message; },
+          error: (error) => {
+            this.saving = false;
+            this.dialogRef.disableClose = false;
+            this.saveError = error.message;
+          },
         });
     } else {
       this.attendanceService.update(
@@ -243,7 +248,11 @@ export class AttendanceComponent implements OnInit {
             this.dialogRef.close(
               result ? 'Request updated successfully' : 'No changes'
             ),
-          error: (error) => { this.saving = false; this.saveError = error.message; },
+          error: (error) => {
+            this.saving = false;
+            this.dialogRef.disableClose = false;
+            this.saveError = error.message;
+          },
         });
     }
   }
