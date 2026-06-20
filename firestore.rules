@@ -62,6 +62,21 @@ service cloud.firestore {
       return action in ['create', 'update', 'status_change', '建立', '更新', '狀態變更', '新增附件', '刪除附件'];
     }
 
+    function validUploadSessionParent(data) {
+      return (data.requestKind == 'attendance'
+          && (!exists(/databases/$(database)/documents/attendanceLogs/$(data.requestId))
+            || (data.ownerUid == get(/databases/$(database)/documents/attendanceLogs/$(data.requestId)).data.userId
+              && (isAdmin()
+                || (data.ownerUid == request.auth.uid
+                  && get(/databases/$(database)/documents/attendanceLogs/$(data.requestId)).data.status == 'pending')))))
+        || (data.requestKind == 'subsidy'
+          && (!exists(/databases/$(database)/documents/subsidyApplications/$(data.requestId))
+            || (data.ownerUid == get(/databases/$(database)/documents/subsidyApplications/$(data.requestId)).data.userId
+              && (isAdmin()
+                || (data.ownerUid == request.auth.uid
+                  && get(/databases/$(database)/documents/subsidyApplications/$(data.requestId)).data.status == 'pending')))));
+    }
+
     function validCleanupTransfer(data, attachmentId) {
       return data.attachment.id == attachmentId
         && ((data.requestKind == 'attendance'
@@ -139,6 +154,7 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.resource.data.actorUid == request.auth.uid
         && (request.resource.data.ownerUid == request.auth.uid || isAdmin())
+        && validUploadSessionParent(request.resource.data)
         && request.resource.data.status == 'uploading'
         && request.resource.data.plannedAttachments is list
         && request.resource.data.plannedAttachments.size() > 0

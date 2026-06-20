@@ -1,5 +1,10 @@
 import { of, throwError } from 'rxjs';
-import { AttachmentService, hasRequestFieldChanges, mergeAttachmentChanges } from './attachment.service';
+import {
+  AttachmentService,
+  exceedsAttachmentLimit,
+  hasRequestFieldChanges,
+  mergeAttachmentChanges,
+} from './attachment.service';
 
 describe('AttachmentService', () => {
   const attachment = (id: string) => ({ id } as any);
@@ -49,6 +54,24 @@ describe('AttachmentService', () => {
     expect(hasRequestFieldChanges({})).toBeFalse();
     expect(hasRequestFieldChanges(null)).toBeFalse();
     expect(hasRequestFieldChanges({ reason: '修正說明' })).toBeTrue();
+  });
+
+  it('在上傳前以現有、刪除與新增數量阻擋明顯超過五檔', () => {
+    expect(exceedsAttachmentLimit({
+      existingAttachmentIds: ['a', 'b', 'c'],
+      removedAttachmentIds: [],
+      newFiles: Array.from({ length: 3 }, (_, index) => new File(['x'], `${index}.pdf`)),
+    })).toBeTrue();
+    expect(exceedsAttachmentLimit({
+      existingAttachmentIds: ['old', 'b', 'c', 'd', 'e'],
+      removedAttachmentIds: ['old'],
+      newFiles: [new File(['x'], 'replacement.pdf')],
+    })).toBeFalse();
+    expect(exceedsAttachmentLimit({
+      existingAttachmentIds: ['a', 'b', 'c', 'd', 'e'],
+      removedAttachmentIds: ['stale'],
+      newFiles: [new File(['x'], 'extra.pdf')],
+    })).toBeTrue();
   });
 
   it('rolls back only files uploaded before a later upload fails', async () => {

@@ -81,7 +81,11 @@ export class SubsidyService {
     return this.attachmentService.updateRequest({
       kind: 'subsidy', collectionName: 'subsidyApplications', requestId: originValue.id,
       patch: diff ?? {}, ownerUid: originValue.userId, actorUid,
-      changes: { newFiles: files, removedAttachmentIds },
+      changes: {
+        existingAttachmentIds: (originValue.attachments ?? []).map((attachment: AttachmentMetadata) => attachment.id),
+        newFiles: files,
+        removedAttachmentIds,
+      },
     });
   }
 

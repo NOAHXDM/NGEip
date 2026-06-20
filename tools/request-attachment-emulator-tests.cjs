@@ -61,6 +61,30 @@ async function main() {
       requestKind: 'attendance', requestId: 'pending', ownerUid, actorUid: ownerUid,
       status: 'uploading', plannedAttachments: [attachment], plannedPaths: [attachment.storagePath],
     }));
+
+    // 既有 parent 必須匹配 owner，一般申請人也不得對非 pending parent 開啟上傳。
+    await assertSucceeds(setDoc(doc(other.firestore(), 'attendanceLogs', 'other-pending'), {
+      userId: otherUid, status: 'pending', attachments: [],
+    }));
+    await assertFails(setDoc(doc(ownerDb, 'requestAttachmentUploadSessions', 'other-attendance'), {
+      requestKind: 'attendance', requestId: 'other-pending', ownerUid, actorUid: ownerUid,
+      status: 'uploading', plannedAttachments: [attachment], plannedPaths: [attachment.storagePath],
+    }));
+    await assertSucceeds(setDoc(doc(other.firestore(), 'subsidyApplications', 'other-subsidy'), {
+      userId: otherUid, status: 'pending', attachments: [],
+    }));
+    await assertFails(setDoc(doc(ownerDb, 'requestAttachmentUploadSessions', 'other-subsidy'), {
+      requestKind: 'subsidy', requestId: 'other-subsidy', ownerUid, actorUid: ownerUid,
+      status: 'uploading', plannedAttachments: [attachment], plannedPaths: [attachment.storagePath],
+    }));
+    await assertFails(setDoc(doc(ownerDb, 'requestAttachmentUploadSessions', 'approved-owner'), {
+      requestKind: 'attendance', requestId: 'approved', ownerUid, actorUid: ownerUid,
+      status: 'uploading', plannedAttachments: [attachment], plannedPaths: [attachment.storagePath],
+    }));
+    await assertFails(setDoc(doc(ownerDb, 'requestAttachmentUploadSessions', 'invalid-kind'), {
+      requestKind: 'other', requestId: 'new-request', ownerUid, actorUid: ownerUid,
+      status: 'uploading', plannedAttachments: [attachment], plannedPaths: [attachment.storagePath],
+    }));
     await assertFails(updateDoc(sessionRef, {
       ownerUid: otherUid, status: 'cleanup-pending', updatedAt: new Date(),
     }));

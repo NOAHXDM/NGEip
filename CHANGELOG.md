@@ -31,11 +31,12 @@
 - Storage attachment path 採 create-only，正式 bucket CORS 僅允許 Firebase Hosting origins 與本機 `http://localhost:4200` 的 `GET`／`HEAD`。
 - 附件新增與刪除 audit trail 記錄實際 `uploadedBy`／`actionBy`，歷程不保存 download URL 或 Storage path。
 - 純附件編輯僅寫入「新增附件」／「刪除附件」稽核，不再額外產生內容為空的一般「更新」紀錄。
+- 編輯儲存會在上傳前再次阻擋明顯超過五檔的選擇；upload session 對既有申請必須匹配 parent owner，且一般申請人只能對 pending parent 建立。
 
 ### 測試
 - 新增共用池純計算單元測試，涵蓋一般使用、AI Tool 超過舊 10,000 門檻、用盡 24,000 與既有資料超額等情境。
 - 補充服務整合測試，確認回傳結果只包含一張共用池卡片。
-- 新增附件格式、3 MiB 邊界、五檔替換、預覽清理與重試競態防護、owner/admin UI、audit 顯示、孤兒分類與 Emulator Rules 測試；完整 Angular 測試共 220 項通過。
+- 新增附件格式、3 MiB 邊界、五檔替換、預覽清理與重試競態防護、owner/admin UI、audit 顯示、孤兒分類與 Emulator Rules 測試；完整 Angular 測試共 222 項通過。
 
 ### 維護
 - AI Tool 不再建立假的個別 `annualLimit` 設定，統計結果直接併入共用池。
