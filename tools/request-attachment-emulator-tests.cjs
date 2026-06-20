@@ -51,6 +51,9 @@ async function main() {
 
     const auditRef = doc(ownerDb, 'attendanceLogs', 'pending', 'auditTrail', 'audit');
     await assertSucceeds(setDoc(auditRef, { action: '更新', actionBy: ownerUid }));
+    await assertFails(setDoc(doc(ownerDb, 'attendanceLogs', 'pending', 'auditTrail', 'forged-action'), {
+      action: '竄改紀錄', actionBy: ownerUid,
+    }));
     await assertFails(updateDoc(auditRef, { action: 'tamper' }));
 
     const sessionRef = doc(ownerDb, 'requestAttachmentUploadSessions', 'session');
@@ -191,6 +194,9 @@ async function main() {
     await assertSucceeds(createBatch.commit());
     const createdRequest = await getDoc(createRequestRef);
     if (createdRequest.data().attachments.length !== 1) throw new Error('Create workflow did not persist attachment metadata');
+    await assertFails(setDoc(doc(ownerDb, 'subsidyApplications', createRequestId, 'auditTrail', 'forged-action'), {
+      action: '竄改紀錄', actionBy: ownerUid,
+    }));
     await env.withSecurityRulesDisabled(async (ctx) => {
       if ((await getDoc(doc(ctx.firestore(), 'requestAttachmentUploadSessions', createSessionId))).exists()) {
         throw new Error('Create workflow did not remove upload session');

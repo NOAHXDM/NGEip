@@ -1,4 +1,4 @@
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { AttendanceComponent } from './attendance.component';
 
 describe('AttendanceComponent attachments', () => {
@@ -36,7 +36,8 @@ describe('AttendanceComponent attachments', () => {
   });
 
   it('submits zero or multiple optional files and locks while saving', () => {
-    const service = { typeList: [], reasonPriorityList: [], create: jasmine.createSpy().and.returnValue(of('id')) };
+    const result = new Subject<string>();
+    const service = { typeList: [], reasonPriorityList: [], create: jasmine.createSpy().and.returnValue(result) };
     const dialogRef = { close: jasmine.createSpy(), disableClose: false };
     const component = new AttendanceComponent(
       dialogRef as any, service as any,
@@ -54,6 +55,10 @@ describe('AttendanceComponent attachments', () => {
     expect(service.create).toHaveBeenCalledWith(component.attendanceForm.value, 'owner', files);
     expect(component.saving).toBeTrue();
     expect(dialogRef.disableClose).toBeTrue();
+    result.next('id');
+    result.complete();
+    expect(component.saving).toBeFalse();
+    expect(dialogRef.disableClose).toBeFalse();
   });
 
   it('submits update attachment changes with the current actor', () => {

@@ -64,6 +64,7 @@ isOwnerPending(data) := isOwner(data) && data.status == 'pending'
 ## Audit Trail
 
 - signed-in 可 read；create 必須 `actionBy == auth.uid`。
+- create 的 `action` 必須屬於 attendance/subsidy 現行中英文相容 allowlist，不得寫入任意稽核動作。
 - 新增／刪除附件 audit 與 parent metadata 同 transaction。
 - audit 文件不可 update/delete。
 

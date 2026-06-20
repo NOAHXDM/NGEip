@@ -54,6 +54,14 @@ service cloud.firestore {
       return !('attachments' in data) || (data.attachments is list && data.attachments.size() <= 5);
     }
 
+    function validAttendanceAuditAction(action) {
+      return action in ['create', 'update', '建立', '更新', '新增附件', '刪除附件'];
+    }
+
+    function validSubsidyAuditAction(action) {
+      return action in ['create', 'update', 'status_change', '建立', '更新', '狀態變更', '新增附件', '刪除附件'];
+    }
+
     function validCleanupTransfer(data, attachmentId) {
       return data.attachment.id == attachmentId
         && ((data.requestKind == 'attendance'
@@ -82,6 +90,7 @@ service cloud.firestore {
       match /auditTrail/{auditId} {
         allow read: if isSignedIn();
         allow create: if isSignedIn() && request.resource.data.actionBy == request.auth.uid
+          && validAttendanceAuditAction(request.resource.data.action)
           && (!(request.resource.data.action in ['新增附件', '刪除附件']) || isAdmin()
             || (getAfter(/databases/$(database)/documents/attendanceLogs/$(attendanceId)).data.userId == request.auth.uid
               && getAfter(/databases/$(database)/documents/attendanceLogs/$(attendanceId)).data.status == 'pending'));
@@ -118,6 +127,7 @@ service cloud.firestore {
       match /auditTrail/{auditId} {
         allow read: if isSignedIn();
         allow create: if isSignedIn() && request.resource.data.actionBy == request.auth.uid
+          && validSubsidyAuditAction(request.resource.data.action)
           && (!(request.resource.data.action in ['新增附件', '刪除附件']) || isAdmin()
             || (getAfter(/databases/$(database)/documents/subsidyApplications/$(applicationId)).data.userId == request.auth.uid
               && getAfter(/databases/$(database)/documents/subsidyApplications/$(applicationId)).data.status == 'pending'));

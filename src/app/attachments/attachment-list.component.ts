@@ -35,6 +35,7 @@ export class AttachmentListComponent {
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
     input.value = '';
+    // attachments 已由父元件排除標記刪除項，因此無需再扣除 removedCount。
     const errors = await validateAttachmentSelection(files, this.attachments.length + this.pendingFiles.length, 0);
     if (errors.size) {
       this.error = [...new Set([...errors.values()].map((e) => ATTACHMENT_ERROR_MESSAGES[e]))].join(' ');
