@@ -60,6 +60,10 @@ export function mergeAttachmentChanges(
   return { finalItems, removedItems };
 }
 
+export function hasRequestFieldChanges(patch: unknown): boolean {
+  return typeof patch === 'object' && patch !== null && Object.keys(patch).length > 0;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AttachmentService {
   private readonly firestore = inject(Firestore);
@@ -125,9 +129,12 @@ export class AttachmentService {
         );
 
         transaction.update(requestRef, { ...options.patch as object, attachments: finalItems, updatedAt: serverTimestamp() });
-        transaction.set(doc(collection(requestRef, 'auditTrail')), {
-          action: '更新', actionBy: options.actorUid, actionDateTime: serverTimestamp(), content: JSON.stringify(options.patch),
-        });
+        // 純附件異動由附件專屬 audit 完整記錄，不再另寫一筆空的「更新」。
+        if (hasRequestFieldChanges(options.patch)) {
+          transaction.set(doc(collection(requestRef, 'auditTrail')), {
+            action: '更新', actionBy: options.actorUid, actionDateTime: serverTimestamp(), content: JSON.stringify(options.patch),
+          });
+        }
         if (preparedBatch.attachments.length) {
           transaction.set(doc(collection(requestRef, 'auditTrail')), this.audit('新增附件', options.actorUid, preparedBatch.attachments));
           transaction.delete(doc(this.firestore, 'requestAttachmentUploadSessions', preparedBatch.sessionId));

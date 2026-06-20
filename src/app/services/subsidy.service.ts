@@ -71,15 +71,13 @@ export class SubsidyService {
     files: File[] = [],
     removedAttachmentIds: string[] = []
   ): Observable<any> {
-    const data = {
-      ...formValue,
-      updatedAt: serverTimestamp(),
-    };
+    // updatedAt 由 AttachmentService 在同一 transaction 統一寫入，不納入業務欄位 diff。
+    const data = { ...formValue };
     const diff = this.diff(data, originValue);
     if (!diff && !files.length && !removedAttachmentIds.length) {
       return of(null);
     }
-    // 只有附件異動時仍需進入 transaction；空 patch 會連同 attachments、updatedAt 與 audit 原子提交。
+    // 只有附件異動時仍需進入 transaction；空 patch 只寫 attachments、updatedAt 與附件專屬 audit。
     return this.attachmentService.updateRequest({
       kind: 'subsidy', collectionName: 'subsidyApplications', requestId: originValue.id,
       patch: diff ?? {}, ownerUid: originValue.userId, actorUid,
