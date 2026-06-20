@@ -53,6 +53,13 @@ service firebase.storage {
         ]);
     }
 
+    function hasCleanupOwnership(attachmentId) {
+      let queuePath = /databases/(default)/documents/requestAttachmentCleanupQueue/$(attachmentId);
+      return firestore.exists(queuePath)
+        && 'actorUid' in firestore.get(queuePath).data
+        && firestore.get(queuePath).data.actorUid == request.auth.uid;
+    }
+
     match /request-attachments/{kind}/{requestId}/{sessionId}/{attachmentId} {
       allow get: if request.auth != null;
       allow list: if false;
@@ -74,7 +81,7 @@ service firebase.storage {
       allow delete: if request.auth != null && (
         isAdmin()
         || ownsUploadSessionPath(kind, requestId, sessionId, attachmentId)
-        || firestore.get(/databases/(default)/documents/requestAttachmentCleanupQueue/$(attachmentId)).data.actorUid == request.auth.uid
+        || hasCleanupOwnership(attachmentId)
       );
     }
 

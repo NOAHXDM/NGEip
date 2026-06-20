@@ -27,7 +27,7 @@
     </div>
   }
   <app-attachment-list
-    [attachments]="data.application.attachments || []"
+    [attachments]="data.application.attachments ?? []"
     [canManage]="false"
   />
 </mat-dialog-content>

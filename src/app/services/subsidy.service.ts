@@ -79,6 +79,7 @@ export class SubsidyService {
     if (!diff && !files.length && !removedAttachmentIds.length) {
       return of(null);
     }
+    // 只有附件異動時仍需進入 transaction；空 patch 會連同 attachments、updatedAt 與 audit 原子提交。
     return this.attachmentService.updateRequest({
       kind: 'subsidy', collectionName: 'subsidyApplications', requestId: originValue.id,
       patch: diff ?? {}, ownerUid: originValue.userId, actorUid,

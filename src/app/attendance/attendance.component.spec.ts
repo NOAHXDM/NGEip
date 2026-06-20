@@ -1,4 +1,4 @@
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { AttendanceComponent } from './attendance.component';
 
 describe('AttendanceComponent attachments', () => {
@@ -37,8 +37,9 @@ describe('AttendanceComponent attachments', () => {
 
   it('submits zero or multiple optional files and locks while saving', () => {
     const service = { typeList: [], reasonPriorityList: [], create: jasmine.createSpy().and.returnValue(of('id')) };
+    const dialogRef = { close: jasmine.createSpy(), disableClose: false };
     const component = new AttendanceComponent(
-      { close: jasmine.createSpy() } as any, service as any,
+      dialogRef as any, service as any,
       { list$: of([]), getUsersWithinExitWindow: () => of([]), currentUser$: of({ uid: 'owner' }) } as any,
       { convertTimestampByClientTimezone: (value: unknown) => value } as any,
       { title: 'new' }
@@ -52,6 +53,7 @@ describe('AttendanceComponent attachments', () => {
     component.save();
     expect(service.create).toHaveBeenCalledWith(component.attendanceForm.value, 'owner', files);
     expect(component.saving).toBeTrue();
+    expect(dialogRef.disableClose).toBeTrue();
   });
 
   it('submits update attachment changes with the current actor', () => {
@@ -91,5 +93,29 @@ describe('AttendanceComponent attachments', () => {
     expect(service.create).not.toHaveBeenCalled();
     expect(component.saving).toBeFalse();
     expect(component.saveError).toContain('登入狀態已逾期');
+  });
+
+  it('re-enables dialog closing after a save error', () => {
+    const service = {
+      typeList: [], reasonPriorityList: [],
+      create: jasmine.createSpy().and.returnValue(throwError(() => new Error('儲存失敗'))),
+    };
+    const dialogRef = { close: jasmine.createSpy(), disableClose: false };
+    const component = new AttendanceComponent(
+      dialogRef as any, service as any,
+      { list$: of([]), getUsersWithinExitWindow: () => of([]), currentUser$: of(null) } as any,
+      {} as any,
+      { title: 'new' }
+    );
+    component.currentUser = { uid: 'owner' } as any;
+    component.attendanceForm.patchValue({
+      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date() as any, endDateTime: new Date() as any,
+    });
+
+    component.save();
+
+    expect(component.saving).toBeFalse();
+    expect(dialogRef.disableClose).toBeFalse();
+    expect(component.saveError).toBe('儲存失敗');
   });
 });

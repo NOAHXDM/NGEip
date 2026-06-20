@@ -245,6 +245,7 @@ export class SubsidyApplicationComponent implements OnInit {
       return;
     }
     this.saving = true;
+    this.dialogRef.disableClose = true;
     this.saveError = '';
 
     const formValue = {
@@ -266,6 +267,7 @@ export class SubsidyApplicationComponent implements OnInit {
           error: (error) => {
             console.error('更新失敗：', error);
             this.saving = false;
+            this.dialogRef.disableClose = false;
             this.saveError = error.message;
           },
         });
@@ -281,6 +283,7 @@ export class SubsidyApplicationComponent implements OnInit {
           error: (error) => {
             console.error('建立失敗：', error);
             this.saving = false;
+            this.dialogRef.disableClose = false;
             this.saveError = error.message;
           },
         });

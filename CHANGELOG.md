@@ -27,14 +27,14 @@
 
 ### 安全
 - **Breaking security change**：`attendanceLogs` 的讀取、建立與更新由匿名可存取收斂為至少需要 Firebase Authentication 登入；若有 kiosk 或外部整合曾依賴匿名寫入，部署前必須改用已登入流程。
-- 新增 Firestore／Storage Rules 附件權限矩陣：登入者可預覽、owner 僅能修改自己的 pending 申請、admin 可代辦，未登入、Storage list 與同路徑 overwrite 均拒絕。
+- 新增 Firestore／Storage Rules 附件權限矩陣：登入者可預覽、owner 僅能修改自己的 pending 申請、admin 可代辦；未登入、Storage list、同路徑 overwrite、缺少 actor 的 cleanup queue 刪除授權及未搭配 parent removal 的 queue create 均拒絕。
 - Storage attachment path 採 create-only，正式 bucket CORS 僅允許 Firebase Hosting origins 與本機 `http://localhost:4200` 的 `GET`／`HEAD`。
 - 附件新增與刪除 audit trail 記錄實際 `uploadedBy`／`actionBy`，歷程不保存 download URL 或 Storage path。
 
 ### 測試
 - 新增共用池純計算單元測試，涵蓋一般使用、AI Tool 超過舊 10,000 門檻、用盡 24,000 與既有資料超額等情境。
 - 補充服務整合測試，確認回傳結果只包含一張共用池卡片。
-- 新增附件格式、3 MiB 邊界、五檔替換、預覽清理、owner/admin UI、audit 顯示、孤兒分類與 Emulator Rules 測試；完整 Angular 測試共 215 項通過。
+- 新增附件格式、3 MiB 邊界、五檔替換、預覽清理、owner/admin UI、audit 顯示、孤兒分類與 Emulator Rules 測試；完整 Angular 測試共 217 項通過。
 
 ### 維護
 - AI Tool 不再建立假的個別 `annualLimit` 設定，統計結果直接併入共用池。

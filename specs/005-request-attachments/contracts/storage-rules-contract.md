@@ -63,6 +63,7 @@ customMetadata: requestKind, requestId, attachmentId, ownerUid, uploadedBy
 | 非 allowlist MIME | deny |
 | overwrite | deny |
 | cleanup actor delete | allow |
+| cleanup queue 缺失或缺少 actorUid 時 delete | deny |
 | actor 透過非補償狀態 upload session delete | deny |
 | 無 queue/session 的一般使用者 delete | deny |
 | admin delete | allow |
