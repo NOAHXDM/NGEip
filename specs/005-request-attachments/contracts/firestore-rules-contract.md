@@ -45,7 +45,7 @@ isOwnerPending(data) := isOwner(data) && data.status == 'pending'
 - actor 本人或 admin；一般使用者不可 list。
 - 一般使用者不可改 actorUid、ownerUid、kind、requestId、planned IDs/paths。
 - update 規則明確比對 `ownerUid` 與原文件相同，並以 affected keys allowlist 作為雙重不變性防護。
-- status 只允許 `uploading -> cleanup-pending`。
+- status 只允許一次性的 `uploading -> cleanup-pending`；已是 cleanup-pending 的 session 不得再次 update。
 
 ## requestAttachmentCleanupQueue/{attachmentId}
 

@@ -19,6 +19,7 @@ export class AttachmentPreviewDialogComponent implements OnInit, OnDestroy {
   safeUrl?: SafeResourceUrl;
   loading = true;
   error = '';
+  private loadGeneration = 0;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) readonly data: { attachment?: AttachmentMetadata; file?: File },
@@ -29,6 +30,7 @@ export class AttachmentPreviewDialogComponent implements OnInit, OnDestroy {
   ngOnInit(): void { void this.load(); }
 
   async load(): Promise<void> {
+    const generation = ++this.loadGeneration;
     this.revoke();
     this.loading = true;
     this.error = '';
@@ -41,13 +43,15 @@ export class AttachmentPreviewDialogComponent implements OnInit, OnDestroy {
       } else {
         throw new Error('missing-attachment-preview-source');
       }
+      if (generation !== this.loadGeneration) return;
       this.objectUrl = URL.createObjectURL(blob);
       this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.objectUrl);
     } catch (error) {
+      if (generation !== this.loadGeneration) return;
       console.error('附件預覽失敗', error);
       this.error = '附件暫時無法載入，請稍後重試。';
     } finally {
-      this.loading = false;
+      if (generation === this.loadGeneration) this.loading = false;
     }
   }
 
@@ -55,7 +59,10 @@ export class AttachmentPreviewDialogComponent implements OnInit, OnDestroy {
   get name(): string { return this.data.file?.name ?? this.data.attachment?.originalName ?? ''; }
   get isImage(): boolean { return this.contentType.startsWith('image/'); }
 
-  ngOnDestroy(): void { this.revoke(); }
+  ngOnDestroy(): void {
+    ++this.loadGeneration;
+    this.revoke();
+  }
 
   private revoke(): void {
     if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);

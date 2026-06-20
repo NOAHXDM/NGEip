@@ -48,6 +48,9 @@ service firebase.storage {
       let session = firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data;
       return session.actorUid == request.auth.uid
         && session.status in ['uploading', 'cleanup-pending']
+        && session.requestKind == kind
+        && session.requestId == requestId
+        && resource.metadata.ownerUid == session.ownerUid
         && session.plannedPaths.hasAny([
           'request-attachments/' + kind + '/' + requestId + '/' + sessionId + '/' + attachmentId
         ]);

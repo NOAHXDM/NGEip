@@ -138,6 +138,7 @@ service cloud.firestore {
       allow get, delete: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin());
       allow list: if isAdmin();
       allow update: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin())
+        && resource.data.status == 'uploading'
         && request.resource.data.actorUid == resource.data.actorUid
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.requestId == resource.data.requestId
