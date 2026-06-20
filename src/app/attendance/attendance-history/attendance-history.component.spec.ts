@@ -8,4 +8,10 @@ describe('AttendanceHistoryComponent attachment audit', () => {
     expect(component.getContentLabel(content, '新增附件')).toBe('證明.pdf（1.00 MiB）');
     expect(component.getContentLabel(content, '刪除附件')).toContain('證明.pdf');
   });
+
+  it('keeps legacy structured content when attachments is not an array', () => {
+    const component = new AttendanceHistoryComponent({ getAuditTrail: () => of([]) } as any, { id: '1' });
+    const content = JSON.stringify({ attachments: null });
+    expect(component.getContentLabel(content, '新增附件')).toBe(content);
+  });
 });

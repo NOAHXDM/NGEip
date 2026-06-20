@@ -26,7 +26,7 @@ isOwnerPending(data) := isOwner(data) && data.status == 'pending'
 
 ### subsidyApplications/{requestId}
 
-沿用既有 signed-in read、owner-pending/admin update 與 admin status/delete 邊界；attachment 變更亦套用 owner-pending/admin。Rules 支援 admin 管理任意狀態，但本功能不新增 subsidy-list 的任意狀態編輯入口。
+沿用既有 signed-in read、owner-pending/admin update 與 admin status/delete 邊界；建立含附件的申請時，`userId` 必須為本人或操作者為 admin；attachment 變更亦套用 owner-pending/admin。Rules 支援 admin 管理任意狀態，但本功能不新增 subsidy-list 的任意狀態編輯入口。
 
 共同驗證：attachments 可缺少；若存在必須為 list 且 size ≤5；一般使用者更新後 `userId/status` 必須與原資料相同；audit create 的 `actionBy == auth.uid`。
 
@@ -52,6 +52,7 @@ isOwnerPending(data) := isOwner(data) && data.status == 'pending'
 
 - 必須與 parent attachment 移除同 transaction/batch。
 - `actorUid == auth.uid`，且 actor 是 parent owner + pending 或 admin。
+- `ownerUid` 必須等於 parent request 的 `userId`。
 - document ID、attachment.id 與 path 尾段一致；kind/requestId 與 queue 相符。
 
 ### get/update/delete

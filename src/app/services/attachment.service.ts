@@ -45,6 +45,21 @@ interface UpdateRequestOptions<T> {
   changes: AttachmentChanges;
 }
 
+export function mergeAttachmentChanges(
+  current: readonly AttachmentMetadata[],
+  removedIds: readonly string[],
+  additions: readonly AttachmentMetadata[]
+): { finalItems: AttachmentMetadata[]; removedItems: AttachmentMetadata[] } {
+  const removeSet = new Set(removedIds);
+  if ([...removeSet].some((id) => !current.some((item) => item.id === id))) {
+    throw new Error('attachment-conflict');
+  }
+  const removedItems = current.filter((item) => removeSet.has(item.id));
+  const finalItems = current.filter((item) => !removeSet.has(item.id)).concat(additions);
+  if (finalItems.length > MAX_ATTACHMENT_COUNT) throw new Error('attachment-count-conflict');
+  return { finalItems, removedItems };
+}
+
 @Injectable({ providedIn: 'root' })
 export class AttachmentService {
   private readonly firestore = inject(Firestore);
@@ -103,13 +118,11 @@ export class AttachmentService {
         if (!snapshot.exists()) throw new Error('request-not-found');
         const current = snapshot.data() as { attachments?: AttachmentMetadata[] };
         const attachments = current.attachments ?? [];
-        const removeSet = new Set(options.changes.removedAttachmentIds);
-        if ([...removeSet].some((id) => !attachments.some((item) => item.id === id))) {
-          throw new Error('attachment-conflict');
-        }
-        const removedItems = attachments.filter((item) => removeSet.has(item.id));
-        const finalItems = attachments.filter((item) => !removeSet.has(item.id)).concat(preparedBatch.attachments);
-        if (finalItems.length > MAX_ATTACHMENT_COUNT) throw new Error('too-many-files');
+        const { finalItems, removedItems } = mergeAttachmentChanges(
+          attachments,
+          options.changes.removedAttachmentIds,
+          preparedBatch.attachments
+        );
 
         transaction.update(requestRef, { ...options.patch as object, attachments: finalItems, updatedAt: serverTimestamp() });
         transaction.set(doc(collection(requestRef, 'auditTrail')), {
@@ -131,6 +144,8 @@ export class AttachmentService {
         return removedItems;
       });
 
+      // Transaction 已正式接管新附件；後續治理失敗不得再回滾已提交的檔案。
+      prepared = null;
       for (const attachment of removed) await this.processCleanup(attachment);
     } catch (error) {
       if (prepared?.sessionId) await this.rollbackPrepared(prepared);
@@ -174,19 +189,27 @@ export class AttachmentService {
     const session = await getDoc(sessionRef);
     const uploadedAt = (session.data()?.['createdAt'] as Timestamp | undefined) ?? Timestamp.now();
     const attachments = planned.map((item) => ({ ...item, uploadedAt }));
+    await this.uploadPreparedFiles(
+      { sessionId: sessionRef.id, attachments },
+      files,
+      { requestKind: kind, requestId, ownerUid }
+    );
+    return { sessionId: sessionRef.id, attachments };
+  }
+
+  private async uploadPreparedFiles(
+    batch: PreparedAttachmentBatch,
+    files: readonly File[],
+    metadata: { requestKind: RequestKind; requestId: string; ownerUid: string }
+  ): Promise<void> {
     const uploaded: AttachmentMetadata[] = [];
     try {
-      for (let i = 0; i < attachments.length; i++) {
-        await firstValueFrom(this.storage.uploadAttachment(attachments[i], files[i], {
-          requestKind: kind,
-          requestId,
-          ownerUid,
-        }));
-        uploaded.push(attachments[i]);
+      for (let i = 0; i < batch.attachments.length; i++) {
+        await firstValueFrom(this.storage.uploadAttachment(batch.attachments[i], files[i], metadata));
+        uploaded.push(batch.attachments[i]);
       }
-      return { sessionId: sessionRef.id, attachments };
     } catch (error) {
-      await this.rollbackPrepared({ sessionId: sessionRef.id, attachments: uploaded });
+      await this.rollbackPrepared({ sessionId: batch.sessionId, attachments: uploaded });
       throw error;
     }
   }
@@ -207,9 +230,17 @@ export class AttachmentService {
     }
     const sessionRef = doc(this.firestore, 'requestAttachmentUploadSessions', batch.sessionId);
     if (failed) {
-      await updateDoc(sessionRef, { status: 'cleanup-pending', updatedAt: serverTimestamp(), lastErrorCode: 'cleanup-failed' });
+      await this.bestEffort(
+        () => updateDoc(sessionRef, { status: 'cleanup-pending', updatedAt: serverTimestamp(), lastErrorCode: 'cleanup-failed' }),
+        '附件回復狀態更新失敗',
+        { sessionId: batch.sessionId }
+      );
     } else {
-      await deleteDoc(sessionRef);
+      await this.bestEffort(
+        () => deleteDoc(sessionRef),
+        '附件回復 session 移除失敗',
+        { sessionId: batch.sessionId }
+      );
     }
   }
 
@@ -274,6 +305,9 @@ export class AttachmentService {
   private updateErrorMessage(error: unknown): string {
     if (error instanceof Error && error.message === 'attachment-conflict') {
       return '附件已被其他人變更，請重新載入後再試。';
+    }
+    if (error instanceof Error && error.message === 'attachment-count-conflict') {
+      return '另一個視窗已新增附件，請重新載入後再試。';
     }
     if (error instanceof Error && error.message === 'too-many-files') {
       return '每筆申請最多五個附件，請刪除部分附件後再試。';

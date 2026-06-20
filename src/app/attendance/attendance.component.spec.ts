@@ -48,8 +48,48 @@ describe('AttendanceComponent attachments', () => {
     });
     const files = [new File(['%PDF-'], 'one.pdf', { type: 'application/pdf' })];
     component.addFiles(files);
+    component.currentUser = { uid: 'owner' } as any;
     component.save();
     expect(service.create).toHaveBeenCalledWith(component.attendanceForm.value, 'owner', files);
     expect(component.saving).toBeTrue();
+  });
+
+  it('submits update attachment changes with the current actor', () => {
+    const service = {
+      typeList: [], reasonPriorityList: [],
+      update: jasmine.createSpy().and.returnValue(of(true)),
+    };
+    const attendance = {
+      id: 'request-1', userId: 'owner', status: 'pending', attachments: [{ id: 'old' }],
+      type: 1, reason: 'reason', startDateTime: new Date(), endDateTime: new Date(),
+    };
+    const component = create(attendance, service);
+    component.currentUser = { uid: 'owner', role: 'user' } as any;
+    component.attendanceForm.patchValue({
+      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date() as any, endDateTime: new Date() as any,
+    });
+    const pending = new File(['%PDF-'], 'new.pdf', { type: 'application/pdf' });
+    component.addFiles([pending]);
+    component.removeExisting('old');
+
+    component.save();
+
+    expect(service.update).toHaveBeenCalledWith(
+      component.attendanceForm.value, attendance, 'owner', [pending], ['old']
+    );
+  });
+
+  it('blocks save when the login session no longer has an actor uid', () => {
+    const service = { typeList: [], reasonPriorityList: [], create: jasmine.createSpy() };
+    const component = create(undefined, service);
+    component.attendanceForm.patchValue({
+      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date() as any, endDateTime: new Date() as any,
+    });
+
+    component.save();
+
+    expect(service.create).not.toHaveBeenCalled();
+    expect(component.saving).toBeFalse();
+    expect(component.saveError).toContain('登入狀態已逾期');
   });
 });
