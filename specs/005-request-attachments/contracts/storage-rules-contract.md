@@ -27,7 +27,7 @@ Rules 只驗證 MIME 與 size，magic bytes 由 client 驗證。
 
 ## Delete
 
-以下任一成立：對應 cleanup queue 的 actor 為 auth；對應 upload session 的 actor 為 auth 且正在補償；auth 為 admin。
+以下任一成立：對應 cleanup queue 的 actor 為 auth；對應 upload session 的 actor 為 auth、status 為 `uploading` 或 `cleanup-pending` 且正在補償；auth 為 admin。
 
 object-not-found 視為冪等完成。
 
@@ -61,5 +61,6 @@ customMetadata: requestKind, requestId, attachmentId, ownerUid, uploadedBy
 | 非 allowlist MIME | deny |
 | overwrite | deny |
 | cleanup actor delete | allow |
+| actor 透過非補償狀態 upload session delete | deny |
 | 無 queue/session 的一般使用者 delete | deny |
 | admin delete | allow |

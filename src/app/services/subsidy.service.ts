@@ -67,7 +67,7 @@ export class SubsidyService {
   update(
     formValue: any,
     originValue: any,
-    actorUid = formValue.userId,
+    actorUid: string,
     files: File[] = [],
     removedAttachmentIds: string[] = []
   ): Observable<any> {

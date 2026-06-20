@@ -33,7 +33,14 @@ export class AttachmentPreviewDialogComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = '';
     try {
-      const blob = this.data.file ?? await firstValueFrom(this.attachments.loadPreview(this.data.attachment!));
+      let blob: Blob;
+      if (this.data.file) {
+        blob = this.data.file;
+      } else if (this.data.attachment) {
+        blob = await firstValueFrom(this.attachments.loadPreview(this.data.attachment));
+      } else {
+        throw new Error('missing-attachment-preview-source');
+      }
       this.objectUrl = URL.createObjectURL(blob);
       this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.objectUrl);
     } catch (error) {

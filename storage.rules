@@ -47,6 +47,7 @@ service firebase.storage {
     function ownsUploadSessionPath(kind, requestId, sessionId, attachmentId) {
       let session = firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data;
       return session.actorUid == request.auth.uid
+        && session.status in ['uploading', 'cleanup-pending']
         && session.plannedPaths.hasAny([
           'request-attachments/' + kind + '/' + requestId + '/' + sessionId + '/' + attachmentId
         ]);

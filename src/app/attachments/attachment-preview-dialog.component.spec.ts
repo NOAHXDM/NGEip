@@ -47,4 +47,15 @@ describe('AttachmentPreviewDialogComponent', () => {
     expect(component.error).toBe('');
     expect(createSpy).toHaveBeenCalledTimes(1);
   });
+
+  it('shows a fallback when no preview source is provided', async () => {
+    const service = { loadPreview: jasmine.createSpy('loadPreview') };
+    const component = new AttachmentPreviewDialogComponent({}, service as any, sanitizer as any);
+
+    await component.load();
+
+    expect(service.loadPreview).not.toHaveBeenCalled();
+    expect(component.error).toContain('無法載入');
+    expect(createSpy).not.toHaveBeenCalled();
+  });
 });

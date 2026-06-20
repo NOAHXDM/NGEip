@@ -203,6 +203,7 @@ request-attachments/{kind}/{requestId}/{sessionId}/{attachmentId}
 - **跨服務無原子交易**：用 upload session／cleanup queue 保持 reference，並以補償、重試與 audit 工具兜底。
 - **Storage cacheControl 無法由 Rules 驗證**：client 固定寫入 `private,max-age=3600` 並以 `StorageService` 單元測試保護；Rules 僅能驗證 Firebase 公開的 size、contentType 與 customMetadata。若 client 回歸漏寫 cacheControl，安全性仍由 authenticated get 與不可列舉路徑維持，但瀏覽器快取策略可能偏離預期。
 - **magic bytes 無法由 Storage Rules 驗證**：官方 client 驗證實際簽章，Rules 限制 MIME/size；依使用者決策接受 client-only 內容驗證的殘餘風險。若未來要求阻擋繞過 UI 的惡意偽造，需另提後端掃描能力與憲章修訂。
+- **Firestore Rules 無法驗證 Storage 物件存在**：繞過官方 client 直接寫入 parent 的惡意呼叫可能建立指向不存在物件的附件 metadata；這不會產生未受治理的實體孤兒檔，也不會繞過 Storage 的 authenticated read，但會造成 broken reference。正式流程由 upload session 與 transaction 建立 metadata，稽核工具則將缺少實體物件的 reference 列為 `brokenReferences` 供管理者處理；若未來要求 Rules 在寫入當下跨服務驗證實體存在，需新增受信任後端能力並先處理憲章限制。
 - **production CORS 漏部署**：emulator 測試可能通過但正式 `getBlob()` 失敗；將 CORS 套用與 Hosting-origin smoke test 列為上線 gate。
 - **所有登入者可讀的隱私範圍大**：此為已確認產品政策；不保存永久 URL、禁止 list，降低附件連結外流面。
 - **並行編輯**：transaction 以最新 attachment IDs 計算，發現已刪／新增衝突則拒絕並要求重新載入。
