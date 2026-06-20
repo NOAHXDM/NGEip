@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import {
   DocumentData,
-  DocumentReference,
   Firestore,
   Timestamp,
   collection,
@@ -199,7 +198,11 @@ export class AttachmentService {
       try { await firstValueFrom(this.storage.deleteAttachment(attachment.storagePath)); }
       catch (error) {
         failed = true;
-        console.error('附件回復清理失敗', { attachmentId: attachment.id, error });
+        console.error('附件回復清理失敗', {
+          sessionId: batch.sessionId,
+          attachmentId: attachment.id,
+          errorCode: this.errorCode(error),
+        });
       }
     }
     const sessionRef = doc(this.firestore, 'requestAttachmentUploadSessions', batch.sessionId);
@@ -214,14 +217,27 @@ export class AttachmentService {
     const queueRef = doc(this.firestore, 'requestAttachmentCleanupQueue', attachment.id);
     try {
       await firstValueFrom(this.storage.deleteAttachment(attachment.storagePath));
-      await deleteDoc(queueRef);
-    } catch (error) {
-      await updateDoc(queueRef, {
-        attemptCount: increment(1),
-        lastAttemptAt: serverTimestamp(),
-        lastErrorCode: 'storage-delete-failed',
-      });
+    } catch (storageError) {
+      await this.bestEffort(
+        () => updateDoc(queueRef, {
+          attemptCount: increment(1),
+          lastAttemptAt: serverTimestamp(),
+          lastErrorCode: 'storage-delete-failed',
+        }),
+        '附件清理佇列更新失敗',
+        {
+          attachmentId: attachment.id,
+          storageErrorCode: this.errorCode(storageError),
+        }
+      );
+      return;
     }
+
+    await this.bestEffort(
+      () => deleteDoc(queueRef),
+      '附件已清理但佇列移除失敗',
+      { attachmentId: attachment.id }
+    );
   }
 
   private audit(action: '新增附件' | '刪除附件', actorUid: string, attachments: AttachmentMetadata[]): DocumentData {
@@ -234,6 +250,25 @@ export class AttachmentService {
   private friendlyError(message: string, error: unknown): Error {
     console.error(message, error);
     return new Error(message);
+  }
+
+  private errorCode(error: unknown): string {
+    if (typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string') {
+      return error.code;
+    }
+    return error instanceof Error ? error.name : 'unknown';
+  }
+
+  private async bestEffort(
+    operation: () => Promise<void>,
+    message: string,
+    context: Record<string, unknown>
+  ): Promise<void> {
+    try {
+      await operation();
+    } catch (error) {
+      console.error(message, { ...context, errorCode: this.errorCode(error) });
+    }
   }
 
   private updateErrorMessage(error: unknown): string {
