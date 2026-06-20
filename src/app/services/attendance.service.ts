@@ -86,7 +86,11 @@ export class AttendanceService {
     return this.attachmentService.updateRequest({
       kind: 'attendance', collectionName: 'attendanceLogs', requestId: originValue.id,
       patch: diff ?? {}, ownerUid: originValue.userId, actorUid: actionBy,
-      changes: { newFiles: files, removedAttachmentIds },
+      changes: {
+        existingAttachmentIds: (originValue.attachments ?? []).map((attachment: AttachmentMetadata) => attachment.id),
+        newFiles: files,
+        removedAttachmentIds,
+      },
     });
   }
 

@@ -36,6 +36,7 @@ isOwnerPending(data) := isOwner(data) && data.status == 'pending'
 
 - signed-in，`actorUid == auth.uid`。
 - `ownerUid == auth.uid` 或 isAdmin()。
+- 若 `requestId` 已對應 parent，`ownerUid` 必須等於 parent `userId`，且一般申請人僅能對 pending parent 建立 session。新增申請在 parent 尚未建立時仍可預先建立 session。
 - kind 僅 attendance/subsidy；status 必須為 uploading。
 - plannedAttachments 與 plannedPaths 為 1..5 筆且一一對應，每筆 path 符合 kind/requestId/sessionId/id。
 - size `1..3145728`，contentType 在 allowlist。
@@ -78,3 +79,4 @@ isOwnerPending(data) := isOwner(data) && data.status == 'pending'
 6. parent 最終 attachments 超過五筆。
 7. 一般使用者 list 治理集合。
 8. actionBy 與 auth.uid 不一致的 audit。
+9. 一般使用者以他人既有 requestId 或自己非 pending requestId 建立 upload session。

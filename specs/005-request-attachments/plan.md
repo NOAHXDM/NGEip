@@ -128,7 +128,7 @@ request-attachments/{kind}/{requestId}/{sessionId}/{attachmentId}
 ### 編輯與替換流程
 
 1. 以 `existingAttachments`、`newFiles`、`removedAttachmentIds` 計算最終集合；最終數量必須 ≤5，允許新增上傳期間暫時存在第六個物件。
-2. 新檔先由 upload session 持有並上傳，舊檔保持不動；任一新檔失敗時補償刪除新檔，原申請不變。
+2. UI 與共用 service 先以當前快照的現有數、待刪數與新檔數阻擋明顯超過五檔的儲存；通過後新檔才由 upload session 持有並上傳，舊檔保持不動；任一新檔失敗時補償刪除新檔，原申請不變。transaction 仍以最新 snapshot 執行最終五檔與並行衝突檢查。
 3. 以 Firestore transaction 重新讀取申請，重新檢查 owner、status、最新 attachment IDs 與最終數量，避免兩個編輯視窗互相覆蓋。
 4. transaction 同時更新申請欄位／attachments、建立每批新增與刪除 audit trail、為待刪舊檔建立 cleanup queue、刪除 upload session；純附件異動時不另寫入內容為空的一般「更新」audit。
 5. transaction 成功代表使用者可見變更已全部完成；之後才執行舊 Storage 物件治理清理。每個刪除成功即刪除對應 cleanup queue；失敗項目保留在 queue，供相同 client 重試或稽核工具處理，不把治理清理延遲回報為正式申請交易部分失敗。
@@ -139,7 +139,7 @@ request-attachments/{kind}/{requestId}/{sessionId}/{attachmentId}
 - Storage create：檔案必須有 actor 可操作的 upload session，或已存在且可管理的 parent request；限 allowlist、≤3 MiB、create-only。
 - Storage delete：必須有對應 cleanup queue 且操作者為 queue actor，或為 admin；object-not-found 視為已清理。
 - Firestore attachment read：隨原申請，僅 authenticated；治理集合不得由一般使用者列舉。只在既有表單／審核 dialog 顯示，不新增列表入口。
-- 一般使用者只可建立自己的 upload session、只可修改自己的 pending 申請，且不得修改 owner／status；admin 可代辦並管理任意狀態。
+- 一般使用者只可建立自己的 upload session、只可修改自己的 pending 申請，且不得修改 owner／status；對已存在 parent 建立 session 時必須同時匹配 parent owner 與 pending 狀態，避免借用他人 requestId 佔用 Storage 路徑。admin 可代辦並管理任意狀態。
 - `requestAttachmentUploadSessions` 與 `requestAttachmentCleanupQueue` 的欄位、路徑及不可變欄位由 Rules 驗證，避免偽造他人路徑或擴權。
 - attendance 僅針對 `attachments` 欄位變更套用 owner-pending/admin 限制，既有非附件 create/update/status 行為維持原業務權限但至少要求 authenticated，避免本功能暗中改變出勤流程；全面權限重構另案處理。subsidy 延續既有 parent 權限並補上 attachment 欄位限制。
 - 管理員的附件 Rules 不受 parent status 限制，但 UI 僅沿用既有表單／dialog 入口；不新增 subsidy-list 對 approved/rejected 的編輯入口。

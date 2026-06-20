@@ -92,9 +92,9 @@ node tools/request-attachment-orphan-audit.js --process-cleanup
 
 ## 實作驗證紀錄（2026-06-20）
 
-- `npm test -- --watch=false --browsers=ChromeHeadless`：220 passed、68 skipped；skipped 為既有 suites，附件核心合併／衝突／部分上傳補償、清單事件與格式錯誤、預覽快速重試競態、登入逾期提示，以及 dialog 儲存中鎖定與成功／失敗解鎖均由可執行單元測試覆蓋。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：222 passed、68 skipped；skipped 為既有 suites，附件核心合併／衝突／部分上傳補償、儲存前五檔上限、清單事件與格式錯誤、預覽快速重試競態、登入逾期提示，以及 dialog 儲存中鎖定與成功／失敗解鎖均由可執行單元測試覆蓋。
 - `npm run build`：production bundle 成功。
-- `npm run test:attachment-rules`：Firestore/Storage Emulator 權限矩陣通過，涵蓋完整 session → Storage → parent/audit → session delete 工作流、audit action allowlist、owner、other-user、admin 代辦、unauthenticated、pending/approved、五檔上限、session ownerUid 不變與單向狀態轉換、session kind/requestId 與 Storage path 交叉比對、跨 session 注入拒絕、cleanup owner 防偽、缺欄位 queue 不得授權刪除、non-batch queue create 拒絕、MIME/size、list deny、overwrite deny 與 avatar 回歸。
+- `npm run test:attachment-rules`：Firestore/Storage Emulator 權限矩陣通過，涵蓋完整 session → Storage → parent/audit → session delete 工作流、audit action allowlist、owner、other-user、admin 代辦、unauthenticated、pending/approved、五檔上限、session 與既有 parent owner/status 綁定、ownerUid 不變與單向狀態轉換、session kind/requestId 與 Storage path 交叉比對、跨 session 注入拒絕、cleanup owner 防偽、缺欄位 queue 不得授權刪除、non-batch queue create 拒絕、MIME/size、list deny、overwrite deny 與 avatar 回歸。
 - Rules 測試曾發現同一路徑 upload 可被視為 create；加入 `resource == null` 後確認 overwrite 被拒。
 - `npm run test:attachment-audit`：純分類 dry-run 測試通過。
 - `npm run audit:request-attachments:local`：fixture dry-run 為 formal=1、session=1、cleanup=1、orphan=0、broken reference=0。

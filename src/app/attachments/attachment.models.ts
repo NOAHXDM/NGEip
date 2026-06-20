@@ -35,6 +35,7 @@ export type AttachmentValidationError =
   | 'too-many-files';
 
 export interface AttachmentChanges {
+  existingAttachmentIds: string[];
   newFiles: File[];
   removedAttachmentIds: string[];
 }

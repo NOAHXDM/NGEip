@@ -64,6 +64,12 @@ export function hasRequestFieldChanges(patch: unknown): boolean {
   return typeof patch === 'object' && patch !== null && Object.keys(patch).length > 0;
 }
 
+export function exceedsAttachmentLimit(changes: AttachmentChanges): boolean {
+  const existingIds = new Set(changes.existingAttachmentIds);
+  const removedCount = new Set(changes.removedAttachmentIds.filter((id) => existingIds.has(id))).size;
+  return existingIds.size - removedCount + changes.newFiles.length > MAX_ATTACHMENT_COUNT;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AttachmentService {
   private readonly firestore = inject(Firestore);
@@ -113,6 +119,8 @@ export class AttachmentService {
     let prepared: PreparedAttachmentBatch | null = null;
     const requestRef = doc(this.firestore, options.collectionName, options.requestId);
     try {
+      // UI 已在選檔時驗證；此處再於上傳前阻擋，避免明顯超量仍浪費頻寬。
+      if (exceedsAttachmentLimit(options.changes)) throw new Error('too-many-files');
       prepared = await this.prepareUploads(
         options.kind, options.requestId, options.ownerUid, options.actorUid, options.changes.newFiles
       );
