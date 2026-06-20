@@ -92,7 +92,7 @@ node tools/request-attachment-orphan-audit.js --process-cleanup
 
 ## 實作驗證紀錄（2026-06-20）
 
-- `npm test -- --watch=false --browsers=ChromeHeadless`：213 passed、68 skipped；skipped 為既有 suites，附件核心合併／衝突／部分上傳補償均由可執行單元測試覆蓋。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：215 passed、68 skipped；skipped 為既有 suites，附件核心合併／衝突／部分上傳補償及清單事件均由可執行單元測試覆蓋。
 - `npm run build`：production bundle 成功。
 - `npm run test:attachment-rules`：Firestore/Storage Emulator 權限矩陣通過，涵蓋完整 session → Storage → parent/audit → session delete 工作流、owner、other-user、admin 代辦、unauthenticated、pending/approved、五檔上限、跨 session 注入拒絕、cleanup owner 防偽、MIME/size、list deny、overwrite deny 與 avatar 回歸。
 - Rules 測試曾發現同一路徑 upload 可被視為 create；加入 `resource == null` 後確認 overwrite 被拒。

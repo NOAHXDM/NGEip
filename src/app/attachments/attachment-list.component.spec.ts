@@ -33,4 +33,30 @@ describe('AttachmentListComponent', () => {
     expect(component.error).toBe('每筆申請最多五個附件。');
     expect(emitted).not.toHaveBeenCalled();
   });
+
+  it('emits pending and existing removal events in request order', () => {
+    const component = new AttachmentListComponent({} as any);
+    const pending = pdf('pending.pdf');
+    const events: string[] = [];
+    component.pendingFileRemoved.subscribe((file) => events.push(`pending:${file.name}`));
+    component.existingAttachmentRemoved.subscribe((id) => events.push(`existing:${id}`));
+
+    component.removePending(pending);
+    component.removeExisting('formal-1');
+
+    expect(events).toEqual(['pending:pending.pdf', 'existing:formal-1']);
+  });
+
+  it('opens the correct preview source for formal and pending attachments', () => {
+    const dialog = { open: jasmine.createSpy('open') };
+    const component = new AttachmentListComponent(dialog as any);
+    const formal = { id: 'formal', originalName: 'formal.pdf' } as any;
+    const pending = pdf('pending.pdf');
+
+    component.previewAttachment(formal);
+    component.previewFile(pending);
+
+    expect(dialog.open.calls.argsFor(0)[1].data).toEqual({ attachment: formal });
+    expect(dialog.open.calls.argsFor(1)[1].data).toEqual({ file: pending });
+  });
 });

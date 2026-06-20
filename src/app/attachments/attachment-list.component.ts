@@ -15,6 +15,7 @@ import { AttachmentPreviewDialogComponent } from './attachment-preview-dialog.co
   styleUrl: './attachment-list.component.scss',
 })
 export class AttachmentListComponent {
+  /** 父元件須先排除已標記刪除的正式附件，讓此清單直接代表儲存後仍保留的項目。 */
   @Input() attachments: readonly AttachmentMetadata[] = [];
   @Input() pendingFiles: readonly File[] = [];
   @Input() canManage = false;
@@ -49,5 +50,13 @@ export class AttachmentListComponent {
 
   previewFile(file: File): void {
     this.dialog.open(AttachmentPreviewDialogComponent, { data: { file }, width: '80vw', maxWidth: '900px' });
+  }
+
+  removePending(file: File): void {
+    this.pendingFileRemoved.emit(file);
+  }
+
+  removeExisting(id: string): void {
+    this.existingAttachmentRemoved.emit(id);
   }
 }
