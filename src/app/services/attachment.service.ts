@@ -146,7 +146,7 @@ export class AttachmentService {
 
       // Transaction 已正式接管新附件；後續治理失敗不得再回滾已提交的檔案。
       prepared = null;
-      for (const attachment of removed) await this.processCleanup(attachment);
+      await Promise.all(removed.map((attachment) => this.processCleanup(attachment)));
     } catch (error) {
       if (prepared?.sessionId) await this.rollbackPrepared(prepared);
       throw this.friendlyError(

@@ -15,14 +15,14 @@
       <li>
         <button type="button" class="file-name" mat-button [title]="attachment.originalName" (click)="previewAttachment(attachment)">{{ attachment.originalName }}</button>
         <span>{{ formatSize(attachment.size) }}</span>
-        @if (canManage) { <button type="button" mat-icon-button [attr.aria-label]="'刪除附件 ' + attachment.originalName" (click)="existingAttachmentRemoved.emit(attachment.id)"><mat-icon>delete</mat-icon></button> }
+        @if (canManage) { <button type="button" mat-icon-button [attr.aria-label]="'刪除附件 ' + attachment.originalName" (click)="removeExisting(attachment.id)"><mat-icon>delete</mat-icon></button> }
       </li>
     }
     @for (file of pendingFiles; track file) {
       <li>
         <button type="button" class="file-name" mat-button [title]="file.name" (click)="previewFile(file)">{{ file.name }}</button>
         <span>{{ formatSize(file.size) }}（待上傳）</span>
-        @if (canManage) { <button type="button" mat-icon-button [attr.aria-label]="'移除待上傳附件 ' + file.name" (click)="pendingFileRemoved.emit(file)"><mat-icon>close</mat-icon></button> }
+        @if (canManage) { <button type="button" mat-icon-button [attr.aria-label]="'移除待上傳附件 ' + file.name" (click)="removePending(file)"><mat-icon>close</mat-icon></button> }
       </li>
     }
   </ul>
