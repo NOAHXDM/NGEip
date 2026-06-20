@@ -266,6 +266,8 @@ export class SubsidyApplicationComponent implements OnInit {
         .pipe(take(1))
         .subscribe({
           next: () => {
+            this.saving = false;
+            this.dialogRef.disableClose = false;
             this.dialogRef.close('申請已成功更新');
           },
           error: (error) => {
@@ -282,6 +284,8 @@ export class SubsidyApplicationComponent implements OnInit {
         .pipe(take(1))
         .subscribe({
           next: () => {
+            this.saving = false;
+            this.dialogRef.disableClose = false;
             this.dialogRef.close('申請已成功建立');
           },
           error: (error) => {

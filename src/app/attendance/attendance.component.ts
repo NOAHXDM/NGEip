@@ -227,7 +227,11 @@ export class AttendanceComponent implements OnInit {
       this.attendanceService.create(this.attendanceForm.value, actorUid, this.pendingFiles)
         .pipe(take(1))
         .subscribe({
-          next: () => this.dialogRef.close(true),
+          next: () => {
+            this.saving = false;
+            this.dialogRef.disableClose = false;
+            this.dialogRef.close(true);
+          },
           error: (error) => {
             this.saving = false;
             this.dialogRef.disableClose = false;
@@ -244,10 +248,13 @@ export class AttendanceComponent implements OnInit {
       )
         .pipe(take(1))
         .subscribe({
-          next: (result: any) =>
+          next: (result: any) => {
+            this.saving = false;
+            this.dialogRef.disableClose = false;
             this.dialogRef.close(
               result ? 'Request updated successfully' : 'No changes'
-            ),
+            );
+          },
           error: (error) => {
             this.saving = false;
             this.dialogRef.disableClose = false;

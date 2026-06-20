@@ -33,6 +33,8 @@ Rules 只驗證 MIME 與 size，magic bytes 由 client 驗證。
 
 object-not-found 視為冪等完成。
 
+cleanup queue 授權先以 `firestore.exists()` 處理文件缺失，再讀取 actorUid，避免對 null `.data` 取值；同一文件的存取可由 Rules runtime 快取，不為降低表面呼叫次數犧牲明確的缺失 queue 拒絕語意。
+
 ## Metadata
 
 create 必須設定：

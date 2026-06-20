@@ -1,4 +1,4 @@
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { SubsidyApplicationComponent } from './subsidy-application.component';
 
 describe('SubsidyApplicationComponent attachments', () => {
@@ -34,7 +34,8 @@ describe('SubsidyApplicationComponent attachments', () => {
   });
 
   it('submits optional files once and locks while saving', () => {
-    const service = { typeList: [], create: jasmine.createSpy().and.returnValue(of('id')) };
+    const result = new Subject<string>();
+    const service = { typeList: [], create: jasmine.createSpy().and.returnValue(result) };
     const dialogRef = { close: jasmine.createSpy(), disableClose: false };
     const component = new SubsidyApplicationComponent(
       dialogRef as any, service as any,
@@ -49,6 +50,10 @@ describe('SubsidyApplicationComponent attachments', () => {
     expect(service.create).toHaveBeenCalledWith(jasmine.any(Object), 'owner', files);
     expect(component.saving).toBeTrue();
     expect(dialogRef.disableClose).toBeTrue();
+    result.next('id');
+    result.complete();
+    expect(component.saving).toBeFalse();
+    expect(dialogRef.disableClose).toBeFalse();
   });
 
   it('re-enables dialog closing after a save error', () => {

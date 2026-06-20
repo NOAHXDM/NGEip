@@ -58,6 +58,7 @@ service firebase.storage {
 
     function hasCleanupOwnership(attachmentId) {
       let queuePath = /databases/(default)/documents/requestAttachmentCleanupQueue/$(attachmentId);
+      // exists 先防止缺失 queue 對 get(...).data 產生 runtime error；相同文件的存取可由 Rules runtime 快取。
       return firestore.exists(queuePath)
         && 'actorUid' in firestore.get(queuePath).data
         && firestore.get(queuePath).data.actorUid == request.auth.uid;
