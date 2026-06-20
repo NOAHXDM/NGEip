@@ -197,7 +197,10 @@ export class AttachmentService {
     let failed = false;
     for (const attachment of batch.attachments) {
       try { await firstValueFrom(this.storage.deleteAttachment(attachment.storagePath)); }
-      catch { failed = true; }
+      catch (error) {
+        failed = true;
+        console.error('附件回復清理失敗', { attachmentId: attachment.id, error });
+      }
     }
     const sessionRef = doc(this.firestore, 'requestAttachmentUploadSessions', batch.sessionId);
     if (failed) {

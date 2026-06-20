@@ -1,4 +1,4 @@
-import { FieldValue, Timestamp } from '@angular/fire/firestore';
+import { Timestamp } from '@angular/fire/firestore';
 
 export type RequestKind = 'attendance' | 'subsidy';
 export type RequestStatus = 'pending' | 'approved' | 'rejected';
@@ -15,7 +15,7 @@ export interface AttachmentMetadata {
   contentType: AttachmentContentType;
   size: number;
   uploadedBy: string;
-  uploadedAt: Timestamp | FieldValue;
+  uploadedAt: Timestamp;
 }
 
 export type PlannedAttachmentMetadata = Omit<AttachmentMetadata, 'uploadedAt'>;

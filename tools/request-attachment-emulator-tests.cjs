@@ -1,5 +1,5 @@
 const { initializeTestEnvironment, assertFails, assertSucceeds } = require('@firebase/rules-unit-testing');
-const { doc, getDoc, setDoc, updateDoc, writeBatch } = require('firebase/firestore');
+const { deleteDoc, doc, getDoc, setDoc, updateDoc, writeBatch } = require('firebase/firestore');
 const { ref, uploadBytes, getBytes, listAll, deleteObject } = require('firebase/storage');
 
 const projectId = 'demo-request-attachments';
@@ -69,6 +69,13 @@ async function main() {
     await assertFails(getBytes(ref(anonymous.storage(), attachment.storagePath)));
     await assertFails(listAll(ref(owner.storage(), 'request-attachments')));
     await assertFails(uploadBytes(fileRef, new Blob(['%PDF-'], { type: 'application/pdf' }), metadata));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'requestAttachmentUploadSessions', 'session'), { status: 'completed' });
+    });
+    await assertFails(deleteObject(fileRef));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'requestAttachmentUploadSessions', 'session'), { status: 'uploading' });
+    });
 
     const invalidPath = 'request-attachments/attendance/pending/invalid/bad';
     await assertSucceeds(setDoc(doc(ownerDb, 'requestAttachmentUploadSessions', 'invalid'), {
@@ -105,6 +112,7 @@ async function main() {
     const cleanupRef = doc(ownerDb, 'requestAttachmentCleanupQueue', 'a1');
     await assertSucceeds(updateDoc(cleanupRef, { attemptCount: 1, lastAttemptAt: new Date(), lastErrorCode: 'storage-delete-failed' }));
     await assertFails(updateDoc(cleanupRef, { actorUid: otherUid }));
+    await assertSucceeds(deleteDoc(sessionRef));
     await assertSucceeds(deleteObject(fileRef));
     await assertFails(updateDoc(cleanupRef, { attachment: { id: 'evil' } }));
 
