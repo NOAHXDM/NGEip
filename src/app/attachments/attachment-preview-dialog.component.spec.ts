@@ -1,4 +1,4 @@
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { AttachmentPreviewDialogComponent } from './attachment-preview-dialog.component';
 
 describe('AttachmentPreviewDialogComponent', () => {
@@ -57,5 +57,29 @@ describe('AttachmentPreviewDialogComponent', () => {
     expect(service.loadPreview).not.toHaveBeenCalled();
     expect(component.error).toContain('無法載入');
     expect(createSpy).not.toHaveBeenCalled();
+  });
+
+  it('ignores a stale preview response after a newer retry completes', async () => {
+    const first = new Subject<Blob>();
+    const second = new Subject<Blob>();
+    const loadPreview = jasmine.createSpy().and.returnValues(first, second);
+    const component = new AttachmentPreviewDialogComponent(
+      { attachment: { originalName: 'a.pdf', contentType: 'application/pdf' } as any },
+      { loadPreview } as any,
+      sanitizer as any
+    );
+
+    const firstLoad = component.load();
+    const secondLoad = component.load();
+    second.next(new Blob(['new']));
+    second.complete();
+    await secondLoad;
+    first.next(new Blob(['stale']));
+    first.complete();
+    await firstLoad;
+
+    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(component.safeUrl).toBe('blob:preview' as any);
+    expect(component.loading).toBeFalse();
   });
 });

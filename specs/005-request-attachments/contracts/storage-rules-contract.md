@@ -62,6 +62,8 @@ customMetadata: requestKind, requestId, attachmentId, ownerUid, uploadedBy
 | size = 3145729 或 0 | deny |
 | 非 allowlist MIME | deny |
 | overwrite | deny |
+| upload session kind/requestId 與 path 不一致時 delete | deny |
+| upload session ownerUid 與 object metadata ownerUid 不一致時 delete | deny |
 | cleanup actor delete | allow |
 | cleanup queue 缺失或缺少 actorUid 時 delete | deny |
 | actor 透過非補償狀態 upload session delete | deny |

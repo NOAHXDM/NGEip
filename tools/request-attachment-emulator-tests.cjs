@@ -75,6 +75,10 @@ async function main() {
     await assertFails(getBytes(ref(anonymous.storage(), attachment.storagePath)));
     await assertFails(listAll(ref(owner.storage(), 'request-attachments')));
     await assertFails(uploadBytes(fileRef, new Blob(['%PDF-'], { type: 'application/pdf' }), metadata));
+    await assertSucceeds(updateDoc(sessionRef, { status: 'cleanup-pending', updatedAt: new Date() }));
+    await assertFails(updateDoc(sessionRef, {
+      status: 'cleanup-pending', updatedAt: new Date(), lastErrorCode: 'repeated-transition',
+    }));
     await env.withSecurityRulesDisabled(async (ctx) => {
       await updateDoc(doc(ctx.firestore(), 'requestAttachmentUploadSessions', 'session'), { status: 'completed' });
     });
@@ -88,6 +92,20 @@ async function main() {
     });
     await env.withSecurityRulesDisabled(async (ctx) => {
       await updateDoc(doc(ctx.firestore(), 'requestAttachmentUploadSessions', 'session'), { status: 'uploading' });
+    });
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'requestAttachmentUploadSessions', 'session'), { requestId: 'other-request' });
+    });
+    await assertFails(deleteObject(fileRef));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'requestAttachmentUploadSessions', 'session'), { requestId: 'pending' });
+    });
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'requestAttachmentUploadSessions', 'session'), { ownerUid: otherUid });
+    });
+    await assertFails(deleteObject(fileRef));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'requestAttachmentUploadSessions', 'session'), { ownerUid });
     });
 
     const invalidPath = 'request-attachments/attendance/pending/invalid/bad';
