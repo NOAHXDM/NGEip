@@ -139,6 +139,7 @@ service cloud.firestore {
       allow list: if isAdmin();
       allow update: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin())
         && request.resource.data.actorUid == resource.data.actorUid
+        && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.requestId == resource.data.requestId
         && request.resource.data.status == 'cleanup-pending'
         && request.resource.data.diff(resource.data).affectedKeys()
