@@ -25,7 +25,7 @@ import { provideDateFnsDatetimeAdapter } from '@ng-matero/extensions-date-fns-ad
 
 import { startOfMonth, addMonths, subMonths } from 'date-fns';
 import { enUS } from 'date-fns/locale';
-import { debounceTime, Observable, switchMap, take } from 'rxjs';
+import { debounceTime, Observable, take } from 'rxjs';
 
 import {
   AttendanceLog,
@@ -142,7 +142,7 @@ export class AttendanceComponent implements OnInit {
     this.reasonPriorityList = this.attendanceService.reasonPriorityList;
     this.userService.currentUser$.pipe(take(1)).subscribe((user) => {
       this.currentUser = user;
-      if (!this.data.attendance) this.attendanceForm.get('userId')?.setValue(user.uid!);
+      if (!this.data.attendance && user?.uid) this.attendanceForm.get('userId')?.setValue(user.uid);
     });
     // Detect attendanceForm type changes
     this.attendanceForm.get('type')?.valueChanges.subscribe({
@@ -215,38 +215,29 @@ export class AttendanceComponent implements OnInit {
 
   save() {
     if (this.saving || this.attendanceForm.invalid) return;
+    const actorUid = this.currentUser?.uid;
+    if (!actorUid) {
+      this.saveError = '登入狀態已逾期，請重新整理後再試。';
+      return;
+    }
     this.saving = true;
     this.saveError = '';
     if (!this.data.attendance) {
-      this.userService.currentUser$
-        .pipe(
-          take(1),
-          // Create new attendance
-          switchMap((user: User) =>
-            this.attendanceService.create(this.attendanceForm.value, user.uid!, this.pendingFiles)
-          ),
-          take(1)
-        )
+      this.attendanceService.create(this.attendanceForm.value, actorUid, this.pendingFiles)
+        .pipe(take(1))
         .subscribe({
           next: () => this.dialogRef.close(true),
           error: (error) => { this.saving = false; this.saveError = error.message; },
         });
     } else {
-      this.userService.currentUser$
-        .pipe(
-          take(1),
-          // Update attendance
-          switchMap((user: User) =>
-            this.attendanceService.update(
-              this.attendanceForm.value,
-              this.data.attendance,
-              user.uid!,
-              this.pendingFiles,
-              [...this.removedAttachmentIds]
-            )
-          ),
-          take(1)
-        )
+      this.attendanceService.update(
+        this.attendanceForm.value,
+        this.data.attendance,
+        actorUid,
+        this.pendingFiles,
+        [...this.removedAttachmentIds]
+      )
+        .pipe(take(1))
         .subscribe({
           next: (result: any) =>
             this.dialogRef.close(

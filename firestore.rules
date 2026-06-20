@@ -57,9 +57,11 @@ service cloud.firestore {
     function validCleanupTransfer(data, attachmentId) {
       return data.attachment.id == attachmentId
         && ((data.requestKind == 'attendance'
+          && data.ownerUid == get(/databases/$(database)/documents/attendanceLogs/$(data.requestId)).data.userId
           && get(/databases/$(database)/documents/attendanceLogs/$(data.requestId)).data.attachments.hasAny([data.attachment])
           && !getAfter(/databases/$(database)/documents/attendanceLogs/$(data.requestId)).data.attachments.hasAny([data.attachment]))
         || (data.requestKind == 'subsidy'
+          && data.ownerUid == get(/databases/$(database)/documents/subsidyApplications/$(data.requestId)).data.userId
           && get(/databases/$(database)/documents/subsidyApplications/$(data.requestId)).data.attachments.hasAny([data.attachment])
           && !getAfter(/databases/$(database)/documents/subsidyApplications/$(data.requestId)).data.attachments.hasAny([data.attachment])));
     }
@@ -94,7 +96,9 @@ service cloud.firestore {
     // 統一補助申請集合
     match /subsidyApplications/{applicationId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && validAttachmentCount(request.resource.data);
+      allow create: if isSignedIn() && validAttachmentCount(request.resource.data)
+        && (!('attachments' in request.resource.data) || request.resource.data.attachments.size() == 0
+          || request.resource.data.userId == request.auth.uid || isAdmin());
       allow update: if isSignedIn() && (
         isAdmin() ||
         (resource.data.userId == request.auth.uid &&

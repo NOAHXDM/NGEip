@@ -1,7 +1,8 @@
 import { of, throwError } from 'rxjs';
-import { AttachmentService } from './attachment.service';
+import { AttachmentService, mergeAttachmentChanges } from './attachment.service';
 
 describe('AttachmentService', () => {
+  const attachment = (id: string) => ({ id } as any);
   function serviceWithStorage(storage: any): AttachmentService {
     const service = Object.create(AttachmentService.prototype) as AttachmentService;
     (service as any).storage = storage;
@@ -24,6 +25,45 @@ describe('AttachmentService', () => {
     service.loadPreview({ id: 'a' } as any).subscribe({ error: (error) => { expect(error.message).toBe('denied'); done(); } });
   });
 
+  it('merges removals and additions from the transaction snapshot', () => {
+    const result = mergeAttachmentChanges(
+      [attachment('keep'), attachment('remove')],
+      ['remove'],
+      [attachment('new')]
+    );
+    expect(result.finalItems.map((item) => item.id)).toEqual(['keep', 'new']);
+    expect(result.removedItems.map((item) => item.id)).toEqual(['remove']);
+  });
+
+  it('rejects stale removals and concurrent additions beyond five', () => {
+    expect(() => mergeAttachmentChanges([attachment('current')], ['missing'], []))
+      .toThrowError('attachment-conflict');
+    expect(() => mergeAttachmentChanges(
+      Array.from({ length: 5 }, (_, index) => attachment(`${index}`)),
+      [],
+      [attachment('new')]
+    )).toThrowError('attachment-count-conflict');
+  });
+
+  it('rolls back only files uploaded before a later upload fails', async () => {
+    const first = attachment('first');
+    const second = attachment('second');
+    const storage = {
+      uploadAttachment: jasmine.createSpy()
+        .and.returnValues(of(undefined), throwError(() => new Error('upload-failed'))),
+    };
+    const service = serviceWithStorage(storage);
+    const rollback = spyOn<any>(service, 'rollbackPrepared').and.resolveTo();
+
+    await expectAsync((service as any).uploadPreparedFiles(
+      { sessionId: 'session', attachments: [first, second] },
+      [new File(['1'], '1.pdf'), new File(['2'], '2.pdf')],
+      { requestKind: 'attendance', requestId: 'request', ownerUid: 'owner' }
+    )).toBeRejectedWithError('upload-failed');
+
+    expect(rollback).toHaveBeenCalledWith({ sessionId: 'session', attachments: [first] });
+  });
+
   it('builds attachment audit content without storage path or download URL', () => {
     const service = serviceWithStorage({});
     const audit = (service as any).audit('新增附件', 'admin', [{
@@ -40,6 +80,12 @@ describe('AttachmentService', () => {
     const service = serviceWithStorage({});
     const message = (service as any).updateErrorMessage(new Error('too-many-files'));
     expect(message).toBe('每筆申請最多五個附件，請刪除部分附件後再試。');
+  });
+
+  it('distinguishes a concurrent count conflict from local selection validation', () => {
+    const service = serviceWithStorage({});
+    const message = (service as any).updateErrorMessage(new Error('attachment-count-conflict'));
+    expect(message).toBe('另一個視窗已新增附件，請重新載入後再試。');
   });
 
   it('extracts diagnostic codes without logging an error message or storage path', () => {

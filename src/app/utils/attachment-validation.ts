@@ -47,7 +47,8 @@ export async function validateAttachmentSelection(
   removedCount = 0
 ): Promise<Map<File, AttachmentValidationError>> {
   const errors = new Map<File, AttachmentValidationError>();
-  if (existingCount - removedCount + files.length > MAX_ATTACHMENT_COUNT) {
+  const retainedCount = Math.max(0, existingCount - Math.max(0, removedCount));
+  if (retainedCount + files.length > MAX_ATTACHMENT_COUNT) {
     files.forEach((file) => errors.set(file, 'too-many-files'));
     return errors;
   }

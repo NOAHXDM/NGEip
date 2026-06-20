@@ -56,7 +56,7 @@
 - [X] T015 [P] [US1] 先撰寫 upload session、批次上傳、commit、補償成功與 cleanup-pending fallback 的 AttachmentService 測試於 `src/app/services/attachment.service.spec.ts`
 - [X] T016 [P] [US1] 先撰寫 attendance 無附件、合法多檔、驗證失敗、取消零遠端寫入與儲存中狀態測試於 `src/app/attendance/attendance.component.spec.ts`
 - [X] T017 [P] [US1] 先撰寫 subsidy 無附件、合法五檔、驗證失敗、取消零遠端寫入與儲存中狀態測試於 `src/app/subsidy/subsidy-application/subsidy-application.component.spec.ts`
-- [X] T018 [US1] 先撰寫兩種申請從 session 到正式 attachments/audit 的 Emulator 整合測試於 `src/app/attachments/testing/create-request-integration.spec.ts`
+- [X] T018 [US1] 先撰寫兩種申請從 session 到正式 attachments/audit 的可執行 Emulator 整合測試於 `tools/request-attachment-emulator-tests.cjs`
 
 ### 實作
 
@@ -108,7 +108,7 @@
 - [X] T035 [P] [US3] 先撰寫 attendance owner-pending、他人唯讀、非 pending owner 唯讀與 admin 管理 UI 測試於 `src/app/attendance/attendance.component.spec.ts`
 - [X] T036 [P] [US3] 先撰寫 subsidy owner-pending、他人唯讀、非 pending owner 唯讀與 admin 管理 UI 測試於 `src/app/subsidy/subsidy-application/subsidy-application.component.spec.ts`
 - [X] T037 [P] [US3] 擴充 owner/other/admin、狀態、五檔上限與 queue 權限矩陣，並驗證 attendance 非附件既有操作不回歸於 `src/app/attachments/testing/firestore-rules.spec.ts` 及 `src/app/attachments/testing/storage-rules.spec.ts`
-- [X] T038 [US3] 先撰寫新檔失敗保留舊檔、transaction 失敗不刪舊檔、刪檔失敗保留 queue 與並行編輯拒絕的 Emulator 測試於 `src/app/attachments/testing/update-request-integration.spec.ts`
+- [X] T038 [US3] 先撰寫新檔失敗保留舊檔、transaction 失敗不刪舊檔、刪檔失敗保留 queue 與並行編輯拒絕的 Emulator／單元測試於 `tools/request-attachment-emulator-tests.cjs` 及 `src/app/services/attachment.service.spec.ts`
 
 ### 實作
 

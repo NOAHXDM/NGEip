@@ -66,7 +66,8 @@ export class SubsidyHistoryComponent {
   getContentLabel(content: string | undefined, action: string): string {
     if (!content || !['新增附件', '刪除附件'].includes(action)) return content ?? '';
     try {
-      const items = JSON.parse(content).attachments as Array<{ originalName: string; size: number }>;
+      const items = JSON.parse(content).attachments;
+      if (!Array.isArray(items)) return content;
       return items.map((item) => `${item.originalName}（${(item.size / 1024 / 1024).toFixed(2)} MiB）`).join('、');
     } catch { return content; }
   }

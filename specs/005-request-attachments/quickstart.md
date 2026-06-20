@@ -90,11 +90,11 @@ node tools/request-attachment-orphan-audit.js --process-cleanup
 
 工具預設不修改任何資料；執行前需提供 `GOOGLE_APPLICATION_CREDENTIALS`，並以按需或本機方式提供 `firebase-admin`。
 
-## 實作驗證紀錄（2026-06-19）
+## 實作驗證紀錄（2026-06-20）
 
-- `npm test -- --watch=false`：195 passed、73 skipped；skipped 為既有與 typed Emulator contract suites，實際 Rules 矩陣由下一項獨立執行。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：213 passed、68 skipped；skipped 為既有 suites，附件核心合併／衝突／部分上傳補償均由可執行單元測試覆蓋。
 - `npm run build`：production bundle 成功。
-- `npm run test:attachment-rules`：Firestore/Storage Emulator 權限矩陣通過，涵蓋 owner、other-user、admin、unauthenticated、pending/approved、五檔上限、session、cleanup queue、MIME/size、list deny、overwrite deny 與 avatar 回歸。
+- `npm run test:attachment-rules`：Firestore/Storage Emulator 權限矩陣通過，涵蓋完整 session → Storage → parent/audit → session delete 工作流、owner、other-user、admin 代辦、unauthenticated、pending/approved、五檔上限、跨 session 注入拒絕、cleanup owner 防偽、MIME/size、list deny、overwrite deny 與 avatar 回歸。
 - Rules 測試曾發現同一路徑 upload 可被視為 create；加入 `resource == null` 後確認 overwrite 被拒。
 - `npm run test:attachment-audit`：純分類 dry-run 測試通過。
 - `npm run audit:request-attachments:local`：fixture dry-run 為 formal=1、session=1、cleanup=1、orphan=0、broken reference=0。

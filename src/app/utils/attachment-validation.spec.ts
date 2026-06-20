@@ -33,4 +33,28 @@ describe('attachment validation', () => {
     expect((await validateAttachmentSelection([f], 5, 1)).size).toBe(0);
     expect((await validateAttachmentSelection([f], 5, 0)).get(f)).toBe('too-many-files');
   });
+
+  it('拒絕無副檔名與空名稱，並接受大寫副檔名', async () => {
+    const pdfBytes = [0x25, 0x50, 0x44, 0x46, 0x2d];
+    expect(await validateAttachmentFile(file(pdfBytes, 'nodotname', 'application/pdf')))
+      .toBe('unsupported-extension');
+    expect(await validateAttachmentFile(file(pdfBytes, '', 'application/pdf')))
+      .toBe('unsupported-extension');
+    expect(await validateAttachmentFile(file([0xff, 0xd8, 0xff], 'IMAGE.JPG', 'image/jpeg')))
+      .toBeNull();
+  });
+
+  it('WebP size 欄位可為任意值', async () => {
+    const webp = file(
+      [0x52, 0x49, 0x46, 0x46, 0xde, 0xad, 0xbe, 0xef, 0x57, 0x45, 0x42, 0x50],
+      'image.webp',
+      'image/webp'
+    );
+    expect(await validateAttachmentFile(webp)).toBeNull();
+  });
+
+  it('負數 removedCount 不會放寬五檔上限', async () => {
+    const f = file([0x25, 0x50, 0x44, 0x46, 0x2d], 'a.pdf', 'application/pdf');
+    expect((await validateAttachmentSelection([f], 5, -1)).get(f)).toBe('too-many-files');
+  });
 });

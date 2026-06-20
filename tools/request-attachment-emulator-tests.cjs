@@ -45,6 +45,9 @@ async function main() {
     await assertFails(setDoc(doc(ownerDb, 'subsidyApplications', 'six'), {
       userId: ownerUid, status: 'pending', attachments: Array.from({ length: 6 }, (_, i) => ({ id: `${i}` })),
     }));
+    await assertFails(setDoc(doc(ownerDb, 'subsidyApplications', 'forged-owner'), {
+      userId: otherUid, status: 'pending', attachments: [attachment],
+    }));
 
     const auditRef = doc(ownerDb, 'attendanceLogs', 'pending', 'auditTrail', 'audit');
     await assertSucceeds(setDoc(auditRef, { action: '更新', actionBy: ownerUid }));
@@ -100,8 +103,82 @@ async function main() {
       customMetadata: { attachmentId: 'bad', uploadedBy: ownerUid },
     }));
 
+    // plannedPaths 即使被惡意填入其他 session 路徑，Storage 仍以 URL 中的 sessionId
+    // 讀取同名 session 並比對完整路徑，因此不能跨 session 注入。
+    const injectedPath = 'request-attachments/attendance/pending/other-session/cross';
+    await assertSucceeds(setDoc(doc(ownerDb, 'requestAttachmentUploadSessions', 'malicious-session'), {
+      requestKind: 'attendance', requestId: 'pending', ownerUid, actorUid: ownerUid, status: 'uploading',
+      plannedAttachments: [{ id: 'cross' }], plannedPaths: [injectedPath],
+    }));
+    await assertFails(uploadBytes(ref(owner.storage(), injectedPath), new Blob(['%PDF-'], { type: 'application/pdf' }), {
+      contentType: 'application/pdf', cacheControl: 'private,max-age=3600',
+      customMetadata: {
+        requestKind: 'attendance', requestId: 'pending', attachmentId: 'cross', ownerUid, uploadedBy: ownerUid,
+      },
+    }));
+
+    // Admin 代辦時 actorUid/uploadedBy 是 admin，而 ownerUid 維持申請人。
+    const adminPath = 'request-attachments/attendance/approved/admin-session/admin-file';
+    await assertSucceeds(setDoc(doc(admin.firestore(), 'requestAttachmentUploadSessions', 'admin-session'), {
+      requestKind: 'attendance', requestId: 'approved', ownerUid, actorUid: adminUid, status: 'uploading',
+      plannedAttachments: [{ id: 'admin-file' }], plannedPaths: [adminPath],
+    }));
+    const adminFileRef = ref(admin.storage(), adminPath);
+    await assertSucceeds(uploadBytes(adminFileRef, new Blob(['%PDF-'], { type: 'application/pdf' }), {
+      contentType: 'application/pdf', cacheControl: 'private,max-age=3600',
+      customMetadata: {
+        requestKind: 'attendance', requestId: 'approved', attachmentId: 'admin-file',
+        ownerUid, uploadedBy: adminUid,
+      },
+    }));
+
+    // 執行 session -> Storage -> parent/audit/session delete 的正式建立工作流。
+    const createRequestId = 'subsidy-create-flow';
+    const createSessionId = 'create-flow-session';
+    const createAttachment = {
+      id: 'receipt',
+      storagePath: `request-attachments/subsidy/${createRequestId}/${createSessionId}/receipt`,
+      originalName: 'receipt.pdf', contentType: 'application/pdf', size: 5,
+      uploadedBy: ownerUid, uploadedAt: new Date(),
+    };
+    const createSessionRef = doc(ownerDb, 'requestAttachmentUploadSessions', createSessionId);
+    await assertSucceeds(setDoc(createSessionRef, {
+      requestKind: 'subsidy', requestId: createRequestId, ownerUid, actorUid: ownerUid,
+      status: 'uploading', plannedAttachments: [createAttachment], plannedPaths: [createAttachment.storagePath],
+    }));
+    await assertSucceeds(uploadBytes(ref(owner.storage(), createAttachment.storagePath), new Blob(['%PDF-'], { type: 'application/pdf' }), {
+      contentType: 'application/pdf', cacheControl: 'private,max-age=3600',
+      customMetadata: {
+        requestKind: 'subsidy', requestId: createRequestId, attachmentId: 'receipt',
+        ownerUid, uploadedBy: ownerUid,
+      },
+    }));
+    const createRequestRef = doc(ownerDb, 'subsidyApplications', createRequestId);
+    const createBatch = writeBatch(ownerDb);
+    createBatch.set(createRequestRef, { userId: ownerUid, status: 'pending', attachments: [createAttachment] });
+    createBatch.set(doc(ownerDb, 'subsidyApplications', createRequestId, 'auditTrail', 'add'), {
+      action: '新增附件', actionBy: ownerUid, actionDateTime: new Date(),
+    });
+    createBatch.delete(createSessionRef);
+    await assertSucceeds(createBatch.commit());
+    const createdRequest = await getDoc(createRequestRef);
+    if (createdRequest.data().attachments.length !== 1) throw new Error('Create workflow did not persist attachment metadata');
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      if ((await getDoc(doc(ctx.firestore(), 'requestAttachmentUploadSessions', createSessionId))).exists()) {
+        throw new Error('Create workflow did not remove upload session');
+      }
+    });
+
     const persistedRequest = await getDoc(doc(ownerDb, 'attendanceLogs', 'pending'));
     const persistedAttachment = persistedRequest.data().attachments[0];
+    const invalidCleanupBatch = writeBatch(ownerDb);
+    invalidCleanupBatch.update(doc(ownerDb, 'attendanceLogs', 'pending'), { attachments: [] });
+    invalidCleanupBatch.set(doc(ownerDb, 'requestAttachmentCleanupQueue', 'a1'), {
+      requestKind: 'attendance', requestId: 'pending', ownerUid: otherUid, actorUid: ownerUid,
+      attachment: persistedAttachment, attemptCount: 0,
+    });
+    await assertFails(invalidCleanupBatch.commit());
+
     const cleanupBatch = writeBatch(ownerDb);
     cleanupBatch.update(doc(ownerDb, 'attendanceLogs', 'pending'), { attachments: [] });
     cleanupBatch.set(doc(ownerDb, 'requestAttachmentCleanupQueue', 'a1'), {
@@ -114,6 +191,8 @@ async function main() {
     await assertFails(updateDoc(cleanupRef, { actorUid: otherUid }));
     await assertSucceeds(deleteDoc(sessionRef));
     await assertSucceeds(deleteObject(fileRef));
+    await assertSucceeds(deleteObject(adminFileRef));
+    await assertSucceeds(deleteObject(ref(admin.storage(), createAttachment.storagePath)));
     await assertFails(updateDoc(cleanupRef, { attachment: { id: 'evil' } }));
 
     const avatarRef = ref(owner.storage(), `avatars/${ownerUid}/avatar.webp`);
