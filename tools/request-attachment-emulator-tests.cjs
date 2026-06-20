@@ -58,6 +58,9 @@ async function main() {
       requestKind: 'attendance', requestId: 'pending', ownerUid, actorUid: ownerUid,
       status: 'uploading', plannedAttachments: [attachment], plannedPaths: [attachment.storagePath],
     }));
+    await assertFails(updateDoc(sessionRef, {
+      ownerUid: otherUid, status: 'cleanup-pending', updatedAt: new Date(),
+    }));
 
     const fileRef = ref(owner.storage(), attachment.storagePath);
     const metadata = {

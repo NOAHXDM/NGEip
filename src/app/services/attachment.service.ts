@@ -287,6 +287,9 @@ export class AttachmentService {
     if (typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string') {
       return error.code;
     }
+    if (error instanceof Error && /^[a-z]+(?:-[a-z]+)+$/.test(error.message)) {
+      return error.message;
+    }
     return error instanceof Error ? error.name : 'unknown';
   }
 

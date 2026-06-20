@@ -128,6 +128,8 @@ interface AttachmentAuditContent {
 }
 ```
 
+`auditTrail.content` 為歷程畫面的純展示快照，不支援 Firestore 欄位查詢或索引；若未來出現依附件異動條件查詢的需求，應另行設計可查詢的結構化欄位。
+
 `actionBy` 保存 actor UID、`actionDateTime` 為 server timestamp；content 不含 storagePath/download URL。每批新增與刪除各一筆，與 parent metadata 同 transaction。
 
 ## 一致性不變量

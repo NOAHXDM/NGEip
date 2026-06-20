@@ -92,6 +92,8 @@ describe('AttachmentService', () => {
     const service = serviceWithStorage({});
     expect((service as any).errorCode({ code: 'storage/unauthorized', message: 'private/path' }))
       .toBe('storage/unauthorized');
+    expect((service as any).errorCode(new Error('storage-delete-failed')))
+      .toBe('storage-delete-failed');
     expect((service as any).errorCode(new Error('private/path'))).toBe('Error');
     expect((service as any).errorCode(null)).toBe('unknown');
   });

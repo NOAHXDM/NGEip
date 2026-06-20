@@ -34,6 +34,17 @@ describe('AttachmentListComponent', () => {
     expect(emitted).not.toHaveBeenCalled();
   });
 
+  it('shows a format error and emits nothing for a file without an extension', async () => {
+    const component = new AttachmentListComponent({} as any);
+    const emitted = jasmine.createSpy('filesSelected');
+    component.filesSelected.subscribe(emitted);
+
+    await component.onSelected(selectionEvent(pdf('receipt')));
+
+    expect(component.error).toBe('僅支援 PDF、JPEG、PNG、WebP 檔案。');
+    expect(emitted).not.toHaveBeenCalled();
+  });
+
   it('emits pending and existing removal events in request order', () => {
     const component = new AttachmentListComponent({} as any);
     const pending = pdf('pending.pdf');

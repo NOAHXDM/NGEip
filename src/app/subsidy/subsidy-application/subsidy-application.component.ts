@@ -241,7 +241,11 @@ export class SubsidyApplicationComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.subsidyForm.invalid || this.saving || !this.currentUser?.uid) {
+    if (this.subsidyForm.invalid || this.saving) {
+      return;
+    }
+    if (!this.currentUser?.uid) {
+      this.saveError = '登入狀態已逾期，請重新整理後再試。';
       return;
     }
     this.saving = true;
