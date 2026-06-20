@@ -41,4 +41,28 @@ describe('AttachmentService', () => {
     const message = (service as any).updateErrorMessage(new Error('too-many-files'));
     expect(message).toBe('每筆申請最多五個附件，請刪除部分附件後再試。');
   });
+
+  it('extracts diagnostic codes without logging an error message or storage path', () => {
+    const service = serviceWithStorage({});
+    expect((service as any).errorCode({ code: 'storage/unauthorized', message: 'private/path' }))
+      .toBe('storage/unauthorized');
+    expect((service as any).errorCode(new Error('private/path'))).toBe('Error');
+    expect((service as any).errorCode(null)).toBe('unknown');
+  });
+
+  it('keeps best-effort governance failures from rejecting the saved request flow', async () => {
+    const service = serviceWithStorage({});
+    const consoleSpy = spyOn(console, 'error');
+
+    await expectAsync((service as any).bestEffort(
+      () => Promise.reject({ code: 'unavailable' }),
+      '治理更新失敗',
+      { attachmentId: 'a-1' }
+    )).toBeResolved();
+
+    expect(consoleSpy).toHaveBeenCalledWith('治理更新失敗', {
+      attachmentId: 'a-1',
+      errorCode: 'unavailable',
+    });
+  });
 });

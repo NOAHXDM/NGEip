@@ -15,6 +15,8 @@ kind 只接受 attendance/subsidy；原始檔名不進 path。
 | get | `request.auth != null` |
 | list | always deny |
 
+所有已登入使用者可在已知完整路徑時讀取附件，是本功能已確認的產品政策，以支援既有審核表單與狀態變更 dialog 預覽他人附件。此政策的隱私範圍較大；系統以禁止 list、不保存永久 download URL、僅由既有 Firestore 流程提供確切路徑降低外流面，但不把這些措施視為 owner-only 授權。
+
 ## Create
 
 全部條件成立：signed-in、物件不存在、size `1..3145728`、MIME 為四種 allowlist、`requestAttachmentUploadSessions/{sessionId}` 為 uploading 且 plannedPaths 包含完整 path，session 的 kind/requestId/actor 皆相符或 auth 為 admin。
