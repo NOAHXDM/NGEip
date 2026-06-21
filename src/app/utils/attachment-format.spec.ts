@@ -18,9 +18,13 @@ describe('attachment formatting', () => {
     expect(getAttachmentAuditContentLabel('{invalid', '刪除附件')).toBe('{invalid');
   });
 
-  it('returns an empty string for missing content or an empty attachment list', () => {
+  it('returns an empty string for missing content', () => {
     expect(getAttachmentAuditContentLabel(undefined, '新增附件')).toBe('');
-    expect(getAttachmentAuditContentLabel('{"attachments":[]}', '新增附件')).toBe('');
+  });
+
+  it('preserves raw audit content for an empty attachment list', () => {
+    const content = '{"attachments":[]}';
+    expect(getAttachmentAuditContentLabel(content, '新增附件')).toBe(content);
   });
 
   it('omits malformed attachment items without rendering undefined or NaN', () => {

@@ -105,7 +105,6 @@ export class AttachmentService {
       });
       if (prepared.attachments.length) {
         batch.set(doc(collection(requestRef, 'auditTrail')), this.audit('新增附件', options.actorUid, prepared.attachments));
-        // prepareUploads 保證有附件時必定建立 session；guard 保留 nullable batch 型別的防禦邊界。
         if (prepared.sessionId) {
           batch.delete(doc(this.firestore, 'requestAttachmentUploadSessions', prepared.sessionId));
         }
@@ -148,7 +147,6 @@ export class AttachmentService {
         }
         if (preparedBatch.attachments.length) {
           transaction.set(doc(collection(requestRef, 'auditTrail')), this.audit('新增附件', options.actorUid, preparedBatch.attachments));
-          // prepareUploads 保證有附件時必定建立 session；guard 保留 nullable batch 型別的防禦邊界。
           if (preparedBatch.sessionId) {
             transaction.delete(doc(this.firestore, 'requestAttachmentUploadSessions', preparedBatch.sessionId));
           }
