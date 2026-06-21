@@ -20,7 +20,9 @@ export function getAttachmentAuditContentLabel(content: string | undefined, acti
         return `${originalName}（${formatAttachmentSize(size)}）`;
       })
       .filter(Boolean);
-    return labels.length > 0 || items.length === 0 ? labels.join('、') : content;
+    // 非空陣列若沒有任何合法標籤，保留原始 JSON，避免損壞的 audit trail 在畫面上靜默消失。
+    const allItemsMalformed = labels.length === 0 && items.length > 0;
+    return allItemsMalformed ? content : labels.join('、');
   } catch {
     return content;
   }
