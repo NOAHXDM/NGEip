@@ -12,15 +12,15 @@ export function getAttachmentAuditContentLabel(content: string | undefined, acti
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return content;
     const items: unknown = (parsed as Record<string, unknown>)['attachments'];
     if (!Array.isArray(items)) return content;
-    return items
+    const labels = items
       .map((item: unknown) => {
         if (typeof item !== 'object' || item === null) return '';
         const { originalName, size } = item as Record<string, unknown>;
         if (typeof originalName !== 'string' || typeof size !== 'number' || !Number.isFinite(size)) return '';
         return `${originalName}（${formatAttachmentSize(size)}）`;
       })
-      .filter(Boolean)
-      .join('、');
+      .filter(Boolean);
+    return labels.length > 0 || items.length === 0 ? labels.join('、') : content;
   } catch {
     return content;
   }
