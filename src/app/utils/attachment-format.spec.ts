@@ -39,4 +39,12 @@ describe('attachment formatting', () => {
     expect(getAttachmentAuditContentLabel('[]', '新增附件')).toBe('[]');
     expect(getAttachmentAuditContentLabel('"legacy"', '新增附件')).toBe('"legacy"');
   });
+
+  it('preserves the raw audit content when every attachment item is malformed', () => {
+    const content = JSON.stringify({
+      attachments: [null, {}, { originalName: '缺少大小.pdf' }],
+    });
+
+    expect(getAttachmentAuditContentLabel(content, '刪除附件')).toBe(content);
+  });
 });
