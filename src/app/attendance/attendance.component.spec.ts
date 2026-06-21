@@ -123,4 +123,41 @@ describe('AttendanceComponent attachments', () => {
     expect(dialogRef.disableClose).toBeFalse();
     expect(component.saveError).toBe('儲存失敗');
   });
+
+  it('shows a safe fallback when create rejects with a non-Error value', () => {
+    const service = {
+      typeList: [], reasonPriorityList: [],
+      create: jasmine.createSpy().and.returnValue(throwError(() => 'firebase-rejected')),
+    };
+    const component = create(undefined, service);
+    component.currentUser = { uid: 'owner' } as any;
+    component.attendanceForm.patchValue({
+      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date() as any, endDateTime: new Date() as any,
+    });
+
+    component.save();
+
+    expect(component.saveError).toBe('操作失敗，請重試。');
+  });
+
+  it('shows a safe fallback when update rejects with a non-Error value', () => {
+    const service = {
+      typeList: [], reasonPriorityList: [],
+      update: jasmine.createSpy().and.returnValue(throwError(() => ({ code: 'firebase-rejected' }))),
+    };
+    const attendance = {
+      id: 'request-1', userId: 'owner', status: 'pending', attachments: [],
+      type: 1, reason: 'reason', startDateTime: new Date(), endDateTime: new Date(),
+    };
+    const component = create(attendance, service);
+    component.currentUser = { uid: 'owner' } as any;
+    component.attendanceForm.patchValue({
+      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date() as any, endDateTime: new Date() as any,
+    });
+
+    component.save();
+
+    expect(service.update).toHaveBeenCalled();
+    expect(component.saveError).toBe('操作失敗，請重試。');
+  });
 });

@@ -94,6 +94,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && validAttachmentCount(request.resource.data)
         && (!('attachments' in request.resource.data) || request.resource.data.attachments.size() == 0
           || request.resource.data.userId == request.auth.uid || isAdmin());
+      // 已知歷史行為：非附件欄位仍允許任意已登入使用者更新；權限收斂追蹤：GitHub issue #22。
       allow update: if isSignedIn() && validAttachmentCount(request.resource.data)
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['attachments'])
           || isAdmin()

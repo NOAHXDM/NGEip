@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 
 import { AttachmentMetadata, MAX_ATTACHMENT_COUNT } from './attachment.models';
 import { ATTACHMENT_ERROR_MESSAGES, validateAttachmentSelection } from '../utils/attachment-validation';
+import { formatAttachmentSize } from '../utils/attachment-format';
 import { AttachmentPreviewDialogComponent } from './attachment-preview-dialog.component';
 
 @Component({
@@ -27,9 +28,7 @@ export class AttachmentListComponent {
 
   constructor(private readonly dialog: MatDialog) {}
 
-  formatSize(bytes: number): string {
-    return `${(bytes / 1024 / 1024).toFixed(2)} MiB`;
-  }
+  readonly formatSize = formatAttachmentSize;
 
   async onSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;

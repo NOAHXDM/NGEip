@@ -1,4 +1,5 @@
 import { of, Subject, throwError } from 'rxjs';
+import { Timestamp } from '@angular/fire/firestore';
 import { SubsidyApplicationComponent } from './subsidy-application.component';
 
 describe('SubsidyApplicationComponent attachments', () => {
@@ -75,6 +76,49 @@ describe('SubsidyApplicationComponent attachments', () => {
     expect(component.saving).toBeFalse();
     expect(dialogRef.disableClose).toBeFalse();
     expect(component.saveError).toBe('建立失敗');
+  });
+
+  it('shows a safe fallback when create rejects with a non-Error value', () => {
+    const service = {
+      typeList: [],
+      create: jasmine.createSpy().and.returnValue(throwError(() => 'firebase-rejected')),
+    };
+    const component = new SubsidyApplicationComponent(
+      { close: jasmine.createSpy(), disableClose: false } as any,
+      service as any,
+      { list$: of([]), currentUser$: of(null) } as any,
+      { title: 'new' }
+    );
+    component.currentUser = { uid: 'owner', role: 'user' } as any;
+    component.subsidyForm.patchValue({ type: 1, userId: 'owner', applicationDate: new Date() });
+
+    component.onSubmit();
+
+    expect(component.saveError).toBe('操作失敗，請重試。');
+  });
+
+  it('shows a safe fallback when update rejects with a non-Error value', () => {
+    const service = {
+      typeList: [],
+      update: jasmine.createSpy().and.returnValue(throwError(() => ({ code: 'firebase-rejected' }))),
+    };
+    const application = {
+      id: 'application-1', userId: 'owner', status: 'pending' as const, attachments: [],
+      type: 1, applicationDate: Timestamp.now(), createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+    };
+    const component = new SubsidyApplicationComponent(
+      { close: jasmine.createSpy(), disableClose: false } as any,
+      service as any,
+      { list$: of([]), currentUser$: of(null) } as any,
+      { title: 'edit', application }
+    );
+    component.currentUser = { uid: 'owner', role: 'user' } as any;
+    component.subsidyForm.patchValue({ type: 1, userId: 'owner', applicationDate: new Date() });
+
+    component.onSubmit();
+
+    expect(service.update).toHaveBeenCalled();
+    expect(component.saveError).toBe('操作失敗，請重試。');
   });
 
   it('shows a clear error when authentication expires before submit', () => {
