@@ -17,4 +17,20 @@ describe('attachment formatting', () => {
     expect(getAttachmentAuditContentLabel('legacy', '更新')).toBe('legacy');
     expect(getAttachmentAuditContentLabel('{invalid', '刪除附件')).toBe('{invalid');
   });
+
+  it('returns an empty string for missing content or an empty attachment list', () => {
+    expect(getAttachmentAuditContentLabel(undefined, '新增附件')).toBe('');
+    expect(getAttachmentAuditContentLabel('{"attachments":[]}', '新增附件')).toBe('');
+  });
+
+  it('omits malformed attachment items without rendering undefined or NaN', () => {
+    const content = JSON.stringify({
+      attachments: [null, {}, { originalName: '缺少大小.pdf' }, { originalName: '合法.pdf', size: 524288 }],
+    });
+
+    const result = getAttachmentAuditContentLabel(content, '刪除附件');
+    expect(result).toBe('合法.pdf（0.50 MiB）');
+    expect(result).not.toContain('undefined');
+    expect(result).not.toContain('NaN');
+  });
 });
