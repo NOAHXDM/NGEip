@@ -8,10 +8,16 @@ export function getAttachmentAuditContentLabel(content: string | undefined, acti
   if (!content || !ATTACHMENT_AUDIT_ACTIONS.includes(action)) return content ?? '';
 
   try {
-    const items = JSON.parse(content).attachments;
+    const items: unknown = JSON.parse(content).attachments;
     if (!Array.isArray(items)) return content;
     return items
-      .map((item) => `${item.originalName}（${formatAttachmentSize(item.size)}）`)
+      .map((item: unknown) => {
+        if (typeof item !== 'object' || item === null) return '';
+        const { originalName, size } = item as Record<string, unknown>;
+        if (typeof originalName !== 'string' || typeof size !== 'number' || !Number.isFinite(size)) return '';
+        return `${originalName}（${formatAttachmentSize(size)}）`;
+      })
+      .filter(Boolean)
       .join('、');
   } catch {
     return content;

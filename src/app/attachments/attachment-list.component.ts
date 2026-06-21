@@ -28,9 +28,7 @@ export class AttachmentListComponent {
 
   constructor(private readonly dialog: MatDialog) {}
 
-  formatSize(bytes: number): string {
-    return formatAttachmentSize(bytes);
-  }
+  readonly formatSize = formatAttachmentSize;
 
   async onSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
