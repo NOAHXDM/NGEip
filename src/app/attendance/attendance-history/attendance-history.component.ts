@@ -13,6 +13,7 @@ import { Observable } from 'rxjs';
 import { AttendanceService } from '../../services/attendance.service';
 import { FirestoreTimestampPipe } from '../../pipes/firestore-timestamp.pipe';
 import { UserNamePipe } from '../../pipes/user-name.pipe';
+import { getAttachmentAuditContentLabel } from '../../utils/attachment-format';
 
 @Component({
   selector: 'app-attendance-history',
@@ -56,13 +57,6 @@ export class AttendanceHistoryComponent {
   }
 
   getContentLabel(content: string | undefined, action: string): string {
-    if (!content || !['新增附件', '刪除附件'].includes(action)) return content ?? '';
-    try {
-      const items = JSON.parse(content).attachments;
-      if (!Array.isArray(items)) return content;
-      return items.map((item) => `${item.originalName}（${this.formatSize(item.size)}）`).join('、');
-    } catch { return content; }
+    return getAttachmentAuditContentLabel(content, action);
   }
-
-  private formatSize(bytes: number): string { return `${(bytes / 1024 / 1024).toFixed(2)} MiB`; }
 }

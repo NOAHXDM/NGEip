@@ -14,6 +14,7 @@ import { SubsidyAuditTrail, SubsidyService } from '../../services/subsidy.servic
 import { FirestoreTimestampPipe } from '../../pipes/firestore-timestamp.pipe';
 import { UserNamePipe } from '../../pipes/user-name.pipe';
 import { SubsidyStatusPipe } from '../../pipes/subsidy-status.pipe';
+import { getAttachmentAuditContentLabel } from '../../utils/attachment-format';
 
 @Component({
   selector: 'app-subsidy-history',
@@ -64,11 +65,6 @@ export class SubsidyHistoryComponent {
   }
 
   getContentLabel(content: string | undefined, action: string): string {
-    if (!content || !['新增附件', '刪除附件'].includes(action)) return content ?? '';
-    try {
-      const items = JSON.parse(content).attachments;
-      if (!Array.isArray(items)) return content;
-      return items.map((item) => `${item.originalName}（${(item.size / 1024 / 1024).toFixed(2)} MiB）`).join('、');
-    } catch { return content; }
+    return getAttachmentAuditContentLabel(content, action);
   }
 }

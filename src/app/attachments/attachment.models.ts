@@ -47,7 +47,7 @@ export interface AttachmentUploadContext {
 }
 
 export interface PreparedAttachmentBatch {
-  sessionId: string;
+  sessionId: string | null;
   attachments: AttachmentMetadata[];
 }
 

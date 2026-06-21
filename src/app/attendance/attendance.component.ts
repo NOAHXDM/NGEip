@@ -235,7 +235,7 @@ export class AttendanceComponent implements OnInit {
           error: (error) => {
             this.saving = false;
             this.dialogRef.disableClose = false;
-            this.saveError = error.message;
+            this.saveError = error instanceof Error ? error.message : '操作失敗，請重試。';
           },
         });
     } else {
@@ -258,7 +258,7 @@ export class AttendanceComponent implements OnInit {
           error: (error) => {
             this.saving = false;
             this.dialogRef.disableClose = false;
-            this.saveError = error.message;
+            this.saveError = error instanceof Error ? error.message : '操作失敗，請重試。';
           },
         });
     }
