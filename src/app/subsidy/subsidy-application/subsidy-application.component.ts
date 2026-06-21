@@ -274,7 +274,7 @@ export class SubsidyApplicationComponent implements OnInit {
             console.error('更新失敗：', error);
             this.saving = false;
             this.dialogRef.disableClose = false;
-            this.saveError = error.message;
+            this.saveError = error instanceof Error ? error.message : '操作失敗，請重試。';
           },
         });
     } else {
@@ -292,7 +292,7 @@ export class SubsidyApplicationComponent implements OnInit {
             console.error('建立失敗：', error);
             this.saving = false;
             this.dialogRef.disableClose = false;
-            this.saveError = error.message;
+            this.saveError = error instanceof Error ? error.message : '操作失敗，請重試。';
           },
         });
     }

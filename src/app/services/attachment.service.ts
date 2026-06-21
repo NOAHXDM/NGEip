@@ -105,7 +105,9 @@ export class AttachmentService {
       });
       if (prepared.attachments.length) {
         batch.set(doc(collection(requestRef, 'auditTrail')), this.audit('新增附件', options.actorUid, prepared.attachments));
-        batch.delete(doc(this.firestore, 'requestAttachmentUploadSessions', prepared.sessionId));
+        if (prepared.sessionId) {
+          batch.delete(doc(this.firestore, 'requestAttachmentUploadSessions', prepared.sessionId));
+        }
       }
       await batch.commit();
       return requestRef.id;
@@ -145,7 +147,9 @@ export class AttachmentService {
         }
         if (preparedBatch.attachments.length) {
           transaction.set(doc(collection(requestRef, 'auditTrail')), this.audit('新增附件', options.actorUid, preparedBatch.attachments));
-          transaction.delete(doc(this.firestore, 'requestAttachmentUploadSessions', preparedBatch.sessionId));
+          if (preparedBatch.sessionId) {
+            transaction.delete(doc(this.firestore, 'requestAttachmentUploadSessions', preparedBatch.sessionId));
+          }
         }
         if (removedItems.length) {
           transaction.set(doc(collection(requestRef, 'auditTrail')), this.audit('刪除附件', options.actorUid, removedItems));
@@ -178,7 +182,7 @@ export class AttachmentService {
     actorUid: string,
     files: readonly File[]
   ): Promise<PreparedAttachmentBatch> {
-    if (!files.length) return { sessionId: '', attachments: [] };
+    if (!files.length) return { sessionId: null, attachments: [] };
     if (files.length > MAX_ATTACHMENT_COUNT) throw new Error('too-many-files');
     for (const file of files) {
       const validationError = await validateAttachmentFile(file);

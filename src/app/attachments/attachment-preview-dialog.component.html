@@ -1,4 +1,7 @@
-<h2 mat-dialog-title>{{ name }}</h2>
+<div class="dialog-title" mat-dialog-title>
+  <h2>{{ name }}</h2>
+  <button type="button" mat-button mat-dialog-close aria-label="關閉附件預覽">關閉</button>
+</div>
 <mat-dialog-content>
   @if (loading) { <mat-spinner diameter="36"></mat-spinner> }
   @if (error) {
