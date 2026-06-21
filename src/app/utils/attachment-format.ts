@@ -8,7 +8,9 @@ export function getAttachmentAuditContentLabel(content: string | undefined, acti
   if (!content || !ATTACHMENT_AUDIT_ACTIONS.includes(action)) return content ?? '';
 
   try {
-    const items: unknown = JSON.parse(content).attachments;
+    const parsed: unknown = JSON.parse(content);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return content;
+    const items: unknown = (parsed as Record<string, unknown>)['attachments'];
     if (!Array.isArray(items)) return content;
     return items
       .map((item: unknown) => {
