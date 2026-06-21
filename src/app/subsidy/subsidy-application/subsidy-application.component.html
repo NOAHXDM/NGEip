@@ -114,6 +114,15 @@
         }
       </mat-form-field>
     }
+    <app-attachment-list
+      [attachments]="visibleAttachments"
+      [pendingFiles]="pendingFiles"
+      [canManage]="canManageAttachments"
+      (filesSelected)="addFiles($event)"
+      (pendingFileRemoved)="removePending($event)"
+      (existingAttachmentRemoved)="removeExisting($event)"
+    />
+    @if (saveError) { <p class="text-danger" role="alert">{{ saveError }}</p> }
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
@@ -122,7 +131,7 @@
     mat-raised-button
     color="primary"
     (click)="onSubmit()"
-    [disabled]="subsidyForm.invalid"
+    [disabled]="subsidyForm.invalid || saving"
   >
     送出
   </button>

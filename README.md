@@ -35,6 +35,7 @@ Firebase Authentication、Cloud Firestore、Firebase Storage 與 Firebase Hostin
 - 員工出勤紀錄、審核與統計
 - 請假規則、餘額與異動管理
 - 補助申請、審核與統計
+- Attendance 與 subsidy 多檔附件、畫面內預覽、異動稽核與孤兒檔治理
 - 系統設定與 Firebase Emulator 本地開發流程
 
 ### Training + AI Tool 補助額度
@@ -44,6 +45,15 @@ Firebase Authentication、Cloud Firestore、Firebase Storage 與 Firebase Hostin
 - 額度只計入該週年期間內狀態為 `approved` 的 `approvedAmount`；pending 與 rejected 申請不占用額度。
 - 個人資料的「補助上限」僅顯示一張「Training + AI Tool」卡片，以雙色區分兩類已使用金額。
 - 共用剩餘額度公式為 `max(0, 24,000 − Training 已核准金額 − AI Tool 已核准金額)`。
+
+### 申請附件
+
+- Attendance 與 subsidy 新增／編輯表單可選填附件，每筆申請最多 5 個，每檔最多 3 MiB（`3 × 1024 × 1024 bytes`）。
+- 僅接受 PDF、JPEG、PNG、WebP；client 會同時檢查副檔名、MIME 與 magic bytes。
+- 所有已登入使用者可在既有表單與審核狀態 dialog 內預覽圖片及 PDF；列表不新增獨立附件入口。
+- 申請人僅能管理自己 pending 申請的附件；管理員可在既有可開啟的表單中處理任意狀態。Subsidy list 不新增 approved／rejected 的任意編輯入口。
+- 替換附件時先上傳新檔再標記移除舊檔；最終仍須不超過 5 個。新檔上傳或 transaction 失敗時，舊檔與原 metadata 保持不變。
+- 每次新增／刪除都記錄實際操作者。實體檔必須由 parent request、upload session 或 cleanup queue 持有，並可用 `npm run audit:request-attachments` 進行 dry-run 稽核。
 
 ## 技術堆疊
 
@@ -82,6 +92,7 @@ npm start
 
 - Firebase Auth Emulator：`http://localhost:9099`
 - Firestore Emulator：`http://localhost:8080`
+- Storage Emulator：`http://localhost:9199`
 
 常用指令：
 
@@ -89,6 +100,9 @@ npm start
 npm run build      # 正式環境建置至 dist/angular-eip
 npm run watch      # 開發模式建置並監聽變更
 npm test           # 執行單元測試
+npm run test:attachment-rules       # 執行附件 Firestore／Storage Rules 矩陣
+npm run test:attachment-audit       # 執行附件孤兒分類測試
+npm run audit:request-attachments   # 正式資料 dry-run（需 Admin SDK 憑證）
 npm run deploy     # 建置並部署至 Firebase（使用 firebase.prod.json）
 ```
 
@@ -107,6 +121,8 @@ npm run deploy     # 建置並部署至 Firebase（使用 firebase.prod.json）
 
 - 系統資料統一使用 Cloud Firestore
 - 不可使用 Firebase Realtime Database
+- 私有申請附件儲存在 `request-attachments/{kind}/{requestId}/{sessionId}/{attachmentId}`，正式 metadata 隨 attendance/subsidy parent 文件保存。
+- 附件上傳、替換與清理須透過 upload session／cleanup queue 維持 reference；不得產生無 parent、session 或 queue 的實體檔。
 - 新增資料模型時，必須在 `plan.md` 說明：
   - 集合與文件結構
   - 查詢路徑與索引需求
@@ -146,6 +162,7 @@ npm run deploy     # 建置並部署至 Firebase（使用 firebase.prod.json）
 2. Firestore Security Rules 與索引已同步更新
 3. 正式環境設定檔（例如 `firebase.prod.json`）已配置完成
 4. 測試通過，且未引入違反憲章的新依賴或新後端服務
+5. `storage.cors.json` 已套用至正式 bucket；Firebase deploy 不會自動更新 bucket CORS
 
 ## 遺留注意事項
 

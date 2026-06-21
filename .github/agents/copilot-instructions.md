@@ -1,6 +1,6 @@
 # NGEip Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-03-17
+Auto-generated from all feature plans. Last updated: 2026-06-19
 
 ## Active Technologies
 

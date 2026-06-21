@@ -28,7 +28,7 @@
           }
           @if (trail.content) {
             <div class="alert alert-light mt-2">
-              <small>{{ trail.content }}</small>
+              <small>{{ getContentLabel(trail.content, trail.action) }}</small>
             </div>
           }
           <p class="text-end text-muted mb-0">

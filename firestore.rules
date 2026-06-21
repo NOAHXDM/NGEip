@@ -50,8 +50,67 @@ service cloud.firestore {
         'maxUsers' in request.resource.data ? isAdmin() : true
     }
 
-    match /attendanceLogs/{document=**} {
-      allow read, write, update: if true;
+    function validAttachmentCount(data) {
+      return !('attachments' in data) || (data.attachments is list && data.attachments.size() <= 5);
+    }
+
+    function validAttendanceAuditAction(action) {
+      return action in ['create', 'update', '建立', '更新', '新增附件', '刪除附件'];
+    }
+
+    function validSubsidyAuditAction(action) {
+      return action in ['create', 'update', 'status_change', '建立', '更新', '狀態變更', '新增附件', '刪除附件'];
+    }
+
+    function validUploadSessionParent(data) {
+      return (data.requestKind == 'attendance'
+          && (!exists(/databases/$(database)/documents/attendanceLogs/$(data.requestId))
+            || (data.ownerUid == get(/databases/$(database)/documents/attendanceLogs/$(data.requestId)).data.userId
+              && (isAdmin()
+                || (data.ownerUid == request.auth.uid
+                  && get(/databases/$(database)/documents/attendanceLogs/$(data.requestId)).data.status == 'pending')))))
+        || (data.requestKind == 'subsidy'
+          && (!exists(/databases/$(database)/documents/subsidyApplications/$(data.requestId))
+            || (data.ownerUid == get(/databases/$(database)/documents/subsidyApplications/$(data.requestId)).data.userId
+              && (isAdmin()
+                || (data.ownerUid == request.auth.uid
+                  && get(/databases/$(database)/documents/subsidyApplications/$(data.requestId)).data.status == 'pending')))));
+    }
+
+    function validCleanupTransfer(data, attachmentId) {
+      return data.attachment.id == attachmentId
+        && ((data.requestKind == 'attendance'
+          && data.ownerUid == get(/databases/$(database)/documents/attendanceLogs/$(data.requestId)).data.userId
+          && get(/databases/$(database)/documents/attendanceLogs/$(data.requestId)).data.attachments.hasAny([data.attachment])
+          && !getAfter(/databases/$(database)/documents/attendanceLogs/$(data.requestId)).data.attachments.hasAny([data.attachment]))
+        || (data.requestKind == 'subsidy'
+          && data.ownerUid == get(/databases/$(database)/documents/subsidyApplications/$(data.requestId)).data.userId
+          && get(/databases/$(database)/documents/subsidyApplications/$(data.requestId)).data.attachments.hasAny([data.attachment])
+          && !getAfter(/databases/$(database)/documents/subsidyApplications/$(data.requestId)).data.attachments.hasAny([data.attachment])));
+    }
+
+    match /attendanceLogs/{attendanceId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && validAttachmentCount(request.resource.data)
+        && (!('attachments' in request.resource.data) || request.resource.data.attachments.size() == 0
+          || request.resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && validAttachmentCount(request.resource.data)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['attachments'])
+          || isAdmin()
+          || (resource.data.userId == request.auth.uid && resource.data.status == 'pending'
+            && request.resource.data.userId == resource.data.userId
+            && request.resource.data.status == resource.data.status));
+      allow delete: if isAdmin();
+
+      match /auditTrail/{auditId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && request.resource.data.actionBy == request.auth.uid
+          && validAttendanceAuditAction(request.resource.data.action)
+          && (!(request.resource.data.action in ['新增附件', '刪除附件']) || isAdmin()
+            || (getAfter(/databases/$(database)/documents/attendanceLogs/$(attendanceId)).data.userId == request.auth.uid
+              && getAfter(/databases/$(database)/documents/attendanceLogs/$(attendanceId)).data.status == 'pending'));
+        allow update, delete: if false;
+      }
     }
 
     match /attendanceStats/{document=**} {
@@ -61,12 +120,16 @@ service cloud.firestore {
     // 統一補助申請集合
     match /subsidyApplications/{applicationId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn();
+      allow create: if isSignedIn() && validAttachmentCount(request.resource.data)
+        && (!('attachments' in request.resource.data) || request.resource.data.attachments.size() == 0
+          || request.resource.data.userId == request.auth.uid || isAdmin());
       allow update: if isSignedIn() && (
         isAdmin() ||
         (resource.data.userId == request.auth.uid &&
-         resource.data.status == 'pending')
-      );
+         resource.data.status == 'pending' &&
+         request.resource.data.userId == resource.data.userId &&
+         request.resource.data.status == resource.data.status)
+      ) && validAttachmentCount(request.resource.data);
       allow delete: if isAdmin();
 
       // 筆電分期子集合
@@ -78,8 +141,46 @@ service cloud.firestore {
       // 稽核軌跡子集合
       match /auditTrail/{auditId} {
         allow read: if isSignedIn();
-        allow create: if isSignedIn();
+        allow create: if isSignedIn() && request.resource.data.actionBy == request.auth.uid
+          && validSubsidyAuditAction(request.resource.data.action)
+          && (!(request.resource.data.action in ['新增附件', '刪除附件']) || isAdmin()
+            || (getAfter(/databases/$(database)/documents/subsidyApplications/$(applicationId)).data.userId == request.auth.uid
+              && getAfter(/databases/$(database)/documents/subsidyApplications/$(applicationId)).data.status == 'pending'));
+        allow update, delete: if false;
       }
+    }
+
+    match /requestAttachmentUploadSessions/{sessionId} {
+      allow create: if isSignedIn()
+        && request.resource.data.actorUid == request.auth.uid
+        && (request.resource.data.ownerUid == request.auth.uid || isAdmin())
+        && validUploadSessionParent(request.resource.data)
+        && request.resource.data.status == 'uploading'
+        && request.resource.data.plannedAttachments is list
+        && request.resource.data.plannedAttachments.size() > 0
+        && request.resource.data.plannedAttachments.size() <= 5
+        && request.resource.data.plannedPaths is list
+        && request.resource.data.plannedPaths.size() == request.resource.data.plannedAttachments.size();
+      allow get, delete: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin());
+      allow list: if isAdmin();
+      allow update: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin())
+        && resource.data.status == 'uploading'
+        && request.resource.data.actorUid == resource.data.actorUid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.requestId == resource.data.requestId
+        && request.resource.data.status == 'cleanup-pending'
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'updatedAt', 'lastErrorCode']);
+    }
+
+    match /requestAttachmentCleanupQueue/{attachmentId} {
+      allow create: if isSignedIn() && request.resource.data.actorUid == request.auth.uid
+        && validCleanupTransfer(request.resource.data, attachmentId);
+      allow get, delete: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin())
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['attemptCount', 'lastAttemptAt', 'lastErrorCode']);
+      allow list: if isAdmin();
     }
 
     // 供餐補助集合（原始資料）

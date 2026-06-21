@@ -54,4 +54,15 @@ export class AttendanceHistoryComponent {
   getActionLabel(action: string): string {
     return this.actionLabelMap[action] ?? action;
   }
+
+  getContentLabel(content: string | undefined, action: string): string {
+    if (!content || !['新增附件', '刪除附件'].includes(action)) return content ?? '';
+    try {
+      const items = JSON.parse(content).attachments;
+      if (!Array.isArray(items)) return content;
+      return items.map((item) => `${item.originalName}（${this.formatSize(item.size)}）`).join('、');
+    } catch { return content; }
+  }
+
+  private formatSize(bytes: number): string { return `${(bytes / 1024 / 1024).toFixed(2)} MiB`; }
 }

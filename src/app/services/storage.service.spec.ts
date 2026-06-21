@@ -75,4 +75,46 @@ describe('StorageService', () => {
 
     await expectAsync(firstValueFrom(service.deleteAvatar('u1'))).toBeRejected();
   });
+
+  it('attachmentPath 應包含 kind、request、session 與 attachment id', () => {
+    expect(service.attachmentPath('attendance', 'r1', 's1', 'a1')).toBe(
+      'request-attachments/attendance/r1/s1/a1'
+    );
+  });
+
+  it('uploadAttachment 應帶齊可稽核且可由 Rules 核對的 metadata', async () => {
+    const fakeRef = {} as any;
+    spyOn<any>(service, 'storageRef').and.returnValue(fakeRef);
+    const uploadSpy = spyOn<any>(service, 'storageUploadBytes').and.resolveTo({});
+    const file = new File(['%PDF-'], 'proof.pdf', { type: 'application/pdf' });
+    const attachment = {
+      id: 'a1', storagePath: 'request-attachments/attendance/r1/s1/a1', originalName: 'proof.pdf',
+      contentType: 'application/pdf' as const, size: file.size, uploadedBy: 'actor', uploadedAt: {} as any,
+    };
+
+    await firstValueFrom(service.uploadAttachment(attachment, file, {
+      requestKind: 'attendance', requestId: 'r1', ownerUid: 'owner',
+    }));
+
+    expect(uploadSpy).toHaveBeenCalledWith(fakeRef, file, {
+      contentType: 'application/pdf',
+      cacheControl: 'private,max-age=3600',
+      customMetadata: {
+        requestKind: 'attendance', requestId: 'r1', attachmentId: 'a1', ownerUid: 'owner', uploadedBy: 'actor',
+      },
+    });
+  });
+
+  it('getAttachmentBlob 應限制最大下載為 3 MiB', async () => {
+    const fakeRef = {} as any;
+    spyOn<any>(service, 'storageRef').and.returnValue(fakeRef);
+    const blob = new Blob(['x']);
+    const getBlobSpy = spyOn<any>(service, 'storageGetBlob').and.resolveTo(blob);
+    const result = await firstValueFrom(service.getAttachmentBlob({
+      id: 'a1', storagePath: 'p', originalName: 'a.pdf', contentType: 'application/pdf',
+      size: 1, uploadedBy: 'u1', uploadedAt: {} as any,
+    }));
+    expect(result).toBe(blob);
+    expect(getBlobSpy).toHaveBeenCalledWith(fakeRef, 3 * 1024 * 1024);
+  });
 });
