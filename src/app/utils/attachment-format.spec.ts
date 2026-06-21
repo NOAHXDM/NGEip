@@ -33,4 +33,10 @@ describe('attachment formatting', () => {
     expect(result).not.toContain('undefined');
     expect(result).not.toContain('NaN');
   });
+
+  it('preserves JSON whose root is null, an array, or another non-object value', () => {
+    expect(getAttachmentAuditContentLabel('null', '新增附件')).toBe('null');
+    expect(getAttachmentAuditContentLabel('[]', '新增附件')).toBe('[]');
+    expect(getAttachmentAuditContentLabel('"legacy"', '新增附件')).toBe('"legacy"');
+  });
 });
