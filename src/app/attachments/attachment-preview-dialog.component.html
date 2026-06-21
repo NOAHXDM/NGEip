@@ -1,0 +1,15 @@
+<h2 mat-dialog-title>{{ name }}</h2>
+<mat-dialog-content>
+  @if (loading) { <mat-spinner diameter="36"></mat-spinner> }
+  @if (error) {
+    <p class="error" role="alert">{{ error }}</p>
+    <button type="button" (click)="load()">重試</button>
+  }
+  @if (safeUrl && isImage) {
+    <img [src]="safeUrl" [alt]="name" />
+  } @else if (safeUrl) {
+    <object [data]="safeUrl" type="application/pdf">
+      <a [href]="objectUrl" target="_blank" rel="noopener">另開附件</a>
+    </object>
+  }
+</mat-dialog-content>

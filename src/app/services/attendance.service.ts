@@ -22,6 +22,8 @@ import { from, Observable, of, shareReplay, switchMap } from 'rxjs';
 
 import { User } from './user.service';
 import { TimezoneService } from './timezone.service';
+import { AttachmentService } from './attachment.service';
+import { AttachmentMetadata } from '../attachments/attachment.models';
 
 @Injectable({
   providedIn: 'root',
@@ -29,6 +31,7 @@ import { TimezoneService } from './timezone.service';
 export class AttendanceService {
   readonly firestore: Firestore = inject(Firestore);
   readonly timezoneService = inject(TimezoneService);
+  private readonly attachmentService = inject(AttachmentService);
   readonly typeList = Object.keys(AttendanceType)
     .filter((key) => isNaN(Number(key)))
     .map((key) => {
@@ -50,46 +53,45 @@ export class AttendanceService {
   readonly getCurrentMonth = this._getCurrentMonth().pipe(shareReplay(1));
   readonly getPreviousMonth = this._getPreviousMonth().pipe(shareReplay(1));
 
-  create(formValue: any, actionBy: string) {
+  create(formValue: any, actionBy: string, files: readonly File[] = []) {
     const data = {
       ...formValue,
       startDateTime: this.timezoneService.convertTimestampByClientTimezone(formValue.startDateTime),
       endDateTime: this.timezoneService.convertTimestampByClientTimezone(formValue.endDateTime),
     };
 
-    const auditTrail: AttendanceLogAuditTrail = {
-      action: '建立',
-      actionBy: actionBy,
-      actionDateTime: serverTimestamp(),
-    };
-
-    return from(
-      addDoc(collection(this.firestore, 'attendanceLogs'), data)
-    ).pipe(switchMap((docRef) => this.addAuditTrail(docRef, auditTrail)));
+    return this.attachmentService.createRequest({
+      kind: 'attendance', collectionName: 'attendanceLogs', data,
+      actorUid: actionBy, files,
+    });
   }
 
-  update(formValue: any, originValue: any, actionBy: string): Observable<any> {
+  update(
+    formValue: any,
+    originValue: any,
+    actionBy: string,
+    files: File[] = [],
+    removedAttachmentIds: string[] = []
+  ): Observable<any> {
     const data = {
       ...formValue,
       startDateTime: this.timezoneService.convertTimestampByClientTimezone(formValue.startDateTime),
       endDateTime: this.timezoneService.convertTimestampByClientTimezone(formValue.endDateTime),
     };
     const diff = this.diff(data, originValue);
-    if (!diff) {
+    if (!diff && !files.length && !removedAttachmentIds.length) {
       return of(null);
     }
-
-    const auditTrail: AttendanceLogAuditTrail = {
-      action: '更新',
-      actionBy: actionBy,
-      actionDateTime: serverTimestamp(),
-      content: this.maskCotent(diff),
-    };
-
-    const docRef = doc(this.firestore, 'attendanceLogs', originValue.id);
-    return from(updateDoc(docRef, diff)).pipe(
-      switchMap(() => this.addAuditTrail(docRef, auditTrail))
-    );
+    // 只有附件異動時仍需進入 transaction；空 patch 只寫 attachments、updatedAt 與附件專屬 audit。
+    return this.attachmentService.updateRequest({
+      kind: 'attendance', collectionName: 'attendanceLogs', requestId: originValue.id,
+      patch: diff ?? {}, ownerUid: originValue.userId, actorUid: actionBy,
+      changes: {
+        existingAttachmentIds: (originValue.attachments ?? []).map((attachment: AttachmentMetadata) => attachment.id),
+        newFiles: files,
+        removedAttachmentIds,
+      },
+    });
   }
 
   updateStatus(
@@ -317,6 +319,7 @@ export interface AttendanceLog {
   status: 'pending' | 'approved' | 'rejected';
   type: AttendanceType;
   userId: string;
+  attachments?: AttachmentMetadata[];
 }
 
 export enum AttendanceType {

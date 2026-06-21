@@ -7,11 +7,18 @@ import {
   ref,
   uploadBytes,
   getDownloadURL,
+  getBlob,
   deleteObject,
 } from '@angular/fire/storage';
 import { from, Observable } from 'rxjs';
 
 import { resizeImage, ResizeOptions } from '../utils/image-resize';
+import {
+  AttachmentMetadata,
+  AttachmentUploadContext,
+  MAX_ATTACHMENT_BYTES,
+  RequestKind,
+} from '../attachments/attachment.models';
 
 /**
  * 集中所有 Firebase Storage 存取的服務層（憲章：Firebase 存取集中於可測試的服務）。
@@ -35,6 +42,48 @@ export class StorageService {
   /** 取得指定使用者頭像的確定性 Storage 路徑。 */
   avatarPath(uid: string): string {
     return `avatars/${uid}/avatar.webp`;
+  }
+
+  attachmentPath(kind: RequestKind, requestId: string, sessionId: string, attachmentId: string): string {
+    return `request-attachments/${kind}/${requestId}/${sessionId}/${attachmentId}`;
+  }
+
+  uploadAttachment(
+    metadata: AttachmentMetadata,
+    file: File,
+    context: AttachmentUploadContext
+  ): Observable<void> {
+    const storageRef = this.storageRef(metadata.storagePath);
+    return from(
+      this.storageUploadBytes(storageRef, file, {
+        contentType: metadata.contentType,
+        cacheControl: 'private,max-age=3600',
+        customMetadata: {
+          requestKind: context.requestKind,
+          requestId: context.requestId,
+          attachmentId: metadata.id,
+          ownerUid: context.ownerUid,
+          uploadedBy: metadata.uploadedBy,
+        },
+      }).then(() => void 0)
+    );
+  }
+
+  getAttachmentBlob(metadata: AttachmentMetadata): Observable<Blob> {
+    return from(this.storageGetBlob(this.storageRef(metadata.storagePath), MAX_ATTACHMENT_BYTES));
+  }
+
+  deleteAttachment(storagePath: string): Observable<void> {
+    return from(this.deleteAttachmentAsync(storagePath));
+  }
+
+  private async deleteAttachmentAsync(storagePath: string): Promise<void> {
+    try {
+      await this.storageDeleteObject(this.storageRef(storagePath));
+    } catch (error: unknown) {
+      if (typeof error === 'object' && error !== null && (error as { code?: string }).code === 'storage/object-not-found') return;
+      throw error;
+    }
   }
 
   /**
@@ -110,6 +159,10 @@ export class StorageService {
 
   protected storageGetDownloadURL(storageRef: StorageReference): Promise<string> {
     return getDownloadURL(storageRef);
+  }
+
+  protected storageGetBlob(storageRef: StorageReference, maxDownloadSizeBytes: number): Promise<Blob> {
+    return getBlob(storageRef, maxDownloadSizeBytes);
   }
 
   protected storageDeleteObject(storageRef: StorageReference): Promise<void> {

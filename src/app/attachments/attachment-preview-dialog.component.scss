@@ -1,0 +1,5 @@
+mat-dialog-content { width: min(80vw, 720px); min-height: 240px; }
+img, object { display: block; width: 100%; max-height: 75vh; object-fit: contain; }
+object { height: 70vh; }
+.error { color: #b3261e; }
+@media (max-width: 600px) { mat-dialog-content { width: 100%; } object { height: 60vh; } }

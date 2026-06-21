@@ -25,6 +25,70 @@ service firebase.storage {
         && (request.auth.uid == uid || isAdmin());
     }
 
+    function isAllowedAttachmentType() {
+      return request.resource.contentType == 'application/pdf'
+        || request.resource.contentType == 'image/jpeg'
+        || request.resource.contentType == 'image/png'
+        || request.resource.contentType == 'image/webp';
+    }
+
+    function hasValidUploadSession(kind, requestId, sessionId, attachmentId) {
+      let session = firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data;
+      return session.status == 'uploading'
+        && session.actorUid == request.auth.uid
+        && session.requestKind == kind
+        && session.requestId == requestId
+        && request.resource.metadata.ownerUid == session.ownerUid
+        && session.plannedPaths.hasAny([
+          'request-attachments/' + kind + '/' + requestId + '/' + sessionId + '/' + attachmentId
+        ]);
+    }
+
+    function ownsUploadSessionPath(kind, requestId, sessionId, attachmentId) {
+      let session = firestore.get(/databases/(default)/documents/requestAttachmentUploadSessions/$(sessionId)).data;
+      return session.actorUid == request.auth.uid
+        && session.status in ['uploading', 'cleanup-pending']
+        && session.requestKind == kind
+        && session.requestId == requestId
+        && resource.metadata.ownerUid == session.ownerUid
+        && session.plannedPaths.hasAny([
+          'request-attachments/' + kind + '/' + requestId + '/' + sessionId + '/' + attachmentId
+        ]);
+    }
+
+    function hasCleanupOwnership(attachmentId) {
+      let queuePath = /databases/(default)/documents/requestAttachmentCleanupQueue/$(attachmentId);
+      // exists 先防止缺失 queue 對 get(...).data 產生 runtime error；相同文件的存取可由 Rules runtime 快取。
+      return firestore.exists(queuePath)
+        && 'actorUid' in firestore.get(queuePath).data
+        && firestore.get(queuePath).data.actorUid == request.auth.uid;
+    }
+
+    match /request-attachments/{kind}/{requestId}/{sessionId}/{attachmentId} {
+      allow get: if request.auth != null;
+      allow list: if false;
+
+      allow create: if resource == null
+        && request.auth != null
+        && (kind == 'attendance' || kind == 'subsidy')
+        && request.resource.size > 0
+        && request.resource.size <= 3 * 1024 * 1024
+        && isAllowedAttachmentType()
+        && request.resource.metadata.requestKind == kind
+        && request.resource.metadata.requestId == requestId
+        && request.resource.metadata.attachmentId == attachmentId
+        && request.resource.metadata.uploadedBy == request.auth.uid
+        && hasValidUploadSession(kind, requestId, sessionId, attachmentId);
+
+      allow update: if false;
+
+      allow delete: if request.auth != null && (
+        isAdmin()
+        || ownsUploadSessionPath(kind, requestId, sessionId, attachmentId)
+        || hasCleanupOwnership(attachmentId)
+      );
+    }
+
     // 其餘路徑一律拒絕
     match /{allPaths=**} {
       allow read, write: if false;

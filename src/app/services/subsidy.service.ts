@@ -17,6 +17,8 @@ import {
   where,
 } from '@angular/fire/firestore';
 import { from, Observable, of, switchMap } from 'rxjs';
+import { AttachmentService } from './attachment.service';
+import { AttachmentMetadata } from '../attachments/attachment.models';
 
 export interface SelectOption {
   text: string;
@@ -28,6 +30,7 @@ export interface SelectOption {
 })
 export class SubsidyService {
   readonly firestore: Firestore = inject(Firestore);
+  private readonly attachmentService = inject(AttachmentService);
 
   // 補助類型顯示名稱對應
   private readonly typeNameMap: Record<SubsidyType, string> = {
@@ -48,45 +51,42 @@ export class SubsidyService {
       } as SelectOption;
     });
 
-  create(formValue: any) {
+  create(formValue: any, actorUid: string, files: readonly File[] = []) {
     const data = {
       ...formValue,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
 
-    const auditTrail: SubsidyAuditTrail = {
-      action: '建立',
-      actionBy: formValue.userId,
-      actionDateTime: serverTimestamp(),
-    };
-
-    return from(
-      addDoc(collection(this.firestore, 'subsidyApplications'), data)
-    ).pipe(switchMap((docRef) => this.addAuditTrail(docRef, auditTrail)));
+    return this.attachmentService.createRequest({
+      kind: 'subsidy', collectionName: 'subsidyApplications', data,
+      actorUid, files,
+    });
   }
 
-  update(formValue: any, originValue: any): Observable<any> {
-    const data = {
-      ...formValue,
-      updatedAt: serverTimestamp(),
-    };
+  update(
+    formValue: any,
+    originValue: any,
+    actorUid: string,
+    files: File[] = [],
+    removedAttachmentIds: string[] = []
+  ): Observable<any> {
+    // updatedAt 由 AttachmentService 在同一 transaction 統一寫入，不納入業務欄位 diff。
+    const data = { ...formValue };
     const diff = this.diff(data, originValue);
-    if (!diff) {
+    if (!diff && !files.length && !removedAttachmentIds.length) {
       return of(null);
     }
-
-    const auditTrail: SubsidyAuditTrail = {
-      action: '更新',
-      actionBy: formValue.userId,
-      actionDateTime: serverTimestamp(),
-      content: JSON.stringify(diff),
-    };
-
-    const docRef = doc(this.firestore, 'subsidyApplications', originValue.id);
-    return from(updateDoc(docRef, diff)).pipe(
-      switchMap(() => this.addAuditTrail(docRef, auditTrail))
-    );
+    // 只有附件異動時仍需進入 transaction；空 patch 只寫 attachments、updatedAt 與附件專屬 audit。
+    return this.attachmentService.updateRequest({
+      kind: 'subsidy', collectionName: 'subsidyApplications', requestId: originValue.id,
+      patch: diff ?? {}, ownerUid: originValue.userId, actorUid,
+      changes: {
+        existingAttachmentIds: (originValue.attachments ?? []).map((attachment: AttachmentMetadata) => attachment.id),
+        newFiles: files,
+        removedAttachmentIds,
+      },
+    });
   }
 
   updateStatus(
@@ -327,6 +327,7 @@ export interface SubsidyApplication {
 
   quarter?: 1 | 2 | 3 | 4;
   carryOverAmount?: number;
+  attachments?: AttachmentMetadata[];
 }
 
 export enum SubsidyType {
