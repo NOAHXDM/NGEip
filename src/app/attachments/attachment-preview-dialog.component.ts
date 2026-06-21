@@ -1,6 +1,7 @@
 import { Component, Inject, OnDestroy, OnInit } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { MAT_DIALOG_DATA, MatDialogContent, MatDialogTitle } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogClose, MatDialogContent, MatDialogTitle } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { firstValueFrom } from 'rxjs';
 
@@ -10,7 +11,7 @@ import { AttachmentService } from '../services/attachment.service';
 @Component({
   selector: 'app-attachment-preview-dialog',
   standalone: true,
-  imports: [MatDialogTitle, MatDialogContent, MatProgressSpinnerModule],
+  imports: [MatButtonModule, MatDialogClose, MatDialogTitle, MatDialogContent, MatProgressSpinnerModule],
   templateUrl: './attachment-preview-dialog.component.html',
   styleUrl: './attachment-preview-dialog.component.scss',
 })

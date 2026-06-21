@@ -46,8 +46,11 @@ export interface AttachmentUploadContext {
   ownerUid: string;
 }
 
+/**
+ * 空批次以 sessionId: null 表示未建立遠端工作階段；有附件時 sessionId 必為非空字串。
+ */
 export interface PreparedAttachmentBatch {
-  sessionId: string;
+  sessionId: string | null;
   attachments: AttachmentMetadata[];
 }
 
