@@ -27,19 +27,26 @@ export interface JourneyEventInput {
   content: string;
 }
 
-export interface JourneyTimelineItem {
-  source: JourneyTimelineSource;
+interface JourneyTimelineItemBase {
   sourceId: string;
   occurredAt: Timestamp;
   title: string;
   content?: string;
-  subsidyType?: SubsidyType;
-  status?: SubsidyStatus;
-  requestedAmount?: number;
-  approvedAmount?: number;
   attachments: AttachmentMetadata[];
-  event?: UserJourneyEvent;
 }
+
+export type JourneyTimelineItem =
+  | (JourneyTimelineItemBase & {
+      source: 'event';
+      event: UserJourneyEvent;
+    })
+  | (JourneyTimelineItemBase & {
+      source: 'subsidy';
+      subsidyType?: SubsidyType;
+      status?: SubsidyStatus;
+      requestedAmount?: number;
+      approvedAmount?: number;
+    });
 
 export interface TimelinePage {
   items: JourneyTimelineItem[];

@@ -106,6 +106,17 @@
 
 T043（將 journey-event attachment 完整整合進共用 `AttachmentService` domain adapter）本輪仍列為後續技術債，原因是完整 adapter 重構會跨越 attendance/subsidy 既有上傳流程與回歸測試邊界；本輪先將 journey-event 上傳、回滾、cleanup 的可觀測錯誤紀錄、best-effort 行為、附件驗證訊息與 Rules 治理對齊既有規章，避免本 PR 額外擴大重構風險。
 
+## 2026-06-23 Claude Bot 第七輪複審修正驗證結果
+
+- `npx tsc -p tsconfig.app.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：36 個 journey timeline 測試通過；新增附件數量預檢、cleanup 補償三路徑、timeline gap 上限與 discriminated union 型別回歸覆蓋。
+- `npm run test:journey-rules`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：270 個測試通過、68 個既有測試略過，無失敗。
+- `npm run build`：通過；production bundle 產出至 `dist/angular-eip`。沙盒內 build 仍會無錯誤訊息中止（exit 134），以外層權限重跑後通過。
+
+本輪依複審修正：`deleteAsync()` 加入與 update 相同的 `updatedAt` 樂觀鎖檢查，避免 Admin 以舊確認框刪除已被他人更新的事件；`event-not-found` 改為明確顯示「事件已不存在，請重新整理頁面。」並套用於 update/delete；更新前新增附件數量預檢，僅扣除確實存在且本次移除的附件 ID，避免明顯超量時先上傳再回滾；`processCleanup()` 抽出 `processJourneyEventAttachmentCleanup()`，單測覆蓋 Storage object-not-found 冪等成功、Storage delete 失敗與 queue delete 失敗三條補償路徑；時間軸垂直間距加入 200px 額外上限，避免多年歷史資料在小裝置產生極端空白；`JourneyTimelineItem` 改為 discriminated union，`source === 'event'` 時由 TypeScript 強制要求 `event` 存在，template 也改以來源型別窄化補助專屬欄位。
+
 ## 部署順序
 
 1. 先部署 `firestore.rules`、`storage.rules` 與 `firestore.indexes.json`。

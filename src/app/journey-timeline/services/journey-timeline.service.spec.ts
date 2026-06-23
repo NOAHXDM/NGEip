@@ -1,6 +1,6 @@
 import { Timestamp } from '@angular/fire/firestore';
 
-import { JourneyTimelineItem } from '../models/journey-timeline.models';
+import { JourneyTimelineItem, UserJourneyEvent } from '../models/journey-timeline.models';
 import {
   compareTimelineItems,
   JourneyTimelineSession,
@@ -13,12 +13,39 @@ function item(
   sourceId: string,
   millis: number
 ): JourneyTimelineItem {
+  if (source === 'event') {
+    return {
+      source,
+      sourceId,
+      occurredAt: Timestamp.fromMillis(millis),
+      title: sourceId,
+      attachments: [],
+      event: eventItem(sourceId, millis),
+    };
+  }
   return {
     source,
     sourceId,
     occurredAt: Timestamp.fromMillis(millis),
     title: sourceId,
     attachments: [],
+  };
+}
+
+function eventItem(sourceId: string, millis: number): UserJourneyEvent {
+  return {
+    id: sourceId,
+    targetUserId: 'u1',
+    eventDate: Timestamp.fromMillis(millis),
+    title: sourceId,
+    content: '',
+    attachments: [],
+    createdBy: 'admin',
+    createdAt: Timestamp.fromMillis(millis),
+    updatedBy: 'admin',
+    updatedAt: Timestamp.fromMillis(millis),
+    lastAuditId: `${sourceId}-audit`,
+    deleteAuditId: `${sourceId}-delete-audit`,
   };
 }
 
