@@ -12,7 +12,7 @@ import {
   updateDoc,
   writeBatch,
 } from '@angular/fire/firestore';
-import { firstValueFrom, from, Observable } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 
 import {
   AttachmentContentType,
@@ -61,8 +61,8 @@ export class JourneyEventService {
   private readonly firestore = inject(Firestore);
   private readonly storage = inject(StorageService);
 
-  create(input: JourneyEventInput, actorUid: string, files: readonly File[]): Observable<string> {
-    return from(this.createAsync(input, actorUid, files));
+  create(input: JourneyEventInput, actorUid: string, files: readonly File[]): Promise<string> {
+    return this.createAsync(input, actorUid, files);
   }
 
   update(
@@ -71,12 +71,12 @@ export class JourneyEventService {
     actorUid: string,
     files: readonly File[],
     removedAttachmentIds: readonly string[]
-  ): Observable<void> {
-    return from(this.updateAsync(event, input, actorUid, files, removedAttachmentIds));
+  ): Promise<void> {
+    return this.updateAsync(event, input, actorUid, files, removedAttachmentIds);
   }
 
-  delete(event: UserJourneyEvent, actorUid: string): Observable<void> {
-    return from(this.deleteAsync(event, actorUid));
+  delete(event: UserJourneyEvent, actorUid: string): Promise<void> {
+    return this.deleteAsync(event, actorUid);
   }
 
   private async createAsync(
@@ -124,9 +124,6 @@ export class JourneyEventService {
     files: readonly File[],
     removedAttachmentIds: readonly string[]
   ): Promise<void> {
-    if (event.attachments.length - new Set(removedAttachmentIds).size + files.length > MAX_ATTACHMENT_COUNT) {
-      throw new Error('每筆事件最多五個附件。');
-    }
     const eventRef = doc(this.firestore, 'userJourneyEvents', event.id);
     const lastAuditId = crypto.randomUUID();
     let prepared: PreparedAttachmentBatch | null = null;
