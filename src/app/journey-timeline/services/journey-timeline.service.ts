@@ -50,7 +50,7 @@ export function compareTimelineItems(a: JourneyTimelineItem, b: JourneyTimelineI
   const timeDiff = b.occurredAt.toMillis() - a.occurredAt.toMillis();
   if (timeDiff) return timeDiff;
   if (a.source !== b.source) return a.source === 'event' ? -1 : 1;
-  return b.sourceId.localeCompare(a.sourceId);
+  return b.sourceId < a.sourceId ? -1 : b.sourceId > a.sourceId ? 1 : 0;
 }
 
 export function takeTimelineSourcePage<T>(

@@ -2,7 +2,12 @@ import { Timestamp } from '@angular/fire/firestore';
 
 import { AttachmentMetadata } from '../../attachments/attachment.models';
 import { mergeAttachmentChanges } from '../../services/attachment.service';
-import { mapJourneyEventUpdateError, normalizeJourneyEventInput } from './journey-event.service';
+import {
+  changedJourneyEventFields,
+  mapJourneyEventAttachmentValidationError,
+  mapJourneyEventUpdateError,
+  normalizeJourneyEventInput,
+} from './journey-event.service';
 
 function attachment(id: string): AttachmentMetadata {
   return {
@@ -78,5 +83,40 @@ describe('JourneyEventService business rules', () => {
     expect(mapJourneyEventUpdateError(new Error('attachment-count-conflict'))?.message)
       .toBe('另一個視窗已新增附件，請重新載入後再試。');
     expect(mapJourneyEventUpdateError(new Error('other'))).toBeNull();
+  });
+
+  it('將附件驗證錯誤轉成可操作的繁體中文訊息', () => {
+    expect(mapJourneyEventAttachmentValidationError(new Error('file-too-large'))?.message)
+      .toBe('附件超過 3 MiB 上限。');
+    expect(mapJourneyEventAttachmentValidationError(new Error('unsupported-mime'))?.message)
+      .toBe('附件格式不支援，僅接受 PDF、JPEG、PNG、WebP。');
+    expect(mapJourneyEventAttachmentValidationError(new Error('signature-mismatch'))?.message)
+      .toBe('附件內容與宣告格式不符，請重新選擇檔案。');
+    expect(mapJourneyEventAttachmentValidationError(new Error('other'))).toBeNull();
+  });
+
+  it('更新稽核只記錄實際變更欄位', () => {
+    const current: any = {
+      id: 'event-1',
+      targetUserId: 'u1',
+      eventDate: Timestamp.fromDate(new Date('2026-06-23T00:00:00Z')),
+      title: '原標題',
+      content: '原內容',
+      attachments: [attachment('a')],
+    };
+    const normalized = {
+      targetUserId: 'u1',
+      eventDate: Timestamp.fromDate(new Date('2026-06-23T00:00:00Z')),
+      title: '新標題',
+      content: '原內容',
+    };
+
+    expect(changedJourneyEventFields(current, normalized, [], [])).toEqual(['title']);
+    expect(changedJourneyEventFields(
+      current,
+      { ...normalized, eventDate: Timestamp.fromDate(new Date('2026-06-24T00:00:00Z')), content: '新內容' },
+      [attachment('a')],
+      [attachment('b')]
+    )).toEqual(['eventDate', 'title', 'content', 'attachments']);
   });
 });

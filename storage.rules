@@ -143,6 +143,7 @@ service firebase.storage {
         && isAllowedAttachmentType()
         && request.resource.metadata.attachmentId == attachmentId
         && request.resource.metadata.uploadedBy == request.auth.uid
+        && hasJourneyUploadSession(sessionId)
         && hasValidJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId);
       allow update: if false;
       // 刪除必須由 upload session 或 cleanup queue 治理；Admin 不可繞過 Firestore 事件附件關聯直接刪除 Storage 物件。

@@ -93,6 +93,19 @@
 
 本輪依複審修正：`JourneyEventService.rollbackPrepared()` 補上個別附件回滾失敗的 sessionId、attachmentId、storagePath 與 errorCode log，並以 best-effort 更新 session 狀態；`processCleanup()` 拆分 Storage delete 與 cleanup queue delete，Storage 失敗記錄 `storage-delete-failed`，queue 刪除失敗記錄 `queue-delete-failed`，Storage object-not-found 則視為可繼續移除 queue；Storage Rules 的 journey-event delete 規則保留 exists guard 並加註說明，以避免缺失 session/queue 文件造成 null evaluation warning，同時明確記錄 Admin 不可繞過 Firestore 附件關聯直接刪除 journey event Storage 物件；request attachment cleanup ownership 也保留 exists guard，避免 emulator 出現 null/undefined warning；時間軸 Admin 操作在 actorUid 尚未就緒時顯示 snackbar 提示；事件 dialog 移除 trim 後不可達的 `!title || !content` 檢查；Firestore Rules 移除 userJourneyEvents update 上多餘的 `isSignedIn()`。
 
+## 2026-06-23 Claude Bot 第六輪複審修正驗證結果
+
+- `npx tsc -p tsconfig.app.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：31 個 journey timeline 測試通過；新增 changedFields 動態稽核、附件驗證錯誤映射，以及 create/edit 並發防護回歸測試。
+- `npm run test:journey-rules`：通過；確認 journey-event Storage create 補上 upload session exists guard 後仍維持 session／cleanup queue 治理。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：265 個測試通過、68 個既有測試略過，無失敗。
+- `npm run build`：通過；production bundle 產出至 `dist/angular-eip`。沙盒內 build 仍會無錯誤訊息中止（exit 134），以外層權限重跑後通過。
+
+本輪依複審修正：更新稽核的 `changedFields` 改為由 transaction 內最新事件快照與本次輸入動態比對，只記錄實際變更欄位；時間軸事件新增、編輯與刪除共用 `eventActionPending` guard，並在 template 停用相關按鈕，避免快速雙擊開啟多個 dialog 或建立重複事件；journey-event Storage create 規則補上 upload session exists guard，與 delete 分支的 null-safe pattern 對齊；附件驗證錯誤改為具體繁中訊息，保留檔案大小、格式、簽章與數量等可操作原因；時間軸同來源同時間的文件 ID tie-break 改為 locale-independent 字串比較，避免測試或執行環境 locale 影響排序。
+
+T043（將 journey-event attachment 完整整合進共用 `AttachmentService` domain adapter）本輪仍列為後續技術債，原因是完整 adapter 重構會跨越 attendance/subsidy 既有上傳流程與回歸測試邊界；本輪先將 journey-event 上傳、回滾、cleanup 的可觀測錯誤紀錄、best-effort 行為、附件驗證訊息與 Rules 治理對齊既有規章，避免本 PR 額外擴大重構風險。
+
 ## 部署順序
 
 1. 先部署 `firestore.rules`、`storage.rules` 與 `firestore.indexes.json`。

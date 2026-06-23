@@ -64,6 +64,7 @@ export class UserJourneyTimelineComponent implements OnChanges {
   readonly loadingMore = signal(false);
   readonly hasMore = signal(false);
   readonly error = signal('');
+  readonly eventActionPending = signal(false);
   private session?: JourneyTimelineSession;
   private actorUid = '';
   private readonly timelineColors = new Map<string, string>();
@@ -120,49 +121,64 @@ export class UserJourneyTimelineComponent implements OnChanges {
   }
 
   async openCreate(): Promise<void> {
-    if (!this.eventPermissions.canCreate) return;
+    if (!this.eventPermissions.canCreate || this.eventActionPending()) return;
     const actorUid = this.requireActorUid();
     if (!actorUid) return;
-    const ref = this.dialog.open(JourneyEventDialogComponent, {
-      data: { targetUserId: this.userId, actorUid, permissions: this.eventPermissions },
-      width: '720px',
-      maxWidth: '95vw',
-    });
-    const result = await firstValueFrom(ref.afterClosed());
-    if (result) await this.createEvent(result, actorUid);
+    this.eventActionPending.set(true);
+    try {
+      const ref = this.dialog.open(JourneyEventDialogComponent, {
+        data: { targetUserId: this.userId, actorUid, permissions: this.eventPermissions },
+        width: '720px',
+        maxWidth: '95vw',
+      });
+      const result = await firstValueFrom(ref.afterClosed());
+      if (result) await this.createEvent(result, actorUid);
+    } finally {
+      this.eventActionPending.set(false);
+    }
   }
 
   async openEdit(event: UserJourneyEvent): Promise<void> {
-    if (!this.eventPermissions.canUpdate) return;
+    if (!this.eventPermissions.canUpdate || this.eventActionPending()) return;
     const actorUid = this.requireActorUid();
     if (!actorUid) return;
-    const ref = this.dialog.open(JourneyEventDialogComponent, {
-      data: { targetUserId: this.userId, actorUid, event, permissions: this.eventPermissions },
-      width: '720px',
-      maxWidth: '95vw',
-    });
-    const result = await firstValueFrom(ref.afterClosed());
-    if (result) await this.updateEvent(event, result, actorUid);
+    this.eventActionPending.set(true);
+    try {
+      const ref = this.dialog.open(JourneyEventDialogComponent, {
+        data: { targetUserId: this.userId, actorUid, event, permissions: this.eventPermissions },
+        width: '720px',
+        maxWidth: '95vw',
+      });
+      const result = await firstValueFrom(ref.afterClosed());
+      if (result) await this.updateEvent(event, result, actorUid);
+    } finally {
+      this.eventActionPending.set(false);
+    }
   }
 
   async deleteEvent(event: UserJourneyEvent): Promise<void> {
-    if (!this.eventPermissions.canDelete) return;
+    if (!this.eventPermissions.canDelete || this.eventActionPending()) return;
     const actorUid = this.requireActorUid();
     if (!actorUid) return;
-    const confirmed = await firstValueFrom(this.dialog
-      .open(JourneyDeleteConfirmDialogComponent, {
-        data: { title: event.title },
-        width: '420px',
-        maxWidth: '92vw',
-      })
-      .afterClosed());
-    if (!confirmed) return;
+    this.eventActionPending.set(true);
     try {
-      await this.events.delete(event, actorUid);
-      this.snackBar.open('事件已刪除', '關閉', { duration: 3000 });
-      await this.reload();
-    } catch (error) {
-      this.showError(error);
+      const confirmed = await firstValueFrom(this.dialog
+        .open(JourneyDeleteConfirmDialogComponent, {
+          data: { title: event.title },
+          width: '420px',
+          maxWidth: '92vw',
+        })
+        .afterClosed());
+      if (!confirmed) return;
+      try {
+        await this.events.delete(event, actorUid);
+        this.snackBar.open('事件已刪除', '關閉', { duration: 3000 });
+        await this.reload();
+      } catch (error) {
+        this.showError(error);
+      }
+    } finally {
+      this.eventActionPending.set(false);
     }
   }
 

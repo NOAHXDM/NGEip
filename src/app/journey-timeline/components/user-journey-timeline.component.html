@@ -5,7 +5,7 @@
       <p>彙整員工從入職到現階段的所有事件與文件</p>
     </div>
     @if (eventPermissions.canCreate) {
-      <button mat-flat-button color="primary" (click)="openCreate()">
+      <button mat-flat-button color="primary" (click)="openCreate()" [disabled]="eventActionPending()">
         <mat-icon>add</mat-icon>新增事件
       </button>
     }
@@ -43,10 +43,10 @@
               @if (item.source === 'event' && item.event) {
                 <span class="actions">
                   @if (eventPermissions.canUpdate) {
-                    <button mat-icon-button aria-label="編輯事件" (click)="openEdit(item.event)"><mat-icon>edit</mat-icon></button>
+                    <button mat-icon-button aria-label="編輯事件" (click)="openEdit(item.event)" [disabled]="eventActionPending()"><mat-icon>edit</mat-icon></button>
                   }
                   @if (eventPermissions.canDelete) {
-                    <button mat-icon-button aria-label="刪除事件" (click)="deleteEvent(item.event)"><mat-icon>delete</mat-icon></button>
+                    <button mat-icon-button aria-label="刪除事件" (click)="deleteEvent(item.event)" [disabled]="eventActionPending()"><mat-icon>delete</mat-icon></button>
                   }
                 </span>
               }
