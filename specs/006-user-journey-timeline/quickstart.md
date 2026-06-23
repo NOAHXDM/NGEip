@@ -48,6 +48,17 @@
 
 本輪依複審修正：移除 journey event Storage delete 的 Admin 直通權限、簡化 Firestore `validJourneySessionParent` rules read、移除事件附件上傳後多餘 `getDoc`、將事件日期輸入與顯示統一為 UTC、替 dialog `afterClosed()` 加上 `takeUntilDestroyed`，並提供附件衝突與附件數量衝突的明確繁中錯誤訊息。
 
+## 2026-06-23 Claude Bot 第二輪複審修正驗證結果
+
+- `npx tsc -p tsconfig.app.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：20 個 journey timeline 測試通過；新增 Material delete dialog 取消流程測試。
+- `npm run test:journey-rules`：通過；新增 schema allowlist、不可變 `targetUserId` 更新拒絕，以及同 attachmentId 但不同 Storage 路徑不可被既有 cleanup queue 刪除的整合驗證。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：254 個測試通過、68 個既有測試略過，無失敗。
+- `npm run build`：通過；production bundle 產出至 `dist/angular-eip`。沙盒內 build 仍會無錯誤訊息中止（exit 134），以外層權限重跑後通過。
+
+本輪依複審修正：`hasJourneyCleanupOwnership` 加入完整 Storage path 比對、事件刪除二次確認改用 Material Dialog、timeline 查詢游標改用展開式 constraints 避免魔術索引，並強化 emulator 邊界測試以補足 Rules/schema/immutable 與跨路徑附件治理驗證。
+
 ## 部署順序
 
 1. 先部署 `firestore.rules`、`storage.rules` 與 `firestore.indexes.json`。

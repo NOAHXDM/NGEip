@@ -25,7 +25,7 @@ function eventData(auditId, overrides = {}) {
   };
 }
 
-function auditData(auditId, action, actorUid, title = '到職事件') {
+function auditData(auditId, action, actorUid, title = '到職事件', overrides = {}) {
   return {
     eventId,
     targetUserId: ownerUid,
@@ -35,6 +35,7 @@ function auditData(auditId, action, actorUid, title = '到職事件') {
     title,
     changedFields: action === 'delete' ? [] : ['title'],
     attachmentSummary: [],
+    ...overrides,
   };
 }
 
@@ -60,6 +61,17 @@ async function main() {
     const ownerCreate = writeBatch(owner.firestore());
     ownerCreate.set(doc(owner.firestore(), 'userJourneyEvents', 'owner-create'), eventData('owner-audit'));
     await assertFails(ownerCreate.commit());
+
+    const invalidCreate = writeBatch(admin.firestore());
+    invalidCreate.set(doc(admin.firestore(), 'userJourneyEvents', 'bad-event'), {
+      ...eventData('audit-bad'),
+      unexpectedField: true,
+    });
+    invalidCreate.set(
+      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-bad'),
+      auditData('audit-bad', 'create', adminUid, '到職事件', { eventId: 'bad-event' })
+    );
+    await assertFails(invalidCreate.commit());
 
     const create = writeBatch(admin.firestore());
     create.set(eventRef, eventData('audit-create'));
@@ -96,6 +108,19 @@ async function main() {
     );
     await assertSucceeds(adminUpdate.commit());
 
+    const immutableUpdate = writeBatch(admin.firestore());
+    immutableUpdate.update(eventRef, {
+      targetUserId: otherUid,
+      updatedBy: adminUid,
+      updatedAt: serverTimestamp(),
+      lastAuditId: 'audit-immutable-update',
+    });
+    immutableUpdate.set(
+      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-immutable-update'),
+      auditData('audit-immutable-update', 'update', adminUid, '到職事件（更新）')
+    );
+    await assertFails(immutableUpdate.commit());
+
     const otherUpdate = writeBatch(other.firestore());
     otherUpdate.update(doc(other.firestore(), 'userJourneyEvents', eventId), {
       title: '越權修改', updatedBy: otherUid, updatedAt: serverTimestamp(), lastAuditId: 'audit-other-update',
@@ -129,6 +154,16 @@ async function main() {
     await assertFails(uploadBytes(fileRef, new Blob(['%PDF-'], { type: 'application/pdf' }), metadata));
     await assertSucceeds(deleteDoc(doc(admin.firestore(), 'journeyEventAttachmentUploadSessions', sessionId)));
     await assertFails(deleteObject(fileRef));
+
+    const altSessionId = 'session-2';
+    const altStoragePath = `journey-event-attachments/${ownerUid}/${eventId}/${altSessionId}/${attachmentId}`;
+    await assertSucceeds(setDoc(doc(admin.firestore(), 'journeyEventAttachmentUploadSessions', altSessionId), {
+      eventId, targetUserId: ownerUid, actorUid: adminUid, status: 'uploading',
+      plannedAttachments: [{ id: attachmentId }], plannedPaths: [altStoragePath],
+    }));
+    const altFileRef = ref(admin.storage(), altStoragePath);
+    await assertSucceeds(uploadBytes(altFileRef, new Blob(['%PDF-alt'], { type: 'application/pdf' }), metadata));
+    await assertSucceeds(deleteDoc(doc(admin.firestore(), 'journeyEventAttachmentUploadSessions', altSessionId)));
 
     // admin 可刪除，且必須在同一批次留下預先綁定的 delete audit。
     const attachmentMeta = {
@@ -171,6 +206,7 @@ async function main() {
     );
     removeWithCleanup.delete(eventRef);
     await assertSucceeds(removeWithCleanup.commit());
+    await assertFails(deleteObject(altFileRef));
     await assertSucceeds(deleteObject(fileRef));
     await assertFails(getDoc(doc(anonymous.firestore(), 'userJourneyEventAudits', 'audit-delete')));
 
