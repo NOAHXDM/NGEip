@@ -2,11 +2,11 @@ import { Timestamp } from '@angular/fire/firestore';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { of } from 'rxjs';
+import { Subject, of } from 'rxjs';
 
 import { SubsidyType } from '../../services/subsidy.service';
 import { UserService } from '../../services/user.service';
-import { JourneyTimelineItem, UserJourneyEvent } from '../models/journey-timeline.models';
+import { JourneyEventDialogResult, JourneyTimelineItem, UserJourneyEvent } from '../models/journey-timeline.models';
 import { JourneyEventService } from '../services/journey-event.service';
 import { JourneyTimelineService } from '../services/journey-timeline.service';
 import { UserJourneyTimelineComponent } from './user-journey-timeline.component';
@@ -22,24 +22,54 @@ function item(sourceId: string, millis: number, subsidyType?: SubsidyType): Jour
   };
 }
 
+function journeyEvent(): UserJourneyEvent {
+  return {
+    id: 'event-1',
+    targetUserId: 'u1',
+    eventDate: Timestamp.now(),
+    title: '待刪事件',
+    content: '內容',
+    attachments: [],
+    createdBy: 'admin',
+    createdAt: Timestamp.now(),
+    updatedBy: 'admin',
+    updatedAt: Timestamp.now(),
+    lastAuditId: 'audit-1',
+    deleteAuditId: 'audit-delete',
+  };
+}
+
 describe('UserJourneyTimelineComponent', () => {
-  function createComponent() {
+  function createComponent(currentUser$ = of<{ uid?: string } | null>({ uid: 'admin' })) {
     const dialog = jasmine.createSpyObj<MatDialog>('MatDialog', ['open']);
-    const events = jasmine.createSpyObj<JourneyEventService>('JourneyEventService', ['delete']);
+    const events = jasmine.createSpyObj<JourneyEventService>('JourneyEventService', ['create', 'update', 'delete']);
+    const timeline = jasmine.createSpyObj<JourneyTimelineService>('JourneyTimelineService', ['createSession', 'loadNext']);
+    const snackBar = jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']);
+    events.create.and.resolveTo('event-new');
+    events.update.and.resolveTo();
+    events.delete.and.resolveTo();
+    timeline.createSession.and.returnValue({
+      userId: 'u1',
+      events: { buffer: [], done: true },
+      subsidies: { buffer: [], done: true },
+    });
+    timeline.loadNext.and.resolveTo({ items: [], hasMore: false });
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
-        { provide: JourneyTimelineService, useValue: {} },
+        { provide: JourneyTimelineService, useValue: timeline },
         { provide: JourneyEventService, useValue: events },
-        { provide: UserService, useValue: { currentUser$: of({ uid: 'admin' }) } },
+        { provide: UserService, useValue: { currentUser$ } },
         { provide: MatDialog, useValue: dialog },
-        { provide: MatSnackBar, useValue: {} },
+        { provide: MatSnackBar, useValue: snackBar },
       ],
     });
     return {
       component: TestBed.runInInjectionContext(() => new UserJourneyTimelineComponent()),
       dialog,
       events,
+      snackBar,
+      timeline,
     };
   }
 
@@ -83,24 +113,71 @@ describe('UserJourneyTimelineComponent', () => {
     component.userId = 'u1';
     component.eventPermissions = { canCreate: true, canUpdate: true, canDelete: true };
     dialog.open.and.returnValue({ afterClosed: () => of(false) } as never);
-    const event: UserJourneyEvent = {
-      id: 'event-1',
-      targetUserId: 'u1',
-      eventDate: Timestamp.now(),
-      title: '待刪事件',
-      content: '內容',
-      attachments: [],
-      createdBy: 'admin',
-      createdAt: Timestamp.now(),
-      updatedBy: 'admin',
-      updatedAt: Timestamp.now(),
-      lastAuditId: 'audit-1',
-      deleteAuditId: 'audit-delete',
-    };
 
-    await component.deleteEvent(event);
+    await component.deleteEvent(journeyEvent());
 
     expect(dialog.open).toHaveBeenCalled();
     expect(events.delete).not.toHaveBeenCalled();
+  });
+
+  it('登入狀態 emit null 時不會因讀取 uid 拋出錯誤，並阻擋建立事件', async () => {
+    const { component, dialog } = createComponent(of(null));
+    component.userId = 'u1';
+    component.eventPermissions = { canCreate: true, canUpdate: true, canDelete: true };
+
+    await component.openCreate();
+
+    expect(dialog.open).not.toHaveBeenCalled();
+  });
+
+  it('新增事件使用 firstValueFrom 等待 dialog 結果並送出', async () => {
+    const closed$ = new Subject<JourneyEventDialogResult | undefined>();
+    const { component, dialog, events } = createComponent();
+    component.userId = 'u1';
+    component.eventPermissions = { canCreate: true, canUpdate: true, canDelete: true };
+    dialog.open.and.returnValue({ afterClosed: () => closed$.asObservable() } as never);
+    const result: JourneyEventDialogResult = {
+      input: {
+        targetUserId: 'u1',
+        eventDate: new Date('2026-06-23T00:00:00Z'),
+        title: '新增事件',
+        content: '內容',
+      },
+      files: [],
+      removedAttachmentIds: [],
+    };
+
+    const pending = component.openCreate();
+    closed$.next(result);
+    closed$.complete();
+    await pending;
+
+    expect(events.create).toHaveBeenCalledOnceWith(result.input, 'admin', []);
+  });
+
+  it('編輯事件使用 firstValueFrom 等待 dialog 結果並送出', async () => {
+    const closed$ = new Subject<JourneyEventDialogResult | undefined>();
+    const { component, dialog, events } = createComponent();
+    const event = journeyEvent();
+    component.userId = 'u1';
+    component.eventPermissions = { canCreate: true, canUpdate: true, canDelete: true };
+    dialog.open.and.returnValue({ afterClosed: () => closed$.asObservable() } as never);
+    const result: JourneyEventDialogResult = {
+      input: {
+        targetUserId: 'u1',
+        eventDate: new Date('2026-06-24T00:00:00Z'),
+        title: '更新事件',
+        content: '新內容',
+      },
+      files: [],
+      removedAttachmentIds: ['old-file'],
+    };
+
+    const pending = component.openEdit(event);
+    closed$.next(result);
+    closed$.complete();
+    await pending;
+
+    expect(events.update).toHaveBeenCalledOnceWith(event, result.input, 'admin', [], ['old-file']);
   });
 });

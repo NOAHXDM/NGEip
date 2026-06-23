@@ -70,6 +70,17 @@
 
 本輪依複審修正：事件 update/delete 交易成功後，附件清理失敗不再向使用者回報「原資料未變更」，而是保留 cleanup queue 並以 warning 記錄；事件 dialog 加上 `Validators.pattern(/\S/)`，純空白欄位會進入 Angular invalid 狀態並顯示既有錯誤訊息；時間軸來源查詢改為每來源讀取 21 筆、輸出 20 筆，以正確判斷剛好 20 筆時已無更多資料；個人報告入口改用 `currentUser()?.uid` guard；刪除確認 Dialog 拆為獨立元件檔；`timelineColor()` 加入 Map 快取避免每次 change detection 重算 hash。
 
+## 2026-06-23 Claude Bot 第四輪複審修正驗證結果
+
+- `npx tsc -p tsconfig.app.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：27 個 journey timeline 測試通過；新增 null user、防止 dialog 結果丟失的 create/edit firstValueFrom 流程測試。
+- `npm run test:journey-rules`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：261 個測試通過、68 個既有測試略過，無失敗。
+- `npm run build`：通過；production bundle 產出至 `dist/angular-eip`。
+
+本輪依複審修正：`openCreate()` 與 `openEdit()` 改為 `async` 並以 `firstValueFrom(dialog.afterClosed())` 等待內層事件 dialog 結果，不再因外層使用者編輯 Dialog 銷毀時間軸元件而取消訂閱、靜默丟失使用者輸入；`currentUser$` 訂閱改用 `user?.uid ?? ''` 防禦登出或 session 過期時 emit null；事件更新移除基於舊 snapshot 的附件數量前置檢查，統一由 transaction 內最新 Firestore snapshot 與 `mergeAttachmentChanges` 判斷並映射錯誤；`JourneyEventService` 的 create/update/delete 改為直接回傳 Promise，移除元件端多餘 Observable 解包。
+
 ## 部署順序
 
 1. 先部署 `firestore.rules`、`storage.rules` 與 `firestore.indexes.json`。
