@@ -1,0 +1,43 @@
+<h2 mat-dialog-title>{{ data.event ? '編輯事件' : '新增事件' }}</h2>
+<mat-dialog-content>
+  <form [formGroup]="form" class="event-form" (ngSubmit)="submit()">
+    <mat-form-field appearance="outline">
+      <mat-label>事件日期</mat-label>
+      <input matInput type="date" formControlName="eventDate" />
+      @if (form.controls.eventDate.touched && form.controls.eventDate.invalid) {
+        <mat-error>請選擇事件日期</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>事件標題</mat-label>
+      <input matInput formControlName="title" maxlength="100" />
+      <mat-hint align="end">{{ form.controls.title.value.length }}/100</mat-hint>
+      @if (form.controls.title.touched && form.controls.title.invalid) {
+        <mat-error>請輸入 1–100 字的事件標題</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>事件內容</mat-label>
+      <textarea matInput rows="8" formControlName="content" maxlength="5000"></textarea>
+      <mat-hint align="end">{{ form.controls.content.value.length }}/5000</mat-hint>
+      @if (form.controls.content.touched && form.controls.content.invalid) {
+        <mat-error>請輸入 1–5,000 字的事件內容</mat-error>
+      }
+    </mat-form-field>
+
+    <app-attachment-list
+      [attachments]="visibleAttachments"
+      [pendingFiles]="pendingFiles"
+      [canManage]="true"
+      (filesSelected)="addFiles($event)"
+      (pendingFileRemoved)="removePending($event)"
+      (existingAttachmentRemoved)="removeExisting($event)" />
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>取消</button>
+  <button mat-flat-button color="primary" (click)="submit()">儲存</button>
+</mat-dialog-actions>
+

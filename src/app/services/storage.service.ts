@@ -48,6 +48,15 @@ export class StorageService {
     return `request-attachments/${kind}/${requestId}/${sessionId}/${attachmentId}`;
   }
 
+  journeyEventAttachmentPath(
+    targetUserId: string,
+    eventId: string,
+    sessionId: string,
+    attachmentId: string
+  ): string {
+    return `journey-event-attachments/${targetUserId}/${eventId}/${sessionId}/${attachmentId}`;
+  }
+
   uploadAttachment(
     metadata: AttachmentMetadata,
     file: File,
@@ -63,6 +72,25 @@ export class StorageService {
           requestId: context.requestId,
           attachmentId: metadata.id,
           ownerUid: context.ownerUid,
+          uploadedBy: metadata.uploadedBy,
+        },
+      }).then(() => void 0)
+    );
+  }
+
+  uploadJourneyEventAttachment(
+    metadata: AttachmentMetadata,
+    file: File,
+    context: { targetUserId: string; eventId: string }
+  ): Observable<void> {
+    return from(
+      this.storageUploadBytes(this.storageRef(metadata.storagePath), file, {
+        contentType: metadata.contentType,
+        cacheControl: 'private,max-age=3600',
+        customMetadata: {
+          targetUserId: context.targetUserId,
+          eventId: context.eventId,
+          attachmentId: metadata.id,
           uploadedBy: metadata.uploadedBy,
         },
       }).then(() => void 0)
