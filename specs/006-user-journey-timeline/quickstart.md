@@ -37,6 +37,17 @@
 - `npm run test:journey-rules`：通過；驗證 authenticated cross-user read、非 Admin create/update/session 拒絕、Admin create/update/delete、audit 原子性、Admin-only 附件 session，以及附件讀取／禁止覆寫。
 - `npm run build`：通過；production bundle 產出至 `dist/angular-eip`。沙盒內 build 曾無錯誤訊息中止（exit 134），以外層權限重跑後通過。
 
+## 2026-06-23 Claude Bot 複審修正驗證結果
+
+- `npx tsc -p tsconfig.app.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：19 個 journey timeline 測試通過；補強 timeline buffer merge、event service 正規化／錯誤映射、dialog UTC 日期與欄位驗證，以及補助 icon／日期 gap component 規則。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：253 個測試通過、68 個既有測試略過，無失敗。
+- `npm run test:journey-rules`：通過；新增驗證 Admin 無 upload session 或 cleanup queue 時不可直接刪除 journey event Storage 物件，必須由合法 cleanup queue 治理後才能刪除。
+- `npm run build`：通過；production bundle 產出至 `dist/angular-eip`。沙盒內 build 仍會無錯誤訊息中止（exit 134），以外層權限重跑後通過。
+
+本輪依複審修正：移除 journey event Storage delete 的 Admin 直通權限、簡化 Firestore `validJourneySessionParent` rules read、移除事件附件上傳後多餘 `getDoc`、將事件日期輸入與顯示統一為 UTC、替 dialog `afterClosed()` 加上 `takeUntilDestroyed`，並提供附件衝突與附件數量衝突的明確繁中錯誤訊息。
+
 ## 部署順序
 
 1. 先部署 `firestore.rules`、`storage.rules` 與 `firestore.indexes.json`。

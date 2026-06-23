@@ -36,7 +36,7 @@
             <mat-card-header>
               <mat-card-title>
                 <time [attr.datetime]="item.occurredAt.toDate().toISOString()">
-                  {{ item.occurredAt.toDate() | date:'yyyy/MM/dd' }}
+                  {{ item.occurredAt.toDate() | date:'yyyy/MM/dd':'UTC' }}
                 </time>
                 <span>{{ item.title }}</span>
               </mat-card-title>

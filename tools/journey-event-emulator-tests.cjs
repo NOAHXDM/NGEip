@@ -1,6 +1,6 @@
 const { initializeTestEnvironment, assertFails, assertSucceeds } = require('@firebase/rules-unit-testing');
-const { doc, getDoc, serverTimestamp, setDoc, writeBatch } = require('firebase/firestore');
-const { getBytes, ref, uploadBytes } = require('firebase/storage');
+const { deleteDoc, doc, getDoc, serverTimestamp, setDoc, writeBatch } = require('firebase/firestore');
+const { deleteObject, getBytes, ref, uploadBytes } = require('firebase/storage');
 
 const projectId = 'demo-user-journey';
 const ownerUid = 'journey-owner';
@@ -127,15 +127,51 @@ async function main() {
     await assertSucceeds(getBytes(ref(other.storage(), storagePath), 3 * 1024 * 1024));
     await assertFails(getBytes(ref(anonymous.storage(), storagePath)));
     await assertFails(uploadBytes(fileRef, new Blob(['%PDF-'], { type: 'application/pdf' }), metadata));
+    await assertSucceeds(deleteDoc(doc(admin.firestore(), 'journeyEventAttachmentUploadSessions', sessionId)));
+    await assertFails(deleteObject(fileRef));
 
     // admin 可刪除，且必須在同一批次留下預先綁定的 delete audit。
+    const attachmentMeta = {
+      id: attachmentId,
+      storagePath,
+      originalName: 'proof.pdf',
+      contentType: 'application/pdf',
+      size: 5,
+      uploadedBy: adminUid,
+      uploadedAt: new Date('2026-06-20T00:00:00Z'),
+    };
     const remove = writeBatch(admin.firestore());
+    remove.update(eventRef, {
+      attachments: [attachmentMeta],
+      updatedBy: adminUid,
+      updatedAt: serverTimestamp(),
+      lastAuditId: 'audit-attach',
+    });
     remove.set(
+      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-attach'),
+      auditData('audit-attach', 'update', adminUid, '到職事件（更新）')
+    );
+    await assertSucceeds(remove.commit());
+
+    const removeWithCleanup = writeBatch(admin.firestore());
+    removeWithCleanup.set(
+      doc(admin.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId),
+      {
+        eventId,
+        targetUserId: ownerUid,
+        actorUid: adminUid,
+        attachment: attachmentMeta,
+        createdAt: serverTimestamp(),
+        attemptCount: 0,
+      }
+    );
+    removeWithCleanup.set(
       doc(admin.firestore(), 'userJourneyEventAudits', 'audit-delete'),
       auditData('audit-delete', 'delete', adminUid, '到職事件（更新）')
     );
-    remove.delete(eventRef);
-    await assertSucceeds(remove.commit());
+    removeWithCleanup.delete(eventRef);
+    await assertSucceeds(removeWithCleanup.commit());
+    await assertSucceeds(deleteObject(fileRef));
     await assertFails(getDoc(doc(anonymous.firestore(), 'userJourneyEventAudits', 'audit-delete')));
 
     console.log('Journey event Firestore/Storage rules tests passed.');

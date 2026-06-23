@@ -123,9 +123,11 @@ export class UserJourneyTimelineComponent implements OnChanges {
       width: '720px',
       maxWidth: '95vw',
     });
-    ref.afterClosed().subscribe((result) => {
-      if (result) void this.createEvent(result);
-    });
+    ref.afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result) => {
+        if (result) void this.createEvent(result);
+      });
   }
 
   openEdit(event: UserJourneyEvent): void {
@@ -135,9 +137,11 @@ export class UserJourneyTimelineComponent implements OnChanges {
       width: '720px',
       maxWidth: '95vw',
     });
-    ref.afterClosed().subscribe((result) => {
-      if (result) void this.updateEvent(event, result);
-    });
+    ref.afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result) => {
+        if (result) void this.updateEvent(event, result);
+      });
   }
 
   async deleteEvent(event: UserJourneyEvent): Promise<void> {

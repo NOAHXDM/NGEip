@@ -103,13 +103,14 @@ service firebase.storage {
     }
 
     function ownsJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId) {
-      let session = firestore.get(/databases/(default)/documents/journeyEventAttachmentUploadSessions/$(sessionId)).data;
-      return session.actorUid == request.auth.uid
-        && session.status in ['uploading', 'cleanup-pending']
-        && session.targetUserId == targetUserId
-        && session.eventId == eventId
+      let sessionPath = /databases/(default)/documents/journeyEventAttachmentUploadSessions/$(sessionId);
+      return firestore.exists(sessionPath)
+        && firestore.get(sessionPath).data.actorUid == request.auth.uid
+        && firestore.get(sessionPath).data.status in ['uploading', 'cleanup-pending']
+        && firestore.get(sessionPath).data.targetUserId == targetUserId
+        && firestore.get(sessionPath).data.eventId == eventId
         && resource.metadata.targetUserId == targetUserId
-        && session.plannedPaths.hasAny([
+        && firestore.get(sessionPath).data.plannedPaths.hasAny([
           'journey-event-attachments/' + targetUserId + '/' + eventId + '/' + sessionId + '/' + attachmentId
         ]);
     }
@@ -133,8 +134,7 @@ service firebase.storage {
         && hasValidJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId);
       allow update: if false;
       allow delete: if request.auth != null && (
-        isAdmin()
-        || ownsJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId)
+        ownsJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId)
         || hasJourneyCleanupOwnership(attachmentId)
       );
     }
