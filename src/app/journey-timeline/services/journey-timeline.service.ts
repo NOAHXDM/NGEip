@@ -105,9 +105,9 @@ export class JourneyTimelineService {
       where('targetUserId', '==', session.userId),
       orderBy('eventDate', 'desc'),
       orderBy(documentId(), 'desc'),
+      ...(session.events.cursor ? [startAfter(session.events.cursor)] : []),
       limit(SOURCE_PAGE_SIZE),
     ];
-    if (session.events.cursor) constraints.splice(3, 0, startAfter(session.events.cursor));
     const snapshot = await getDocs(query(collection(this.firestore, 'userJourneyEvents'), ...constraints));
     session.events.cursor = snapshot.docs.at(-1);
     session.events.done = snapshot.size < SOURCE_PAGE_SIZE;
@@ -131,9 +131,9 @@ export class JourneyTimelineService {
       where('userId', '==', session.userId),
       orderBy('applicationDate', 'desc'),
       orderBy(documentId(), 'desc'),
+      ...(session.subsidies.cursor ? [startAfter(session.subsidies.cursor)] : []),
       limit(SOURCE_PAGE_SIZE),
     ];
-    if (session.subsidies.cursor) constraints.splice(3, 0, startAfter(session.subsidies.cursor));
     const snapshot = await getDocs(query(collection(this.firestore, 'subsidyApplications'), ...constraints));
     session.subsidies.cursor = snapshot.docs.at(-1);
     session.subsidies.done = snapshot.size < SOURCE_PAGE_SIZE;

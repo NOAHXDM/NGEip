@@ -115,10 +115,14 @@ service firebase.storage {
         ]);
     }
 
-    function hasJourneyCleanupOwnership(attachmentId) {
+    function hasJourneyCleanupOwnership(targetUserId, eventId, sessionId, attachmentId) {
       let queuePath = /databases/(default)/documents/journeyEventAttachmentCleanupQueue/$(attachmentId);
       return firestore.exists(queuePath)
-        && firestore.get(queuePath).data.actorUid == request.auth.uid;
+        && firestore.get(queuePath).data.actorUid == request.auth.uid
+        && firestore.get(queuePath).data.eventId == eventId
+        && firestore.get(queuePath).data.targetUserId == targetUserId
+        && firestore.get(queuePath).data.attachment.storagePath
+          == 'journey-event-attachments/' + targetUserId + '/' + eventId + '/' + sessionId + '/' + attachmentId;
     }
 
     match /journey-event-attachments/{targetUserId}/{eventId}/{sessionId}/{attachmentId} {
@@ -135,7 +139,7 @@ service firebase.storage {
       allow update: if false;
       allow delete: if request.auth != null && (
         ownsJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId)
-        || hasJourneyCleanupOwnership(attachmentId)
+        || hasJourneyCleanupOwnership(targetUserId, eventId, sessionId, attachmentId)
       );
     }
 
