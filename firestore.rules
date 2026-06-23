@@ -260,8 +260,7 @@ service cloud.firestore {
           'create',
           request.resource.data.title
         );
-      allow update: if isSignedIn()
-        && isAdmin()
+      allow update: if isAdmin()
         && validJourneyEventData(request.resource.data)
         && request.resource.data.targetUserId == resource.data.targetUserId
         && request.resource.data.createdBy == resource.data.createdBy

@@ -120,29 +120,35 @@ export class UserJourneyTimelineComponent implements OnChanges {
   }
 
   async openCreate(): Promise<void> {
-    if (!this.eventPermissions.canCreate || !this.actorUid) return;
+    if (!this.eventPermissions.canCreate) return;
+    const actorUid = this.requireActorUid();
+    if (!actorUid) return;
     const ref = this.dialog.open(JourneyEventDialogComponent, {
-      data: { targetUserId: this.userId, actorUid: this.actorUid, permissions: this.eventPermissions },
+      data: { targetUserId: this.userId, actorUid, permissions: this.eventPermissions },
       width: '720px',
       maxWidth: '95vw',
     });
     const result = await firstValueFrom(ref.afterClosed());
-    if (result) await this.createEvent(result);
+    if (result) await this.createEvent(result, actorUid);
   }
 
   async openEdit(event: UserJourneyEvent): Promise<void> {
-    if (!this.eventPermissions.canUpdate || !this.actorUid) return;
+    if (!this.eventPermissions.canUpdate) return;
+    const actorUid = this.requireActorUid();
+    if (!actorUid) return;
     const ref = this.dialog.open(JourneyEventDialogComponent, {
-      data: { targetUserId: this.userId, actorUid: this.actorUid, event, permissions: this.eventPermissions },
+      data: { targetUserId: this.userId, actorUid, event, permissions: this.eventPermissions },
       width: '720px',
       maxWidth: '95vw',
     });
     const result = await firstValueFrom(ref.afterClosed());
-    if (result) await this.updateEvent(event, result);
+    if (result) await this.updateEvent(event, result, actorUid);
   }
 
   async deleteEvent(event: UserJourneyEvent): Promise<void> {
-    if (!this.eventPermissions.canDelete || !this.actorUid) return;
+    if (!this.eventPermissions.canDelete) return;
+    const actorUid = this.requireActorUid();
+    if (!actorUid) return;
     const confirmed = await firstValueFrom(this.dialog
       .open(JourneyDeleteConfirmDialogComponent, {
         data: { title: event.title },
@@ -152,7 +158,7 @@ export class UserJourneyTimelineComponent implements OnChanges {
       .afterClosed());
     if (!confirmed) return;
     try {
-      await this.events.delete(event, this.actorUid);
+      await this.events.delete(event, actorUid);
       this.snackBar.open('事件已刪除', '關閉', { duration: 3000 });
       await this.reload();
     } catch (error) {
@@ -207,9 +213,9 @@ export class UserJourneyTimelineComponent implements OnChanges {
     );
   }
 
-  private async createEvent(result: JourneyEventDialogResult): Promise<void> {
+  private async createEvent(result: JourneyEventDialogResult, actorUid: string): Promise<void> {
     try {
-      await this.events.create(result.input, this.actorUid, result.files);
+      await this.events.create(result.input, actorUid, result.files);
       this.snackBar.open('事件已建立', '關閉', { duration: 3000 });
       await this.reload();
     } catch (error) {
@@ -217,9 +223,9 @@ export class UserJourneyTimelineComponent implements OnChanges {
     }
   }
 
-  private async updateEvent(event: UserJourneyEvent, result: JourneyEventDialogResult): Promise<void> {
+  private async updateEvent(event: UserJourneyEvent, result: JourneyEventDialogResult, actorUid: string): Promise<void> {
     try {
-      await this.events.update(event, result.input, this.actorUid, result.files, result.removedAttachmentIds);
+      await this.events.update(event, result.input, actorUid, result.files, result.removedAttachmentIds);
       this.snackBar.open('事件已更新', '關閉', { duration: 3000 });
       await this.reload();
     } catch (error) {
@@ -230,5 +236,11 @@ export class UserJourneyTimelineComponent implements OnChanges {
   private showError(error: unknown): void {
     const message = error instanceof Error ? error.message : '操作失敗，請稍後重試。';
     this.snackBar.open(message, '關閉', { duration: 5000 });
+  }
+
+  private requireActorUid(): string | null {
+    if (this.actorUid) return this.actorUid;
+    this.snackBar.open('登入狀態確認中，請稍後再試。', '關閉', { duration: 3000 });
+    return null;
   }
 }

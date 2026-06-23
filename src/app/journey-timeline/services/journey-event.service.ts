@@ -271,19 +271,33 @@ export class JourneyEventService {
     for (const attachment of batch.attachments) {
       try {
         await firstValueFrom(this.storage.deleteAttachment(attachment.storagePath));
-      } catch {
+      } catch (error) {
         failed = true;
+        console.error('事件附件上傳回滾清理失敗', {
+          sessionId: batch.sessionId,
+          attachmentId: attachment.id,
+          storagePath: attachment.storagePath,
+          errorCode: this.errorCode(error),
+        });
       }
     }
     const sessionRef = doc(this.firestore, 'journeyEventAttachmentUploadSessions', batch.sessionId);
     if (failed) {
-      await updateDoc(sessionRef, {
-        status: 'cleanup-pending',
-        updatedAt: serverTimestamp(),
-        lastErrorCode: 'cleanup-failed',
-      });
+      await this.bestEffort(
+        () => updateDoc(sessionRef, {
+          status: 'cleanup-pending',
+          updatedAt: serverTimestamp(),
+          lastErrorCode: 'cleanup-failed',
+        }),
+        '事件附件上傳回滾 session 狀態更新失敗',
+        { sessionId: batch.sessionId }
+      );
     } else {
-      await deleteDoc(sessionRef);
+      await this.bestEffort(
+        () => deleteDoc(sessionRef),
+        '事件附件上傳回滾 session 移除失敗',
+        { sessionId: batch.sessionId }
+      );
     }
   }
 
@@ -298,20 +312,44 @@ export class JourneyEventService {
     const queueRef = doc(this.firestore, 'journeyEventAttachmentCleanupQueue', attachment.id);
     try {
       await firstValueFrom(this.storage.deleteAttachment(attachment.storagePath));
+    } catch (storageError) {
+      if (this.errorCode(storageError) !== 'storage/object-not-found') {
+        await this.recordCleanupFailure(queueRef, 'storage-delete-failed', {
+          attachmentId: attachment.id,
+          storagePath: attachment.storagePath,
+          storageErrorCode: this.errorCode(storageError),
+        });
+        return false;
+      }
+    }
+
+    try {
       await deleteDoc(queueRef);
       return true;
-    } catch {
-      try {
-        await updateDoc(queueRef, {
-          attemptCount: increment(1),
-          lastAttemptAt: serverTimestamp(),
-          lastErrorCode: 'storage-delete-failed',
-        });
-      } catch (error) {
-        console.warn('附件清理佇列更新失敗', error);
-      }
+    } catch (queueError) {
+      await this.recordCleanupFailure(queueRef, 'queue-delete-failed', {
+        attachmentId: attachment.id,
+        storagePath: attachment.storagePath,
+        queueErrorCode: this.errorCode(queueError),
+      });
       return false;
     }
+  }
+
+  private async recordCleanupFailure(
+    queueRef: ReturnType<typeof doc>,
+    lastErrorCode: 'storage-delete-failed' | 'queue-delete-failed',
+    context: Record<string, unknown>
+  ): Promise<void> {
+    await this.bestEffort(
+      () => updateDoc(queueRef, {
+        attemptCount: increment(1),
+        lastAttemptAt: serverTimestamp(),
+        lastErrorCode,
+      }),
+      '事件附件清理佇列更新失敗',
+      { ...context, lastErrorCode }
+    );
   }
 
   private audit(
@@ -338,5 +376,27 @@ export class JourneyEventService {
   private friendly(message: string, error: unknown): Error {
     console.error(message, error);
     return new Error(message);
+  }
+
+  private errorCode(error: unknown): string {
+    if (typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string') {
+      return error.code;
+    }
+    if (error instanceof Error && /^[a-z]+(?:[/-][a-z]+)+$/.test(error.message)) {
+      return error.message;
+    }
+    return error instanceof Error ? error.name : 'unknown';
+  }
+
+  private async bestEffort(
+    operation: () => Promise<void>,
+    message: string,
+    context: Record<string, unknown>
+  ): Promise<void> {
+    try {
+      await operation();
+    } catch (error) {
+      console.error(message, { ...context, errorCode: this.errorCode(error) });
+    }
   }
 }
