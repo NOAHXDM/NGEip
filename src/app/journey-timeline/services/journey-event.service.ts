@@ -102,6 +102,24 @@ export function exceedsJourneyEventAttachmentLimit(
   return retainedCount + files.length > MAX_ATTACHMENT_COUNT;
 }
 
+export function journeyCreateChangedFields(attachments: readonly AttachmentMetadata[]): string[] {
+  return attachments.length
+    ? ['eventDate', 'title', 'content', 'attachments']
+    : ['eventDate', 'title', 'content'];
+}
+
+export function isValidJourneyEventAttachmentMetadata(value: unknown): value is AttachmentMetadata {
+  if (!value || typeof value !== 'object') return false;
+  const attachment = value as Partial<AttachmentMetadata>;
+  return typeof attachment.id === 'string' && attachment.id.length > 0
+    && typeof attachment.storagePath === 'string' && attachment.storagePath.length > 0
+    && typeof attachment.originalName === 'string' && attachment.originalName.length > 0
+    && typeof attachment.contentType === 'string' && attachment.contentType.length > 0
+    && typeof attachment.size === 'number' && attachment.size > 0
+    && typeof attachment.uploadedBy === 'string' && attachment.uploadedBy.length > 0
+    && attachment.uploadedAt instanceof Timestamp;
+}
+
 export type JourneyEventCleanupFailureCode = 'storage-delete-failed' | 'queue-delete-failed';
 
 interface JourneyEventCleanupOperations {
@@ -190,7 +208,7 @@ export class JourneyEventService {
       });
       batch.set(doc(this.firestore, 'userJourneyEventAudits', lastAuditId), this.audit(
         eventRef.id, normalized.targetUserId, 'create', actorUid, normalized.title,
-        ['eventDate', 'title', 'content', 'attachments'], prepared.attachments
+        journeyCreateChangedFields(prepared.attachments), prepared.attachments
       ));
       if (prepared.sessionId) {
         batch.delete(doc(this.firestore, 'journeyEventAttachmentUploadSessions', prepared.sessionId));
@@ -281,10 +299,18 @@ export class JourneyEventService {
         if (!snapshot.exists()) throw new Error('event-not-found');
         const current = { id: snapshot.id, ...snapshot.data() } as UserJourneyEvent;
         if (current.updatedAt?.toMillis() !== event.updatedAt?.toMillis()) throw new Error('event-conflict');
+        const attachments = (current.attachments ?? []).filter((attachment) => {
+          if (isValidJourneyEventAttachmentMetadata(attachment)) return true;
+          console.error('事件含有無效附件 metadata，刪除事件時略過 cleanup queue 建立', {
+            eventId: current.id,
+            attachment,
+          });
+          return false;
+        });
         transaction.set(doc(this.firestore, 'userJourneyEventAudits', current.deleteAuditId), this.audit(
-          current.id, current.targetUserId, 'delete', actorUid, current.title, [], current.attachments ?? []
+          current.id, current.targetUserId, 'delete', actorUid, current.title, [], attachments
         ));
-        for (const attachment of current.attachments ?? []) {
+        for (const attachment of attachments) {
           transaction.set(doc(this.firestore, 'journeyEventAttachmentCleanupQueue', attachment.id), {
             eventId: current.id,
             targetUserId: current.targetUserId,
@@ -295,7 +321,7 @@ export class JourneyEventService {
           });
         }
         transaction.delete(eventRef);
-        return current.attachments ?? [];
+        return attachments;
       });
     } catch (error) {
       const mapped = mapJourneyEventUpdateError(error);

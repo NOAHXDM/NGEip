@@ -143,6 +143,17 @@ T017／T018／T047 仍維持為後續技術債：目前本分支以 journey serv
 
 補充限制：若瀏覽器在 `prepareUploads()` 成功建立 upload session 並完成 Storage 上傳後、但正式 event batch/transaction commit 前崩潰，client 端 rollback 無法執行，session 可能停在 `uploading`。目前 `request-attachment-orphan-audit.js` 已能盤點 Storage 物件是否被 parent/session/queue 引用，但尚未提供 journey-event upload session TTL 或自動清掃流程；此項維持為後續治理工作，需另行設計避免誤刪仍在上傳中的合法 session。
 
+## 2026-06-24 Claude Bot 第十輪複審修正驗證結果
+
+- `npx tsc -p tsconfig.app.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：41 個 journey timeline 測試通過；新增 create audit `changedFields` 與附件 metadata runtime guard 回歸。
+- `npm run test:journey-rules`：通過；新增無效 event attachments schema 拒絕、owner/other 已登入使用者不可讀取 `userJourneyEventAudits` 的 emulator 驗證。沙盒內因 localhost port EPERM 失敗一次，已用外層權限重跑通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：275 個測試通過、68 個既有測試略過，無失敗。
+- `npm run build`：通過；production bundle 產出至 `dist/angular-eip`。沙盒內 build 仍會無錯誤訊息中止（exit 134），以外層權限重跑後通過。
+
+本輪依複審修正：Firestore Rules 的 `validJourneyEventData()` 補上 `attachments` 陣列 per-item schema 驗證，至少要求每筆附件 metadata 具備 `id`、`storagePath`、`originalName`、`contentType`、`size`、`uploadedBy`、`uploadedAt` 等必要欄位與基本型別，避免 Admin 透過 Console 或 SDK 寫入 `{ rogue: 'data' }` 後導致事件刪除流程無法建立 cleanup queue；`deleteAsync()` 也加入 runtime guard，對歷史異常附件 metadata 會記錄錯誤並略過 cleanup queue 建立，使事件仍可刪除；create audit 的 `changedFields` 改為僅在實際有附件時加入 `attachments`；`journeyEventAttachmentCleanupQueue` delete 規則補上註解，明確說明 queue 應由 service 在 Storage 清理完成後移除，不能先手動刪除；Storage Rules 的 `ownsJourneyUploadSession()` 自帶 `exists()` guard；Angular contract 文件補回 `JourneyEventDialogData.actorUid`。
+
 ## 部署順序
 
 1. 先部署 `firestore.rules`、`storage.rules` 與 `firestore.indexes.json`。

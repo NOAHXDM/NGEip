@@ -211,11 +211,43 @@ service cloud.firestore {
         && data.content.size() >= 1 && data.content.size() <= 5000
         && data.content.matches('.*\\S.*')
         && data.attachments is list && data.attachments.size() <= 5
+        && validJourneyEventAttachments(data.attachments)
         && data.createdBy is string && data.updatedBy is string
         && data.createdAt is timestamp && data.updatedAt is timestamp
         && data.lastAuditId is string && data.lastAuditId.size() > 0
         && data.deleteAuditId is string && data.deleteAuditId.size() > 0
         && data.lastAuditId != data.deleteAuditId;
+    }
+
+    function validJourneyEventAttachmentAt(attachments, index) {
+      return attachments.size() <= index || (
+        attachments[index] is map
+        && attachments[index].keys().hasOnly([
+          'id', 'storagePath', 'originalName', 'contentType',
+          'size', 'uploadedBy', 'uploadedAt'
+        ])
+        && attachments[index].id is string
+        && attachments[index].id.size() > 0
+        && attachments[index].storagePath is string
+        && attachments[index].storagePath.size() > 0
+        && attachments[index].originalName is string
+        && attachments[index].originalName.size() > 0
+        && attachments[index].contentType is string
+        && attachments[index].contentType.size() > 0
+        && attachments[index].size is int
+        && attachments[index].size > 0
+        && attachments[index].uploadedBy is string
+        && attachments[index].uploadedBy.size() > 0
+        && attachments[index].uploadedAt is timestamp
+      );
+    }
+
+    function validJourneyEventAttachments(attachments) {
+      return validJourneyEventAttachmentAt(attachments, 0)
+        && validJourneyEventAttachmentAt(attachments, 1)
+        && validJourneyEventAttachmentAt(attachments, 2)
+        && validJourneyEventAttachmentAt(attachments, 3)
+        && validJourneyEventAttachmentAt(attachments, 4);
     }
 
     function validJourneyAudit(data, auditId) {
@@ -386,6 +418,8 @@ service cloud.firestore {
         && request.resource.data.actorUid == request.auth.uid
         && isAdmin()
         && validJourneyCleanupTransfer(request.resource.data, attachmentId);
+      // delete 只能在 Storage 物件已完成清理後由 service 執行；Rules 無法反查 Storage 狀態，
+      // 因此不可透過 Console 先手動刪除 queue，否則會使 Storage delete 失去治理依據。
       allow get, delete: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin());
       allow update: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin())
         && request.resource.data.diff(resource.data).affectedKeys()

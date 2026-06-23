@@ -38,6 +38,7 @@ export interface TimelinePage {
 
 export interface JourneyEventDialogData {
   targetUserId: string;
+  actorUid: string;
   event?: UserJourneyEvent;
   permissions: JourneyEventPermissions;
 }

@@ -175,6 +175,19 @@ async function main() {
       uploadedBy: adminUid,
       uploadedAt: new Date('2026-06-20T00:00:00Z'),
     };
+    const invalidAttachmentUpdate = writeBatch(admin.firestore());
+    invalidAttachmentUpdate.update(eventRef, {
+      attachments: [{ rogue: 'data' }],
+      updatedBy: adminUid,
+      updatedAt: serverTimestamp(),
+      lastAuditId: 'audit-invalid-attachment',
+    });
+    invalidAttachmentUpdate.set(
+      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-invalid-attachment'),
+      auditData('audit-invalid-attachment', 'update', adminUid, '到職事件（更新）')
+    );
+    await assertFails(invalidAttachmentUpdate.commit());
+
     const remove = writeBatch(admin.firestore());
     remove.update(eventRef, {
       attachments: [attachmentMeta],
@@ -271,6 +284,8 @@ async function main() {
     await assertFails(deleteObject(altFileRef));
     await assertSucceeds(deleteObject(fileRef));
     await assertFails(getDoc(doc(anonymous.firestore(), 'userJourneyEventAudits', 'audit-delete')));
+    await assertFails(getDoc(doc(owner.firestore(), 'userJourneyEventAudits', 'audit-delete')));
+    await assertFails(getDoc(doc(other.firestore(), 'userJourneyEventAudits', 'audit-delete')));
 
     console.log('Journey event Firestore/Storage rules tests passed.');
   } finally {

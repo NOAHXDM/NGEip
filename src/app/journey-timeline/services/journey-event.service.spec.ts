@@ -5,6 +5,8 @@ import { mergeAttachmentChanges } from '../../services/attachment.service';
 import {
   changedJourneyEventFields,
   exceedsJourneyEventAttachmentLimit,
+  isValidJourneyEventAttachmentMetadata,
+  journeyCreateChangedFields,
   mapJourneyEventAttachmentValidationError,
   mapJourneyEventUpdateError,
   normalizeJourneyEventInput,
@@ -152,6 +154,18 @@ describe('JourneyEventService business rules', () => {
     expect(exceedsJourneyEventAttachmentLimit(event, ['a'], files)).toBeFalse();
     expect(exceedsJourneyEventAttachmentLimit(event, ['a', 'a'], files)).toBeFalse();
     expect(exceedsJourneyEventAttachmentLimit(event, ['missing'], files)).toBeTrue();
+  });
+
+  it('建立稽核只在實際有附件時記錄 attachments 欄位', () => {
+    expect(journeyCreateChangedFields([])).toEqual(['eventDate', 'title', 'content']);
+    expect(journeyCreateChangedFields([attachment('a')])).toEqual(['eventDate', 'title', 'content', 'attachments']);
+  });
+
+  it('辨識完整附件 metadata，避免刪除流程使用無效 attachment id', () => {
+    expect(isValidJourneyEventAttachmentMetadata(attachment('a'))).toBeTrue();
+    expect(isValidJourneyEventAttachmentMetadata({ rogue: 'data' })).toBeFalse();
+    expect(isValidJourneyEventAttachmentMetadata({ ...attachment('b'), id: '' })).toBeFalse();
+    expect(isValidJourneyEventAttachmentMetadata({ ...attachment('c'), uploadedAt: new Date() })).toBeFalse();
   });
 });
 
