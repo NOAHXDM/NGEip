@@ -4,9 +4,11 @@ import { AttachmentMetadata } from '../../attachments/attachment.models';
 import { mergeAttachmentChanges } from '../../services/attachment.service';
 import {
   changedJourneyEventFields,
+  exceedsJourneyEventAttachmentLimit,
   mapJourneyEventAttachmentValidationError,
   mapJourneyEventUpdateError,
   normalizeJourneyEventInput,
+  processJourneyEventAttachmentCleanup,
 } from './journey-event.service';
 
 function attachment(id: string): AttachmentMetadata {
@@ -78,6 +80,8 @@ describe('JourneyEventService business rules', () => {
   it('將更新衝突轉成可理解的繁體中文訊息', () => {
     expect(mapJourneyEventUpdateError(new Error('event-conflict'))?.message)
       .toBe('事件已被其他人更新，請重新載入後再試。');
+    expect(mapJourneyEventUpdateError(new Error('event-not-found'))?.message)
+      .toBe('事件已不存在，請重新整理頁面。');
     expect(mapJourneyEventUpdateError(new Error('attachment-conflict'))?.message)
       .toBe('附件已被其他人變更，請重新載入後再試。');
     expect(mapJourneyEventUpdateError(new Error('attachment-count-conflict'))?.message)
@@ -118,5 +122,68 @@ describe('JourneyEventService business rules', () => {
       [attachment('a')],
       [attachment('b')]
     )).toEqual(['eventDate', 'title', 'content', 'attachments']);
+  });
+
+  it('更新前會以既有附件、移除附件與新檔案預檢附件數量', () => {
+    const event = { attachments: ['a', 'b', 'c', 'd'].map(attachment) };
+    const files = Array.from({ length: 2 }, (_, index) => new File(['x'], `${index}.pdf`, { type: 'application/pdf' }));
+
+    expect(exceedsJourneyEventAttachmentLimit(event, [], files)).toBeTrue();
+    expect(exceedsJourneyEventAttachmentLimit(event, ['a'], files)).toBeFalse();
+    expect(exceedsJourneyEventAttachmentLimit(event, ['a', 'a'], files)).toBeFalse();
+    expect(exceedsJourneyEventAttachmentLimit(event, ['missing'], files)).toBeTrue();
+  });
+});
+
+describe('processJourneyEventAttachmentCleanup', () => {
+  function operations(options: {
+    deleteAttachment?: () => Promise<void>;
+    deleteQueue?: () => Promise<void>;
+  } = {}) {
+    return {
+      deleteAttachment: options.deleteAttachment ?? (async () => undefined),
+      deleteQueue: options.deleteQueue ?? (async () => undefined),
+      recordFailure: jasmine.createSpy('recordFailure').and.resolveTo(),
+      errorCode: (error: unknown) => error instanceof Error ? error.message : 'unknown',
+    };
+  }
+
+  it('Storage object-not-found 視為冪等成功並繼續刪除 queue', async () => {
+    const ops = operations({
+      deleteAttachment: async () => { throw new Error('storage/object-not-found'); },
+    });
+
+    await expectAsync(processJourneyEventAttachmentCleanup(attachment('a'), ops)).toBeResolvedTo(true);
+
+    expect(ops.recordFailure).not.toHaveBeenCalled();
+  });
+
+  it('Storage 刪除失敗時記錄 storage-delete-failed 並停止 queue 刪除', async () => {
+    const deleteQueue = jasmine.createSpy('deleteQueue').and.resolveTo();
+    const ops = operations({
+      deleteAttachment: async () => { throw new Error('storage/retry-limit-exceeded'); },
+      deleteQueue,
+    });
+
+    await expectAsync(processJourneyEventAttachmentCleanup(attachment('a'), ops)).toBeResolvedTo(false);
+
+    expect(deleteQueue).not.toHaveBeenCalled();
+    expect(ops.recordFailure).toHaveBeenCalledOnceWith('storage-delete-failed', jasmine.objectContaining({
+      attachmentId: 'a',
+      storageErrorCode: 'storage/retry-limit-exceeded',
+    }));
+  });
+
+  it('queue 刪除失敗時記錄 queue-delete-failed', async () => {
+    const ops = operations({
+      deleteQueue: async () => { throw new Error('permission-denied'); },
+    });
+
+    await expectAsync(processJourneyEventAttachmentCleanup(attachment('a'), ops)).toBeResolvedTo(false);
+
+    expect(ops.recordFailure).toHaveBeenCalledOnceWith('queue-delete-failed', jasmine.objectContaining({
+      attachmentId: 'a',
+      queueErrorCode: 'permission-denied',
+    }));
   });
 });

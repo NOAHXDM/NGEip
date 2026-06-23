@@ -48,6 +48,9 @@ export function mapJourneyEventUpdateError(error: unknown): Error | null {
   if (error.message === 'event-conflict') {
     return new Error('事件已被其他人更新，請重新載入後再試。');
   }
+  if (error.message === 'event-not-found') {
+    return new Error('事件已不存在，請重新整理頁面。');
+  }
   if (error.message === 'attachment-conflict') {
     return new Error('附件已被其他人變更，請重新載入後再試。');
   }
@@ -86,6 +89,57 @@ export function changedJourneyEventFields(
   return changedFields;
 }
 
+export function exceedsJourneyEventAttachmentLimit(
+  event: Pick<UserJourneyEvent, 'attachments'>,
+  removedAttachmentIds: readonly string[],
+  files: readonly File[]
+): boolean {
+  const existingIds = new Set((event.attachments ?? []).map((attachment) => attachment.id));
+  const removedCount = new Set(removedAttachmentIds.filter((id) => existingIds.has(id))).size;
+  const retainedCount = Math.max(0, (event.attachments?.length ?? 0) - removedCount);
+  return retainedCount + files.length > MAX_ATTACHMENT_COUNT;
+}
+
+export type JourneyEventCleanupFailureCode = 'storage-delete-failed' | 'queue-delete-failed';
+
+interface JourneyEventCleanupOperations {
+  deleteAttachment: () => Promise<void>;
+  deleteQueue: () => Promise<void>;
+  recordFailure: (lastErrorCode: JourneyEventCleanupFailureCode, context: Record<string, unknown>) => Promise<void>;
+  errorCode: (error: unknown) => string;
+}
+
+export async function processJourneyEventAttachmentCleanup(
+  attachment: AttachmentMetadata,
+  operations: JourneyEventCleanupOperations
+): Promise<boolean> {
+  try {
+    await operations.deleteAttachment();
+  } catch (storageError) {
+    const storageErrorCode = operations.errorCode(storageError);
+    if (storageErrorCode !== 'storage/object-not-found') {
+      await operations.recordFailure('storage-delete-failed', {
+        attachmentId: attachment.id,
+        storagePath: attachment.storagePath,
+        storageErrorCode,
+      });
+      return false;
+    }
+  }
+
+  try {
+    await operations.deleteQueue();
+    return true;
+  } catch (queueError) {
+    await operations.recordFailure('queue-delete-failed', {
+      attachmentId: attachment.id,
+      storagePath: attachment.storagePath,
+      queueErrorCode: operations.errorCode(queueError),
+    });
+    return false;
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class JourneyEventService {
   private readonly firestore = inject(Firestore);
@@ -120,7 +174,7 @@ export class JourneyEventService {
     let prepared: PreparedAttachmentBatch | null = null;
     try {
       prepared = await this.prepareUploads(eventRef.id, input.targetUserId, actorUid, files);
-      const normalized = this.normalize(input);
+      const normalized = normalizeJourneyEventInput(input);
       const batch = writeBatch(this.firestore);
       batch.set(eventRef, {
         ...normalized,
@@ -161,8 +215,9 @@ export class JourneyEventService {
     let prepared: PreparedAttachmentBatch | null = null;
     let removed: AttachmentMetadata[] = [];
     try {
+      if (exceedsJourneyEventAttachmentLimit(event, removedAttachmentIds, files)) throw new Error('too-many-files');
       prepared = await this.prepareUploads(event.id, event.targetUserId, actorUid, files);
-      const normalized = this.normalize(input);
+      const normalized = normalizeJourneyEventInput(input);
       const preparedBatch = prepared;
       removed = await runTransaction(this.firestore, async (transaction) => {
         const snapshot = await transaction.get(eventRef);
@@ -223,6 +278,7 @@ export class JourneyEventService {
         const snapshot = await transaction.get(eventRef);
         if (!snapshot.exists()) throw new Error('event-not-found');
         const current = { id: snapshot.id, ...snapshot.data() } as UserJourneyEvent;
+        if (current.updatedAt?.toMillis() !== event.updatedAt?.toMillis()) throw new Error('event-conflict');
         transaction.set(doc(this.firestore, 'userJourneyEventAudits', current.deleteAuditId), this.audit(
           current.id, current.targetUserId, 'delete', actorUid, current.title, [], current.attachments ?? []
         ));
@@ -240,13 +296,11 @@ export class JourneyEventService {
         return current.attachments ?? [];
       });
     } catch (error) {
+      const mapped = mapJourneyEventUpdateError(error);
+      if (mapped) throw mapped;
       throw this.friendly('事件未能刪除，原資料未變更。', error);
     }
     await this.processCommittedCleanup(removed, '事件已刪除，但部分附件清理失敗，已保留清理佇列供稍後重試。');
-  }
-
-  private normalize(input: JourneyEventInput): JourneyEventInput & { eventDate: Timestamp } {
-    return normalizeJourneyEventInput(input);
   }
 
   private async prepareUploads(
@@ -345,30 +399,12 @@ export class JourneyEventService {
 
   private async processCleanup(attachment: AttachmentMetadata): Promise<boolean> {
     const queueRef = doc(this.firestore, 'journeyEventAttachmentCleanupQueue', attachment.id);
-    try {
-      await firstValueFrom(this.storage.deleteAttachment(attachment.storagePath));
-    } catch (storageError) {
-      if (this.errorCode(storageError) !== 'storage/object-not-found') {
-        await this.recordCleanupFailure(queueRef, 'storage-delete-failed', {
-          attachmentId: attachment.id,
-          storagePath: attachment.storagePath,
-          storageErrorCode: this.errorCode(storageError),
-        });
-        return false;
-      }
-    }
-
-    try {
-      await deleteDoc(queueRef);
-      return true;
-    } catch (queueError) {
-      await this.recordCleanupFailure(queueRef, 'queue-delete-failed', {
-        attachmentId: attachment.id,
-        storagePath: attachment.storagePath,
-        queueErrorCode: this.errorCode(queueError),
-      });
-      return false;
-    }
+    return processJourneyEventAttachmentCleanup(attachment, {
+      deleteAttachment: () => firstValueFrom(this.storage.deleteAttachment(attachment.storagePath)),
+      deleteQueue: () => deleteDoc(queueRef),
+      recordFailure: (lastErrorCode, context) => this.recordCleanupFailure(queueRef, lastErrorCode, context),
+      errorCode: (error) => this.errorCode(error),
+    });
   }
 
   private async recordCleanupFailure(

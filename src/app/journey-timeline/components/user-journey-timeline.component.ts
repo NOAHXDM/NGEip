@@ -55,6 +55,7 @@ export class UserJourneyTimelineComponent implements OnChanges {
   ] as const;
   private static readonly DAY_GAP_SCALE = 0.16;
   private static readonly MINIMUM_ITEM_GAP = 32;
+  private static readonly MAXIMUM_EXTRA_ITEM_GAP = 200;
 
   @Input({ required: true }) userId!: string;
   @Input({ required: true }) eventPermissions!: JourneyEventPermissions;
@@ -225,7 +226,10 @@ export class UserJourneyTimelineComponent implements OnChanges {
     const days = Math.abs(previous.occurredAt.toMillis() - current.occurredAt.toMillis()) / 86_400_000;
     return Math.round(
       UserJourneyTimelineComponent.MINIMUM_ITEM_GAP
-      + days * UserJourneyTimelineComponent.DAY_GAP_SCALE
+      + Math.min(
+        days * UserJourneyTimelineComponent.DAY_GAP_SCALE,
+        UserJourneyTimelineComponent.MAXIMUM_EXTRA_ITEM_GAP
+      )
     );
   }
 

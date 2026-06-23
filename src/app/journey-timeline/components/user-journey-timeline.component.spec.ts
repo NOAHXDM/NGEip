@@ -12,8 +12,18 @@ import { JourneyTimelineService } from '../services/journey-timeline.service';
 import { UserJourneyTimelineComponent } from './user-journey-timeline.component';
 
 function item(sourceId: string, millis: number, subsidyType?: SubsidyType): JourneyTimelineItem {
+  if (!subsidyType) {
+    return {
+      source: 'event',
+      sourceId,
+      occurredAt: Timestamp.fromMillis(millis),
+      title: sourceId,
+      attachments: [],
+      event: journeyEvent(),
+    };
+  }
   return {
-    source: subsidyType ? 'subsidy' : 'event',
+    source: 'subsidy',
     sourceId,
     occurredAt: Timestamp.fromMillis(millis),
     title: sourceId,
@@ -100,6 +110,17 @@ describe('UserJourneyTimelineComponent', () => {
     expect(component.timelineGap(0)).toBe(0);
     expect(component.timelineGap(1)).toBeGreaterThan(32);
   });
+
+  it('相鄰日期差距過大時會限制最大垂直距離', () => {
+    const { component } = createComponent();
+    component.items.set([
+      item('recent', Timestamp.fromDate(new Date('2026-06-23T00:00:00Z')).toMillis()),
+      item('very-old', Timestamp.fromDate(new Date('2016-06-23T00:00:00Z')).toMillis()),
+    ]);
+
+    expect(component.timelineGap(1)).toBe(232);
+  });
+
 
   it('相同時間軸項目會重用同一個隨機色碼結果', () => {
     const { component } = createComponent();

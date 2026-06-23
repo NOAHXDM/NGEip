@@ -40,7 +40,7 @@
                 </time>
                 <span>{{ item.title }}</span>
               </mat-card-title>
-              @if (item.source === 'event' && item.event) {
+              @if (item.source === 'event') {
                 <span class="actions">
                   @if (eventPermissions.canUpdate) {
                     <button mat-icon-button aria-label="編輯事件" (click)="openEdit(item.event)" [disabled]="eventActionPending()"><mat-icon>edit</mat-icon></button>
@@ -52,15 +52,17 @@
               }
             </mat-card-header>
             <mat-card-content>
-              @if (item.status) {
-                <mat-chip-set><mat-chip>{{ statusLabel(item.status) }}</mat-chip></mat-chip-set>
-              }
               @if (item.content) { <p class="content">{{ item.content }}</p> }
-              @if (item.requestedAmount != null) {
-                <p class="amount">申請金額：NT$ {{ item.requestedAmount | number }}</p>
-              }
-              @if (item.approvedAmount != null) {
-                <p class="amount">核准金額：NT$ {{ item.approvedAmount | number }}</p>
+              @if (item.source === 'subsidy') {
+                @if (item.status) {
+                  <mat-chip-set><mat-chip>{{ statusLabel(item.status) }}</mat-chip></mat-chip-set>
+                }
+                @if (item.requestedAmount != null) {
+                  <p class="amount">申請金額：NT$ {{ item.requestedAmount | number }}</p>
+                }
+                @if (item.approvedAmount != null) {
+                  <p class="amount">核准金額：NT$ {{ item.approvedAmount | number }}</p>
+                }
               }
               @if (item.attachments.length) {
                 <app-attachment-list [attachments]="item.attachments" [canManage]="false" />
