@@ -156,6 +156,23 @@ describe('UserJourneyTimelineComponent', () => {
     expect(events.create).toHaveBeenCalledOnceWith(result.input, 'admin', []);
   });
 
+  it('新增事件進行中會阻擋第二次開啟，避免快速雙擊建立重複事件', async () => {
+    const closed$ = new Subject<JourneyEventDialogResult | undefined>();
+    const { component, dialog } = createComponent();
+    component.userId = 'u1';
+    component.eventPermissions = { canCreate: true, canUpdate: true, canDelete: true };
+    dialog.open.and.returnValue({ afterClosed: () => closed$.asObservable() } as never);
+
+    const pending = component.openCreate();
+    await component.openCreate();
+
+    expect(dialog.open).toHaveBeenCalledTimes(1);
+    closed$.next(undefined);
+    closed$.complete();
+    await pending;
+    expect(component.eventActionPending()).toBeFalse();
+  });
+
   it('編輯事件使用 firstValueFrom 等待 dialog 結果並送出', async () => {
     const closed$ = new Subject<JourneyEventDialogResult | undefined>();
     const { component, dialog, events } = createComponent();
@@ -180,5 +197,23 @@ describe('UserJourneyTimelineComponent', () => {
     await pending;
 
     expect(events.update).toHaveBeenCalledOnceWith(event, result.input, 'admin', [], ['old-file']);
+  });
+
+  it('編輯事件進行中會阻擋第二次開啟', async () => {
+    const closed$ = new Subject<JourneyEventDialogResult | undefined>();
+    const { component, dialog } = createComponent();
+    const event = journeyEvent();
+    component.userId = 'u1';
+    component.eventPermissions = { canCreate: true, canUpdate: true, canDelete: true };
+    dialog.open.and.returnValue({ afterClosed: () => closed$.asObservable() } as never);
+
+    const pending = component.openEdit(event);
+    await component.openEdit(event);
+
+    expect(dialog.open).toHaveBeenCalledTimes(1);
+    closed$.next(undefined);
+    closed$.complete();
+    await pending;
+    expect(component.eventActionPending()).toBeFalse();
   });
 });

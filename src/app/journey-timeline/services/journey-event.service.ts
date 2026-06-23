@@ -16,6 +16,7 @@ import { firstValueFrom } from 'rxjs';
 
 import {
   AttachmentContentType,
+  AttachmentValidationError,
   AttachmentMetadata,
   MAX_ATTACHMENT_COUNT,
   PreparedAttachmentBatch,
@@ -54,6 +55,35 @@ export function mapJourneyEventUpdateError(error: unknown): Error | null {
     return new Error('另一個視窗已新增附件，請重新載入後再試。');
   }
   return null;
+}
+
+export function mapJourneyEventAttachmentValidationError(error: unknown): Error | null {
+  if (!(error instanceof Error)) return null;
+  const messages: Partial<Record<AttachmentValidationError, string>> = {
+    'unsupported-extension': '僅支援 PDF、JPEG、PNG、WebP 檔案。',
+    'unsupported-mime': '附件格式不支援，僅接受 PDF、JPEG、PNG、WebP。',
+    'signature-mismatch': '附件內容與宣告格式不符，請重新選擇檔案。',
+    'empty-file': '不可上傳空白附件。',
+    'file-too-large': '附件超過 3 MiB 上限。',
+    'too-many-files': '每筆事件最多五個附件，請刪除部分附件後再試。',
+  };
+  return error.message in messages
+    ? new Error(messages[error.message as AttachmentValidationError])
+    : null;
+}
+
+export function changedJourneyEventFields(
+  current: UserJourneyEvent,
+  normalized: JourneyEventInput & { eventDate: Timestamp },
+  removedAttachments: readonly AttachmentMetadata[],
+  addedAttachments: readonly AttachmentMetadata[]
+): string[] {
+  const changedFields: string[] = [];
+  if (current.eventDate?.toMillis() !== normalized.eventDate.toMillis()) changedFields.push('eventDate');
+  if (current.title !== normalized.title) changedFields.push('title');
+  if (current.content !== normalized.content) changedFields.push('content');
+  if (removedAttachments.length || addedAttachments.length) changedFields.push('attachments');
+  return changedFields;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -113,6 +143,8 @@ export class JourneyEventService {
       return eventRef.id;
     } catch (error) {
       if (prepared?.sessionId) await this.rollbackPrepared(prepared);
+      const validationError = mapJourneyEventAttachmentValidationError(error);
+      if (validationError) throw validationError;
       throw this.friendly('事件與附件未能建立，請稍後重試。', error);
     }
   }
@@ -153,7 +185,8 @@ export class JourneyEventService {
         });
         transaction.set(doc(this.firestore, 'userJourneyEventAudits', lastAuditId), this.audit(
           event.id, event.targetUserId, 'update', actorUid, normalized.title,
-          ['eventDate', 'title', 'content', 'attachments'], merged.finalItems
+          changedJourneyEventFields(current, normalized, merged.removedItems, preparedBatch.attachments),
+          merged.finalItems
         ));
         if (preparedBatch.sessionId) {
           transaction.delete(doc(this.firestore, 'journeyEventAttachmentUploadSessions', preparedBatch.sessionId));
@@ -175,6 +208,8 @@ export class JourneyEventService {
       if (prepared?.sessionId) await this.rollbackPrepared(prepared);
       const mapped = mapJourneyEventUpdateError(error);
       if (mapped) throw mapped;
+      const validationError = mapJourneyEventAttachmentValidationError(error);
+      if (validationError) throw validationError;
       throw this.friendly('事件與附件未能更新，原資料未變更。', error);
     }
     await this.processCommittedCleanup(removed, '事件已更新，但部分附件清理失敗，已保留清理佇列供稍後重試。');
