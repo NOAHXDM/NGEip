@@ -152,6 +152,33 @@ describe('UserJourneyTimelineComponent', () => {
     expect(snackBar.open).toHaveBeenCalledOnceWith('登入狀態確認中，請稍後再試。', '關閉', { duration: 3000 });
   });
 
+  it('loadMore 完成時若 session 已被 reload 取代，不會把舊頁資料附加到新清單', async () => {
+    const { component, timeline } = createComponent();
+    component.userId = 'u1';
+    component.eventPermissions = { canCreate: true, canUpdate: true, canDelete: true };
+    const firstSession = { userId: 'u1', events: { buffer: [], done: true }, subsidies: { buffer: [], done: true } };
+    const secondSession = { userId: 'u1', events: { buffer: [], done: true }, subsidies: { buffer: [], done: true } };
+    let resolveOldLoadMore!: (value: { items: JourneyTimelineItem[]; hasMore: boolean }) => void;
+    let resolveReload!: (value: { items: JourneyTimelineItem[]; hasMore: boolean }) => void;
+    timeline.createSession.and.returnValues(firstSession, secondSession);
+    timeline.loadNext.and.returnValues(
+      Promise.resolve({ items: [item('initial', 100)], hasMore: true }),
+      new Promise((resolve) => { resolveOldLoadMore = resolve; }),
+      new Promise((resolve) => { resolveReload = resolve; })
+    );
+
+    await component.reload();
+    const oldLoadMore = component.loadMore();
+    const reload = component.reload();
+    resolveReload({ items: [item('fresh', 300)], hasMore: false });
+    await reload;
+    resolveOldLoadMore({ items: [item('stale-more', 50)], hasMore: false });
+    await oldLoadMore;
+
+    expect(component.items().map((value) => value.sourceId)).toEqual(['fresh']);
+    expect(component.hasMore()).toBeFalse();
+  });
+
   it('新增事件使用 firstValueFrom 等待 dialog 結果並送出', async () => {
     const closed$ = new Subject<JourneyEventDialogResult | undefined>();
     const { component, dialog, events } = createComponent();
@@ -175,6 +202,21 @@ describe('UserJourneyTimelineComponent', () => {
     await pending;
 
     expect(events.create).toHaveBeenCalledOnceWith(result.input, 'admin', []);
+  });
+
+  it('新增事件 dialog 關閉串流未 emit 就完成時不會送出事件', async () => {
+    const closed$ = new Subject<JourneyEventDialogResult | undefined>();
+    const { component, dialog, events } = createComponent();
+    component.userId = 'u1';
+    component.eventPermissions = { canCreate: true, canUpdate: true, canDelete: true };
+    dialog.open.and.returnValue({ afterClosed: () => closed$.asObservable() } as never);
+
+    const pending = component.openCreate();
+    closed$.complete();
+    await pending;
+
+    expect(events.create).not.toHaveBeenCalled();
+    expect(component.eventActionPending()).toBeFalse();
   });
 
   it('新增事件進行中會阻擋第二次開啟，避免快速雙擊建立重複事件', async () => {
