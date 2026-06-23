@@ -130,6 +130,19 @@ T043（將 journey-event attachment 完整整合進共用 `AttachmentService` do
 
 T017／T018／T047 仍維持為後續技術債：目前本分支以 journey service/component/dialog specs 與 `tools/journey-event-emulator-tests.cjs` 覆蓋 userId 查詢隔離、Rules 跨使用者讀取、Admin-only 寫入、附件 session/cleanup queue 與嵌入權限主要行為；若要補齊 tasks 原文指定的 Angular＋Firestore integration spec 與共用 `AttachmentService` adapter 回歸，需整理專案既有多處 `testing/*.spec.ts`／Jest emulator 架構與 T043 adapter 重構，適合另開獨立 PR 收斂，避免本修正輪擴大為跨 attendance/subsidy 的測試平台重整。
 
+## 2026-06-24 Claude Bot 第九輪複審修正驗證結果
+
+- `npx tsc -p tsconfig.app.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：39 個 journey timeline 測試通過；補上 `invalid-event-fields` 的明確繁中錯誤映射回歸。
+- `npm run test:journey-rules`：通過；新增 cleanup queue 轉移驗證，確認相同附件 id/storagePath 但 `uploadedAt` 序列化不同時仍可建立合法 cleanup queue，且 storagePath 不符時會被拒絕。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：273 個測試通過、68 個既有測試略過，無失敗。
+- `npm run build`：通過；production bundle 產出至 `dist/angular-eip`。沙盒內 build 仍會無錯誤訊息中止（exit 134），以外層權限重跑後通過。
+
+本輪依複審修正：`JourneyEventService.createAsync()` 與 `updateAsync()` 先正規化／驗證事件欄位，再建立 upload session 與寫入 Storage，避免欄位無效時先上傳附件再 rollback；`invalid-event-fields` 改為明確繁中訊息，不再落入通用錯誤；事件附件 `uploadedAt` 改為逐檔上傳後個別記錄，避免多檔共用同一 client timestamp；Firestore Rules 將 upload session create 的 Admin gate 提到頂層；cleanup queue 轉移不再用整個 attachment map 深度相等，而是比對正式事件原附件中的 `id + storagePath`，並確認交易後該 id 已自事件 attachments 移除；Storage Rules 的 journey upload session 與 cleanup ownership helper 改回 `exists(...) && firestore.get(...).data...` 的 null-safe pattern。
+
+補充限制：若瀏覽器在 `prepareUploads()` 成功建立 upload session 並完成 Storage 上傳後、但正式 event batch/transaction commit 前崩潰，client 端 rollback 無法執行，session 可能停在 `uploading`。目前 `request-attachment-orphan-audit.js` 已能盤點 Storage 物件是否被 parent/session/queue 引用，但尚未提供 journey-event upload session TTL 或自動清掃流程；此項維持為後續治理工作，需另行設計避免誤刪仍在上傳中的合法 session。
+
 ## 部署順序
 
 1. 先部署 `firestore.rules`、`storage.rules` 與 `firestore.indexes.json`。

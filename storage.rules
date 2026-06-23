@@ -91,15 +91,14 @@ service firebase.storage {
 
     function hasValidJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId) {
       let sessionPath = /databases/(default)/documents/journeyEventAttachmentUploadSessions/$(sessionId);
-      let session = firestore.get(sessionPath).data;
       return firestore.exists(sessionPath)
-        && session.status == 'uploading'
-        && session.actorUid == request.auth.uid
-        && session.targetUserId == targetUserId
-        && session.eventId == eventId
+        && firestore.get(sessionPath).data.status == 'uploading'
+        && firestore.get(sessionPath).data.actorUid == request.auth.uid
+        && firestore.get(sessionPath).data.targetUserId == targetUserId
+        && firestore.get(sessionPath).data.eventId == eventId
         && request.resource.metadata.targetUserId == targetUserId
         && request.resource.metadata.eventId == eventId
-        && session.plannedPaths.hasAny([
+        && firestore.get(sessionPath).data.plannedPaths.hasAny([
           'journey-event-attachments/' + targetUserId + '/' + eventId + '/' + sessionId + '/' + attachmentId
         ]);
     }
@@ -123,12 +122,11 @@ service firebase.storage {
 
     function hasJourneyCleanupOwnership(targetUserId, eventId, sessionId, attachmentId) {
       let queuePath = /databases/(default)/documents/journeyEventAttachmentCleanupQueue/$(attachmentId);
-      let queue = firestore.get(queuePath).data;
       return firestore.exists(queuePath)
-        && queue.actorUid == request.auth.uid
-        && queue.eventId == eventId
-        && queue.targetUserId == targetUserId
-        && queue.attachment.storagePath
+        && firestore.get(queuePath).data.actorUid == request.auth.uid
+        && firestore.get(queuePath).data.eventId == eventId
+        && firestore.get(queuePath).data.targetUserId == targetUserId
+        && firestore.get(queuePath).data.attachment.storagePath
           == 'journey-event-attachments/' + targetUserId + '/' + eventId + '/' + sessionId + '/' + attachmentId;
     }
 

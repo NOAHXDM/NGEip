@@ -188,6 +188,68 @@ async function main() {
     );
     await assertSucceeds(remove.commit());
 
+    const mismatchedPathCleanup = writeBatch(admin.firestore());
+    mismatchedPathCleanup.set(
+      doc(admin.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId),
+      {
+        eventId,
+        targetUserId: ownerUid,
+        actorUid: adminUid,
+        attachment: { ...attachmentMeta, storagePath: altStoragePath },
+        createdAt: serverTimestamp(),
+        attemptCount: 0,
+      }
+    );
+    mismatchedPathCleanup.update(eventRef, {
+      attachments: [],
+      updatedBy: adminUid,
+      updatedAt: serverTimestamp(),
+      lastAuditId: 'audit-mismatched-cleanup-path',
+    });
+    mismatchedPathCleanup.set(
+      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-mismatched-cleanup-path'),
+      auditData('audit-mismatched-cleanup-path', 'update', adminUid, '到職事件（更新）')
+    );
+    await assertFails(mismatchedPathCleanup.commit());
+
+    const relaxedTimestampCleanup = writeBatch(admin.firestore());
+    relaxedTimestampCleanup.set(
+      doc(admin.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId),
+      {
+        eventId,
+        targetUserId: ownerUid,
+        actorUid: adminUid,
+        attachment: { ...attachmentMeta, uploadedAt: new Date('2026-06-20T00:00:01Z') },
+        createdAt: serverTimestamp(),
+        attemptCount: 0,
+      }
+    );
+    relaxedTimestampCleanup.update(eventRef, {
+      attachments: [],
+      updatedBy: adminUid,
+      updatedAt: serverTimestamp(),
+      lastAuditId: 'audit-relaxed-cleanup-timestamp',
+    });
+    relaxedTimestampCleanup.set(
+      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-relaxed-cleanup-timestamp'),
+      auditData('audit-relaxed-cleanup-timestamp', 'update', adminUid, '到職事件（更新）')
+    );
+    await assertSucceeds(relaxedTimestampCleanup.commit());
+    await assertSucceeds(deleteDoc(doc(admin.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId)));
+
+    const restoreAttachment = writeBatch(admin.firestore());
+    restoreAttachment.update(eventRef, {
+      attachments: [attachmentMeta],
+      updatedBy: adminUid,
+      updatedAt: serverTimestamp(),
+      lastAuditId: 'audit-restore-attachment',
+    });
+    restoreAttachment.set(
+      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-restore-attachment'),
+      auditData('audit-restore-attachment', 'update', adminUid, '到職事件（更新）')
+    );
+    await assertSucceeds(restoreAttachment.commit());
+
     const removeWithCleanup = writeBatch(admin.firestore());
     removeWithCleanup.set(
       doc(admin.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId),

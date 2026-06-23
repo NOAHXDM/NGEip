@@ -16,7 +16,6 @@ import { firstValueFrom } from 'rxjs';
 
 import {
   AttachmentContentType,
-  AttachmentValidationError,
   AttachmentMetadata,
   MAX_ATTACHMENT_COUNT,
   PreparedAttachmentBatch,
@@ -62,16 +61,17 @@ export function mapJourneyEventUpdateError(error: unknown): Error | null {
 
 export function mapJourneyEventAttachmentValidationError(error: unknown): Error | null {
   if (!(error instanceof Error)) return null;
-  const messages: Partial<Record<AttachmentValidationError, string>> = {
+  const messages: Record<string, string> = {
     'unsupported-extension': '僅支援 PDF、JPEG、PNG、WebP 檔案。',
     'unsupported-mime': '附件格式不支援，僅接受 PDF、JPEG、PNG、WebP。',
     'signature-mismatch': '附件內容與宣告格式不符，請重新選擇檔案。',
     'empty-file': '不可上傳空白附件。',
     'file-too-large': '附件超過 3 MiB 上限。',
     'too-many-files': '每筆事件最多五個附件，請刪除部分附件後再試。',
+    'invalid-event-fields': '事件標題或內容格式不正確，請確認必填、字數與空白內容。',
   };
   return error.message in messages
-    ? new Error(messages[error.message as AttachmentValidationError])
+    ? new Error(messages[error.message])
     : null;
 }
 
@@ -175,8 +175,8 @@ export class JourneyEventService {
     const deleteAuditId = crypto.randomUUID();
     let prepared: PreparedAttachmentBatch | null = null;
     try {
-      prepared = await this.prepareUploads(eventRef.id, input.targetUserId, actorUid, files);
       const normalized = normalizeJourneyEventInput(input);
+      prepared = await this.prepareUploads(eventRef.id, normalized.targetUserId, actorUid, files);
       const batch = writeBatch(this.firestore);
       batch.set(eventRef, {
         ...normalized,
@@ -217,9 +217,9 @@ export class JourneyEventService {
     let prepared: PreparedAttachmentBatch | null = null;
     let removed: AttachmentMetadata[] = [];
     try {
+      const normalized = normalizeJourneyEventInput(input);
       if (exceedsJourneyEventAttachmentLimit(event, removedAttachmentIds, files)) throw new Error('too-many-files');
       prepared = await this.prepareUploads(event.id, event.targetUserId, actorUid, files);
-      const normalized = normalizeJourneyEventInput(input);
       const preparedBatch = prepared;
       removed = await runTransaction(this.firestore, async (transaction) => {
         const snapshot = await transaction.get(eventRef);
@@ -339,15 +339,17 @@ export class JourneyEventService {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    const uploadedAt = Timestamp.now();
-    const attachments: AttachmentMetadata[] = planned.map((item) => ({ ...item, uploadedAt }));
+    const attachments: AttachmentMetadata[] = [];
     const uploaded: AttachmentMetadata[] = [];
     try {
-      for (let index = 0; index < attachments.length; index++) {
+      for (let index = 0; index < planned.length; index++) {
+        let attachment: AttachmentMetadata = { ...planned[index], uploadedAt: Timestamp.now() };
         await firstValueFrom(this.storage.uploadJourneyEventAttachment(
-          attachments[index], files[index], { targetUserId, eventId }
+          attachment, files[index], { targetUserId, eventId }
         ));
-        uploaded.push(attachments[index]);
+        attachment = { ...attachment, uploadedAt: Timestamp.now() };
+        attachments.push(attachment);
+        uploaded.push(attachment);
       }
     } catch (error) {
       await this.rollbackPrepared({ sessionId: sessionRef.id, attachments: uploaded });

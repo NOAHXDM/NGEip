@@ -96,6 +96,8 @@ describe('JourneyEventService business rules', () => {
       .toBe('附件格式不支援，僅接受 PDF、JPEG、PNG、WebP。');
     expect(mapJourneyEventAttachmentValidationError(new Error('signature-mismatch'))?.message)
       .toBe('附件內容與宣告格式不符，請重新選擇檔案。');
+    expect(mapJourneyEventAttachmentValidationError(new Error('invalid-event-fields'))?.message)
+      .toBe('事件標題或內容格式不正確，請確認必填、字數與空白內容。');
     expect(mapJourneyEventAttachmentValidationError(new Error('other'))).toBeNull();
   });
 

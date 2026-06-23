@@ -314,7 +314,7 @@ service cloud.firestore {
     }
 
     match /journeyEventAttachmentUploadSessions/{sessionId} {
-      allow create: if isSignedIn()
+      allow create: if isAdmin()
         && request.resource.data.actorUid == request.auth.uid
         && request.resource.data.status == 'uploading'
         && request.resource.data.eventId is string
@@ -337,13 +337,48 @@ service cloud.firestore {
           .hasOnly(['status', 'updatedAt', 'lastErrorCode']);
     }
 
+    function hasJourneyAttachmentIdAt(data, index, attachmentId) {
+      return data.attachments.size() > index && data.attachments[index].id == attachmentId;
+    }
+
+    function hasJourneyAttachmentAt(data, index, attachmentId, storagePath) {
+      return hasJourneyAttachmentIdAt(data, index, attachmentId)
+        && data.attachments[index].storagePath == storagePath;
+    }
+
+    function hasJourneyAttachment(data, attachmentId, storagePath) {
+      return data.attachments is list
+        && (
+          hasJourneyAttachmentAt(data, 0, attachmentId, storagePath)
+          || hasJourneyAttachmentAt(data, 1, attachmentId, storagePath)
+          || hasJourneyAttachmentAt(data, 2, attachmentId, storagePath)
+          || hasJourneyAttachmentAt(data, 3, attachmentId, storagePath)
+          || hasJourneyAttachmentAt(data, 4, attachmentId, storagePath)
+        );
+    }
+
+    function hasJourneyAttachmentId(data, attachmentId) {
+      return data.attachments is list
+        && (
+          hasJourneyAttachmentIdAt(data, 0, attachmentId)
+          || hasJourneyAttachmentIdAt(data, 1, attachmentId)
+          || hasJourneyAttachmentIdAt(data, 2, attachmentId)
+          || hasJourneyAttachmentIdAt(data, 3, attachmentId)
+          || hasJourneyAttachmentIdAt(data, 4, attachmentId)
+        );
+    }
+
     function validJourneyCleanupTransfer(data, attachmentId) {
       let path = journeyEventPath(data.eventId);
       return data.attachment.id == attachmentId
+        && data.attachment.storagePath is string
+        && data.attachment.storagePath.matches(
+          '^journey-event-attachments/' + data.targetUserId + '/' + data.eventId + '/[^/]+/' + attachmentId + '$'
+        )
         && exists(path)
         && get(path).data.targetUserId == data.targetUserId
-        && get(path).data.attachments.hasAny([data.attachment])
-        && (!existsAfter(path) || !getAfter(path).data.attachments.hasAny([data.attachment]));
+        && hasJourneyAttachment(get(path).data, attachmentId, data.attachment.storagePath)
+        && (!existsAfter(path) || !hasJourneyAttachmentId(getAfter(path).data, attachmentId));
     }
 
     match /journeyEventAttachmentCleanupQueue/{attachmentId} {
