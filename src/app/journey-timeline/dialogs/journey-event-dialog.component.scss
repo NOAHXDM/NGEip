@@ -1,0 +1,12 @@
+.event-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: min(560px, 75vw);
+  padding-top: 8px;
+}
+
+@media (max-width: 640px) {
+  .event-form { min-width: 0; }
+}
+

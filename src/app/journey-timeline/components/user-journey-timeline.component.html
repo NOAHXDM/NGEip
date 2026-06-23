@@ -1,0 +1,85 @@
+<section class="journey-section" aria-labelledby="journey-title">
+  <div class="journey-header">
+    <div>
+      <h2 id="journey-title"><mat-icon>timeline</mat-icon>使用者歷程</h2>
+      <p>彙整員工從入職到現階段的所有事件與文件</p>
+    </div>
+    @if (eventPermissions.canCreate) {
+      <button mat-flat-button color="primary" (click)="openCreate()">
+        <mat-icon>add</mat-icon>新增事件
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="state"><mat-spinner diameter="42"></mat-spinner><span>載入歷程中…</span></div>
+  } @else if (error() && items().length === 0) {
+    <div class="state error"><mat-icon>error_outline</mat-icon><span>{{ error() }}</span>
+      <button mat-button (click)="reload()">重試</button>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="state"><mat-icon>history</mat-icon><span>目前尚無歷程資料</span></div>
+  } @else {
+    <div class="timeline">
+      @for (item of items(); track item.source + '-' + item.sourceId; let index = $index) {
+        <article
+          class="timeline-item"
+          [class.timeline-item--right]="index % 2 === 0"
+          [class.timeline-item--left]="index % 2 !== 0"
+          [style.--timeline-color]="timelineColor(item)"
+          [style.--timeline-gap.px]="timelineGap(index)"
+        >
+          <div class="dot" aria-hidden="true">
+            <mat-icon>{{ timelineIcon(item) }}</mat-icon>
+          </div>
+          <mat-card>
+            <mat-card-header>
+              <mat-card-title>
+                <time [attr.datetime]="item.occurredAt.toDate().toISOString()">
+                  {{ item.occurredAt.toDate() | date:'yyyy/MM/dd' }}
+                </time>
+                <span>{{ item.title }}</span>
+              </mat-card-title>
+              @if (item.source === 'event' && item.event) {
+                <span class="actions">
+                  @if (eventPermissions.canUpdate) {
+                    <button mat-icon-button aria-label="編輯事件" (click)="openEdit(item.event)"><mat-icon>edit</mat-icon></button>
+                  }
+                  @if (eventPermissions.canDelete) {
+                    <button mat-icon-button aria-label="刪除事件" (click)="deleteEvent(item.event)"><mat-icon>delete</mat-icon></button>
+                  }
+                </span>
+              }
+            </mat-card-header>
+            <mat-card-content>
+              @if (item.status) {
+                <mat-chip-set><mat-chip>{{ statusLabel(item.status) }}</mat-chip></mat-chip-set>
+              }
+              @if (item.content) { <p class="content">{{ item.content }}</p> }
+              @if (item.requestedAmount != null) {
+                <p class="amount">申請金額：NT$ {{ item.requestedAmount | number }}</p>
+              }
+              @if (item.approvedAmount != null) {
+                <p class="amount">核准金額：NT$ {{ item.approvedAmount | number }}</p>
+              }
+              @if (item.attachments.length) {
+                <app-attachment-list [attachments]="item.attachments" [canManage]="false" />
+              }
+            </mat-card-content>
+          </mat-card>
+        </article>
+      }
+    </div>
+
+    @if (error()) {
+      <div class="inline-error">{{ error() }} <button mat-button (click)="loadMore()">重試</button></div>
+    }
+    @if (hasMore()) {
+      <div class="more">
+        <button mat-stroked-button (click)="loadMore()" [disabled]="loadingMore()">
+          {{ loadingMore() ? '載入中…' : '載入更早歷程' }}
+        </button>
+      </div>
+    }
+  }
+</section>

@@ -184,6 +184,182 @@ service cloud.firestore {
       allow list: if isAdmin();
     }
 
+    // =============================================
+    // 使用者歷程事件（006-user-journey-timeline）
+    // =============================================
+
+    function journeyEventPath(eventId) {
+      return /databases/$(database)/documents/userJourneyEvents/$(eventId);
+    }
+
+    function journeyAuditPath(auditId) {
+      return /databases/$(database)/documents/userJourneyEventAudits/$(auditId);
+    }
+
+    function validJourneyEventData(data) {
+      return data.keys().hasOnly([
+          'targetUserId', 'eventDate', 'title', 'content', 'attachments',
+          'createdBy', 'createdAt', 'updatedBy', 'updatedAt',
+          'lastAuditId', 'deleteAuditId'
+        ])
+        && data.targetUserId is string
+        && data.eventDate is timestamp
+        && data.title is string
+        && data.title.size() >= 1 && data.title.size() <= 100
+        && data.title.matches('.*\\S.*')
+        && data.content is string
+        && data.content.size() >= 1 && data.content.size() <= 5000
+        && data.content.matches('.*\\S.*')
+        && data.attachments is list && data.attachments.size() <= 5
+        && data.createdBy is string && data.updatedBy is string
+        && data.createdAt is timestamp && data.updatedAt is timestamp
+        && data.lastAuditId is string && data.lastAuditId.size() > 0
+        && data.deleteAuditId is string && data.deleteAuditId.size() > 0
+        && data.lastAuditId != data.deleteAuditId;
+    }
+
+    function validJourneyAudit(data, auditId) {
+      return data.keys().hasOnly([
+          'eventId', 'targetUserId', 'action', 'actorUid', 'actionAt',
+          'title', 'changedFields', 'attachmentSummary'
+        ])
+        && data.eventId is string
+        && data.targetUserId is string
+        && data.action in ['create', 'update', 'delete']
+        && data.actorUid == request.auth.uid
+        && data.actionAt == request.time
+        && data.title is string
+        && data.changedFields is list
+        && data.attachmentSummary is list
+        && ((data.action in ['create', 'update'] && auditId == getAfter(journeyEventPath(data.eventId)).data.lastAuditId)
+          || (data.action == 'delete' && auditId == get(journeyEventPath(data.eventId)).data.deleteAuditId));
+    }
+
+    function pairedJourneyAudit(auditId, eventId, targetUserId, action, title) {
+      let audit = getAfter(journeyAuditPath(auditId)).data;
+      return audit.eventId == eventId
+        && audit.targetUserId == targetUserId
+        && audit.action == action
+        && audit.actorUid == request.auth.uid
+        && audit.actionAt == request.time
+        && audit.title == title;
+    }
+
+    match /userJourneyEvents/{eventId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin()
+        && validJourneyEventData(request.resource.data)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && pairedJourneyAudit(
+          request.resource.data.lastAuditId,
+          eventId,
+          request.resource.data.targetUserId,
+          'create',
+          request.resource.data.title
+        );
+      allow update: if isSignedIn()
+        && isAdmin()
+        && validJourneyEventData(request.resource.data)
+        && request.resource.data.targetUserId == resource.data.targetUserId
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.deleteAuditId == resource.data.deleteAuditId
+        && request.resource.data.lastAuditId != resource.data.lastAuditId
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time
+        && pairedJourneyAudit(
+          request.resource.data.lastAuditId,
+          eventId,
+          resource.data.targetUserId,
+          'update',
+          request.resource.data.title
+        );
+      allow delete: if isAdmin()
+        && pairedJourneyAudit(
+          resource.data.deleteAuditId,
+          eventId,
+          resource.data.targetUserId,
+          'delete',
+          resource.data.title
+        );
+    }
+
+    match /userJourneyEventAudits/{auditId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn()
+        && validJourneyAudit(request.resource.data, auditId)
+        && (
+          (request.resource.data.action == 'create'
+            && isAdmin()
+            && !exists(journeyEventPath(request.resource.data.eventId))
+            && getAfter(journeyEventPath(request.resource.data.eventId)).data.createdBy == request.auth.uid)
+          || (request.resource.data.action == 'update'
+            && exists(journeyEventPath(request.resource.data.eventId))
+            && isAdmin()
+            && getAfter(journeyEventPath(request.resource.data.eventId)).data.updatedBy == request.auth.uid)
+          || (request.resource.data.action == 'delete'
+            && isAdmin()
+            && exists(journeyEventPath(request.resource.data.eventId))
+            && !existsAfter(journeyEventPath(request.resource.data.eventId)))
+        );
+      allow update, delete: if false;
+    }
+
+    function validJourneySessionParent(data) {
+      return (!exists(journeyEventPath(data.eventId)) && isAdmin())
+        || (exists(journeyEventPath(data.eventId))
+          && get(journeyEventPath(data.eventId)).data.targetUserId == data.targetUserId
+          && isAdmin());
+    }
+
+    match /journeyEventAttachmentUploadSessions/{sessionId} {
+      allow create: if isSignedIn()
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.status == 'uploading'
+        && request.resource.data.eventId is string
+        && request.resource.data.targetUserId is string
+        && request.resource.data.plannedAttachments is list
+        && request.resource.data.plannedAttachments.size() > 0
+        && request.resource.data.plannedAttachments.size() <= 5
+        && request.resource.data.plannedPaths is list
+        && request.resource.data.plannedPaths.size() == request.resource.data.plannedAttachments.size()
+        && validJourneySessionParent(request.resource.data);
+      allow get, delete: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin());
+      allow list: if isAdmin();
+      allow update: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin())
+        && resource.data.status == 'uploading'
+        && request.resource.data.actorUid == resource.data.actorUid
+        && request.resource.data.eventId == resource.data.eventId
+        && request.resource.data.targetUserId == resource.data.targetUserId
+        && request.resource.data.status == 'cleanup-pending'
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'updatedAt', 'lastErrorCode']);
+    }
+
+    function validJourneyCleanupTransfer(data, attachmentId) {
+      let path = journeyEventPath(data.eventId);
+      return data.attachment.id == attachmentId
+        && exists(path)
+        && get(path).data.targetUserId == data.targetUserId
+        && get(path).data.attachments.hasAny([data.attachment])
+        && (!existsAfter(path) || !getAfter(path).data.attachments.hasAny([data.attachment]));
+    }
+
+    match /journeyEventAttachmentCleanupQueue/{attachmentId} {
+      allow create: if isSignedIn()
+        && request.resource.data.actorUid == request.auth.uid
+        && isAdmin()
+        && validJourneyCleanupTransfer(request.resource.data, attachmentId);
+      allow get, delete: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin())
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['attemptCount', 'lastAttemptAt', 'lastErrorCode']);
+      allow list: if isAdmin();
+    }
+
     // 供餐補助集合（原始資料）
     match /mealSubsidies/{dateId} {
       allow read: if isSignedIn();

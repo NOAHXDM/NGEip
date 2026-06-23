@@ -89,6 +89,56 @@ service firebase.storage {
       );
     }
 
+    function hasValidJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId) {
+      let session = firestore.get(/databases/(default)/documents/journeyEventAttachmentUploadSessions/$(sessionId)).data;
+      return session.status == 'uploading'
+        && session.actorUid == request.auth.uid
+        && session.targetUserId == targetUserId
+        && session.eventId == eventId
+        && request.resource.metadata.targetUserId == targetUserId
+        && request.resource.metadata.eventId == eventId
+        && session.plannedPaths.hasAny([
+          'journey-event-attachments/' + targetUserId + '/' + eventId + '/' + sessionId + '/' + attachmentId
+        ]);
+    }
+
+    function ownsJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId) {
+      let session = firestore.get(/databases/(default)/documents/journeyEventAttachmentUploadSessions/$(sessionId)).data;
+      return session.actorUid == request.auth.uid
+        && session.status in ['uploading', 'cleanup-pending']
+        && session.targetUserId == targetUserId
+        && session.eventId == eventId
+        && resource.metadata.targetUserId == targetUserId
+        && session.plannedPaths.hasAny([
+          'journey-event-attachments/' + targetUserId + '/' + eventId + '/' + sessionId + '/' + attachmentId
+        ]);
+    }
+
+    function hasJourneyCleanupOwnership(attachmentId) {
+      let queuePath = /databases/(default)/documents/journeyEventAttachmentCleanupQueue/$(attachmentId);
+      return firestore.exists(queuePath)
+        && firestore.get(queuePath).data.actorUid == request.auth.uid;
+    }
+
+    match /journey-event-attachments/{targetUserId}/{eventId}/{sessionId}/{attachmentId} {
+      allow get: if request.auth != null;
+      allow list: if false;
+      allow create: if resource == null
+        && request.auth != null
+        && request.resource.size > 0
+        && request.resource.size <= 3 * 1024 * 1024
+        && isAllowedAttachmentType()
+        && request.resource.metadata.attachmentId == attachmentId
+        && request.resource.metadata.uploadedBy == request.auth.uid
+        && hasValidJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId);
+      allow update: if false;
+      allow delete: if request.auth != null && (
+        isAdmin()
+        || ownsJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId)
+        || hasJourneyCleanupOwnership(attachmentId)
+      );
+    }
+
     // 其餘路徑一律拒絕
     match /{allPaths=**} {
       allow read, write: if false;

@@ -40,6 +40,8 @@ import { UserAttributeSnapshotService } from '../../services/user-attribute-snap
 import { RadarChartComponent } from '../../components/radar-chart/radar-chart.component';
 import { TrendLineChartComponent } from '../../components/trend-line-chart/trend-line-chart.component';
 import { CareerArchetypeBadgeComponent } from '../../components/career-archetype-badge/career-archetype-badge.component';
+import { UserJourneyTimelineComponent } from '../../../journey-timeline/components/user-journey-timeline.component';
+import { UserService } from '../../../services/user.service';
 
 // ── 職等及格說明 ──────────────────────────────────────────────────────────────
 
@@ -95,6 +97,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
     RadarChartComponent,
     TrendLineChartComponent,
     CareerArchetypeBadgeComponent,
+    UserJourneyTimelineComponent,
   ],
   template: `
     <div class="page-container">
@@ -312,6 +315,12 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
             </mat-card-content>
           </mat-card>
         }
+      }
+
+      @if (currentUser(); as user) {
+        <app-user-journey-timeline
+          [userId]="user.uid!"
+          [eventPermissions]="personalEventPermissions" />
       }
     </div>
   `,
@@ -629,6 +638,14 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
 export class AttributeReportComponent implements OnInit, OnDestroy {
   private readonly snapshotService = inject(UserAttributeSnapshotService);
   private readonly cycleService = inject(EvaluationCycleService);
+  private readonly userService = inject(UserService);
+
+  readonly currentUser = toSignal(this.userService.currentUser$);
+  readonly personalEventPermissions = {
+    canCreate: false,
+    canUpdate: false,
+    canDelete: false,
+  } as const;
 
   readonly attributeKeys = ATTRIBUTE_KEYS;
 
