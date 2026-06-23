@@ -317,9 +317,9 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
         }
       }
 
-      @if (currentUser(); as user) {
+      @if (currentUser()?.uid; as uid) {
         <app-user-journey-timeline
-          [userId]="user.uid!"
+          [userId]="uid"
           [eventPermissions]="personalEventPermissions" />
       }
     </div>

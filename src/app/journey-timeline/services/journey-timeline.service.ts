@@ -23,6 +23,7 @@ import {
 } from '../models/journey-timeline.models';
 
 const SOURCE_PAGE_SIZE = 20;
+const SOURCE_FETCH_LIMIT = SOURCE_PAGE_SIZE + 1;
 const OUTPUT_PAGE_SIZE = 20;
 
 interface SourceState {
@@ -50,6 +51,18 @@ export function compareTimelineItems(a: JourneyTimelineItem, b: JourneyTimelineI
   if (timeDiff) return timeDiff;
   if (a.source !== b.source) return a.source === 'event' ? -1 : 1;
   return b.sourceId.localeCompare(a.sourceId);
+}
+
+export function takeTimelineSourcePage<T>(
+  docs: readonly T[],
+  pageSize = SOURCE_PAGE_SIZE
+): { docs: readonly T[]; cursor?: T; done: boolean } {
+  const visibleDocs = docs.slice(0, pageSize);
+  return {
+    docs: visibleDocs,
+    cursor: visibleDocs.at(-1),
+    done: docs.length <= pageSize,
+  };
 }
 
 export async function loadTimelinePageFromBuffers(
@@ -106,12 +119,13 @@ export class JourneyTimelineService {
       orderBy('eventDate', 'desc'),
       orderBy(documentId(), 'desc'),
       ...(session.events.cursor ? [startAfter(session.events.cursor)] : []),
-      limit(SOURCE_PAGE_SIZE),
+      limit(SOURCE_FETCH_LIMIT),
     ];
     const snapshot = await getDocs(query(collection(this.firestore, 'userJourneyEvents'), ...constraints));
-    session.events.cursor = snapshot.docs.at(-1);
-    session.events.done = snapshot.size < SOURCE_PAGE_SIZE;
-    session.events.buffer.push(...snapshot.docs.map((item) => {
+    const page = takeTimelineSourcePage(snapshot.docs);
+    session.events.cursor = page.cursor;
+    session.events.done = page.done;
+    session.events.buffer.push(...page.docs.map((item) => {
       const event = { id: item.id, ...item.data() } as UserJourneyEvent;
       return {
         source: 'event' as const,
@@ -132,12 +146,13 @@ export class JourneyTimelineService {
       orderBy('applicationDate', 'desc'),
       orderBy(documentId(), 'desc'),
       ...(session.subsidies.cursor ? [startAfter(session.subsidies.cursor)] : []),
-      limit(SOURCE_PAGE_SIZE),
+      limit(SOURCE_FETCH_LIMIT),
     ];
     const snapshot = await getDocs(query(collection(this.firestore, 'subsidyApplications'), ...constraints));
-    session.subsidies.cursor = snapshot.docs.at(-1);
-    session.subsidies.done = snapshot.size < SOURCE_PAGE_SIZE;
-    session.subsidies.buffer.push(...snapshot.docs.map((item) => {
+    const page = takeTimelineSourcePage(snapshot.docs);
+    session.subsidies.cursor = page.cursor;
+    session.subsidies.done = page.done;
+    session.subsidies.buffer.push(...page.docs.map((item) => {
       const subsidy = { id: item.id, ...item.data() } as SubsidyApplication;
       return {
         source: 'subsidy' as const,

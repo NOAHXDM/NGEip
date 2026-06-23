@@ -71,7 +71,7 @@ describe('JourneyEventDialogComponent', () => {
     }));
   });
 
-  it('空白標題或內容不會關閉 dialog', () => {
+  it('純空白標題會標記為 invalid 並顯示錯誤條件', () => {
     const { component, dialogRef } = createComponent({
       targetUserId: 'u1',
       actorUid: 'admin',
@@ -87,6 +87,28 @@ describe('JourneyEventDialogComponent', () => {
 
     expect(dialogRef.close).not.toHaveBeenCalled();
     expect(component.form.touched).toBeTrue();
+    expect(component.form.controls.title.invalid).toBeTrue();
+    expect(component.form.controls.title.hasError('pattern')).toBeTrue();
+  });
+
+  it('純空白內容會標記為 invalid 並顯示錯誤條件', () => {
+    const { component, dialogRef } = createComponent({
+      targetUserId: 'u1',
+      actorUid: 'admin',
+      permissions: { canCreate: true, canUpdate: true, canDelete: true },
+    });
+    component.form.setValue({
+      eventDate: '2026-06-23',
+      title: '標題',
+      content: '   ',
+    });
+
+    component.submit();
+
+    expect(dialogRef.close).not.toHaveBeenCalled();
+    expect(component.form.touched).toBeTrue();
+    expect(component.form.controls.content.invalid).toBeTrue();
+    expect(component.form.controls.content.hasError('pattern')).toBeTrue();
   });
 
   it('超過標題或內容上限時不會關閉 dialog', () => {

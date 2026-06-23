@@ -32,8 +32,14 @@ import {
 export class JourneyEventDialogComponent {
   readonly form = new FormGroup({
     eventDate: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-    title: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(100)] }),
-    content: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(5000)] }),
+    title: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.pattern(/\S/), Validators.maxLength(100)],
+    }),
+    content: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.pattern(/\S/), Validators.maxLength(5000)],
+    }),
   });
   pendingFiles: File[] = [];
   removedAttachmentIds: string[] = [];

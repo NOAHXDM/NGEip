@@ -4,7 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -13,6 +13,7 @@ import { firstValueFrom } from 'rxjs';
 import { AttachmentListComponent } from '../../attachments/attachment-list.component';
 import { SubsidyType } from '../../services/subsidy.service';
 import { UserService } from '../../services/user.service';
+import { JourneyDeleteConfirmDialogComponent } from '../dialogs/journey-delete-confirm-dialog.component';
 import { JourneyEventDialogComponent } from '../dialogs/journey-event-dialog.component';
 import {
   JourneyEventDialogResult,
@@ -22,34 +23,6 @@ import {
 } from '../models/journey-timeline.models';
 import { JourneyEventService } from '../services/journey-event.service';
 import { JourneyTimelineService, JourneyTimelineSession } from '../services/journey-timeline.service';
-
-interface JourneyDeleteConfirmDialogData {
-  title: string;
-}
-
-@Component({
-  selector: 'app-journey-delete-confirm-dialog',
-  standalone: true,
-  imports: [MatButtonModule, MatDialogModule],
-  template: `
-    <h2 mat-dialog-title>刪除事件</h2>
-    <mat-dialog-content>
-      確定要刪除事件「{{ data.title }}」嗎？此操作會移除時間軸中的事件與附件關聯。
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button type="button" (click)="close(false)">取消</button>
-      <button mat-flat-button color="warn" type="button" (click)="close(true)">刪除</button>
-    </mat-dialog-actions>
-  `,
-})
-export class JourneyDeleteConfirmDialogComponent {
-  readonly data = inject<JourneyDeleteConfirmDialogData>(MAT_DIALOG_DATA);
-  private readonly dialogRef = inject<MatDialogRef<JourneyDeleteConfirmDialogComponent, boolean>>(MatDialogRef);
-
-  close(result: boolean): void {
-    this.dialogRef.close(result);
-  }
-}
 
 @Component({
   selector: 'app-user-journey-timeline',
@@ -93,6 +66,7 @@ export class UserJourneyTimelineComponent implements OnChanges {
   readonly error = signal('');
   private session?: JourneyTimelineSession;
   private actorUid = '';
+  private readonly timelineColors = new Map<string, string>();
   private readonly destroyRef = inject(DestroyRef);
   private readonly timeline = inject(JourneyTimelineService);
   private readonly events = inject(JourneyEventService);
@@ -113,6 +87,7 @@ export class UserJourneyTimelineComponent implements OnChanges {
   async reload(): Promise<void> {
     this.session = this.timeline.createSession(this.userId);
     this.items.set([]);
+    this.timelineColors.clear();
     this.hasMore.set(false);
     this.loading.set(true);
     this.error.set('');
@@ -215,11 +190,15 @@ export class UserJourneyTimelineComponent implements OnChanges {
 
   timelineColor(item: JourneyTimelineItem): string {
     const key = `${item.source}:${item.sourceId}`;
+    const cached = this.timelineColors.get(key);
+    if (cached) return cached;
     let hash = 0;
     for (const character of key) hash = ((hash << 5) - hash + character.charCodeAt(0)) | 0;
-    return UserJourneyTimelineComponent.TIMELINE_COLORS[
+    const color = UserJourneyTimelineComponent.TIMELINE_COLORS[
       Math.abs(hash) % UserJourneyTimelineComponent.TIMELINE_COLORS.length
     ];
+    this.timelineColors.set(key, color);
+    return color;
   }
 
   timelineGap(index: number): number {

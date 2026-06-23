@@ -59,6 +59,17 @@
 
 本輪依複審修正：`hasJourneyCleanupOwnership` 加入完整 Storage path 比對、事件刪除二次確認改用 Material Dialog、timeline 查詢游標改用展開式 constraints 避免魔術索引，並強化 emulator 邊界測試以補足 Rules/schema/immutable 與跨路徑附件治理驗證。
 
+## 2026-06-23 Claude Bot 第三輪複審修正驗證結果
+
+- `npx tsc -p tsconfig.app.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：24 個 journey timeline 測試通過；新增純空白 title/content 驗證、20/21 筆來源分頁邊界與快取式 timeline color 回歸覆蓋。
+- `npm run test:journey-rules`：通過；Storage delete rules 改為 exists guard 後單次讀取 session／cleanup queue，並維持 upload session 與 cleanup queue 治理鏈。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：258 個測試通過、68 個既有測試略過，無失敗。
+- `npm run build`：通過；production bundle 產出至 `dist/angular-eip`。
+
+本輪依複審修正：事件 update/delete 交易成功後，附件清理失敗不再向使用者回報「原資料未變更」，而是保留 cleanup queue 並以 warning 記錄；事件 dialog 加上 `Validators.pattern(/\S/)`，純空白欄位會進入 Angular invalid 狀態並顯示既有錯誤訊息；時間軸來源查詢改為每來源讀取 21 筆、輸出 20 筆，以正確判斷剛好 20 筆時已無更多資料；個人報告入口改用 `currentUser()?.uid` guard；刪除確認 Dialog 拆為獨立元件檔；`timelineColor()` 加入 Map 快取避免每次 change detection 重算 hash。
+
 ## 部署順序
 
 1. 先部署 `firestore.rules`、`storage.rules` 與 `firestore.indexes.json`。
