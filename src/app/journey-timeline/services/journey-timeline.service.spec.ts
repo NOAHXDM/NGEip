@@ -1,7 +1,12 @@
 import { Timestamp } from '@angular/fire/firestore';
 
 import { JourneyTimelineItem } from '../models/journey-timeline.models';
-import { compareTimelineItems, JourneyTimelineSession, loadTimelinePageFromBuffers } from './journey-timeline.service';
+import {
+  compareTimelineItems,
+  JourneyTimelineSession,
+  loadTimelinePageFromBuffers,
+  takeTimelineSourcePage,
+} from './journey-timeline.service';
 
 function item(
   source: 'event' | 'subsidy',
@@ -84,5 +89,27 @@ describe('loadTimelinePageFromBuffers', () => {
 
     expect(page.items).toEqual([]);
     expect(page.hasMore).toBeFalse();
+  });
+});
+
+describe('takeTimelineSourcePage', () => {
+  it('來源恰好回傳 20 筆時視為已到底，避免多餘 hasMore', () => {
+    const values = Array.from({ length: 20 }, (_, index) => `doc-${index}`);
+
+    const page = takeTimelineSourcePage(values);
+
+    expect(page.docs.length).toBe(20);
+    expect(page.cursor).toBe('doc-19');
+    expect(page.done).toBeTrue();
+  });
+
+  it('來源回傳 21 筆時只輸出前 20 筆並保留下一頁狀態', () => {
+    const values = Array.from({ length: 21 }, (_, index) => `doc-${index}`);
+
+    const page = takeTimelineSourcePage(values);
+
+    expect(page.docs).toEqual(values.slice(0, 20));
+    expect(page.cursor).toBe('doc-19');
+    expect(page.done).toBeFalse();
   });
 });

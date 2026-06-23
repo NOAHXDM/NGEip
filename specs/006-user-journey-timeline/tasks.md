@@ -5,15 +5,17 @@
 
 **測試要求**：排序、分頁、權限、Firebase 資料存取及附件補償 MUST 先建立失敗測試，再實作至通過。
 
+**本分支實際測試配置**：Angular business logic 以 `src/app/journey-timeline/**/*.spec.ts` 覆蓋 service、component、dialog 與純函式；Firebase 權限與整合流程以 `tools/journey-event-emulator-tests.cjs` 搭配 Firestore／Storage Emulator 驗證。原先列於 `src/app/journey-timeline/testing/*.spec.ts` 的 Rules／整合測試任務，已採現有專案慣用的 emulator script 承接，不另新增平行測試目錄。
+
 ## Phase 1：準備（共享基礎）
 
 **目的**：建立 feature 結構、共用型別與測試骨架。
 
-- [ ] T001 建立 `src/app/journey-timeline/components/`、`src/app/journey-timeline/dialogs/`、`src/app/journey-timeline/models/`、`src/app/journey-timeline/services/` 與 `src/app/journey-timeline/testing/` 目錄結構
+- [x] T001 建立 `src/app/journey-timeline/components/`、`src/app/journey-timeline/dialogs/`、`src/app/journey-timeline/models/`、`src/app/journey-timeline/services/` 與 `src/app/journey-timeline/testing/` 目錄結構（本分支以現有 `tools/journey-event-emulator-tests.cjs` 承接 integration testing，未另建 `testing/` 目錄）
 - [x] T002 [P] 依 `specs/006-user-journey-timeline/contracts/angular-interfaces.md` 在 `src/app/journey-timeline/models/journey-timeline.models.ts` 定義 `UserJourneyEvent`、`JourneyTimelineItem`、分頁狀態與 dialog 資料型別
 - [ ] T003 [P] 在 `src/app/journey-timeline/testing/journey-timeline-test-data.ts` 建立事件、補助、附件及跨頁交錯資料工廠
 - [ ] T004 [P] 在 `src/app/journey-timeline/testing/emulator-setup.ts` 建立 Auth／Firestore／Storage Emulator 測試初始化與一般使用者、其他使用者、Admin 測試身份
-- [ ] T005 盤點 `src/app/evaluation/pages/attribute-report/attribute-report.component.ts` 與 `src/app/evaluation/components/user-attribute-report-embed/user-attribute-report-embed.component.ts` 的 template 條件區塊，記錄時間軸必須位於考核空狀態之外的插入點於 `specs/006-user-journey-timeline/quickstart.md`
+- [x] T005 盤點 `src/app/evaluation/pages/attribute-report/attribute-report.component.ts` 與 `src/app/evaluation/components/user-attribute-report-embed/user-attribute-report-embed.component.ts` 的 template 條件區塊，記錄時間軸必須位於考核空狀態之外的插入點於 `specs/006-user-journey-timeline/quickstart.md`
 
 ---
 
@@ -23,9 +25,9 @@
 
 ### 測試（先寫並確認失敗）
 
-- [ ] T006 [P] 在 `src/app/journey-timeline/testing/firestore-rules.spec.ts` 建立 authenticated 跨使用者讀取、以 `users/{request.auth.uid}.role` 判定 Admin、非 Admin create/update/delete 拒絕、Admin CRUD、欄位 allowlist／型別／非空白 title 1–100／content 1–5,000／attachments 0–5、actor UID、不可變欄位、每次改變且不可重用的 `lastAuditId`、不可變 `deleteAuditId`、event/audit 時間等於 `request.time`、平坦 audit immutable，以及孤立／偽造 audit create 拒絕的 Rules 邊界測試
-- [ ] T007 [P] 在 `src/app/journey-timeline/testing/storage-rules.spec.ts` 建立所有 authenticated 可 get、未登入拒絕、禁止 list、Admin session create、非 Admin session create 拒絕、cleanup queue delete、3 MiB 邊界與 PDF/JPEG/PNG/WebP MIME allowlist 的 Rules 測試
-- [ ] T008 [P] 在 `src/app/journey-timeline/services/journey-timeline.service.spec.ts` 建立 Timestamp 正規化、event/subsidy view model 轉換及 stable comparator 的失敗測試
+- [x] T006 [P] 在 `src/app/journey-timeline/testing/firestore-rules.spec.ts` 建立 authenticated 跨使用者讀取、以 `users/{request.auth.uid}.role` 判定 Admin、非 Admin create/update/delete 拒絕、Admin CRUD、欄位 allowlist／型別／非空白 title 1–100／content 1–5,000／attachments 0–5、actor UID、不可變欄位、每次改變且不可重用的 `lastAuditId`、不可變 `deleteAuditId`、event/audit 時間等於 `request.time`、平坦 audit immutable，以及孤立／偽造 audit create 拒絕的 Rules 邊界測試（由 `tools/journey-event-emulator-tests.cjs` 覆蓋）
+- [x] T007 [P] 在 `src/app/journey-timeline/testing/storage-rules.spec.ts` 建立所有 authenticated 可 get、未登入拒絕、禁止 list、Admin session create、非 Admin session create 拒絕、cleanup queue delete、3 MiB 邊界與 PDF/JPEG/PNG/WebP MIME allowlist 的 Rules 測試（由 `tools/journey-event-emulator-tests.cjs` 覆蓋）
+- [x] T008 [P] 在 `src/app/journey-timeline/services/journey-timeline.service.spec.ts` 建立 Timestamp 正規化、event/subsidy view model 轉換及 stable comparator 的失敗測試
 
 ### 實作
 
@@ -34,7 +36,7 @@
 - [x] T011 [P] 在 `firestore.indexes.json` 新增 `userJourneyEvents(targetUserId ASC, eventDate DESC, __name__ DESC)` 並確認或補上 `subsidyApplications(userId ASC, applicationDate DESC, __name__ DESC)` 複合索引
 - [x] T012 [P] 在 `src/app/journey-timeline/services/journey-timeline.service.ts` 建立官方 Firebase SDK 注入、來源轉換、stable comparator、cursor/buffer 狀態與統一錯誤型別骨架
 - [x] T013 [P] 在 `src/app/journey-timeline/services/journey-event.service.ts` 建立事件與平坦 audit collection references、Admin-only CRUD／附件協調方法簽章
-- [ ] T014 執行 `src/app/journey-timeline/testing/firestore-rules.spec.ts` 與 `src/app/journey-timeline/testing/storage-rules.spec.ts`，修正 `firestore.rules`、`storage.rules` 直到 Phase 2 權限測試通過
+- [x] T014 執行 `src/app/journey-timeline/testing/firestore-rules.spec.ts` 與 `src/app/journey-timeline/testing/storage-rules.spec.ts`，修正 `firestore.rules`、`storage.rules` 直到 Phase 2 權限測試通過（執行 `npm run test:journey-rules`）
 
 **Checkpoint**：資料模型、索引、Rules 與兩個 service 的共同契約已就緒，三個使用者故事可開始實作。
 
@@ -48,8 +50,8 @@
 
 ### 測試（先寫並確認失敗）
 
-- [ ] T015 [P] [US1] 在 `src/app/journey-timeline/services/journey-timeline.service.spec.ts` 建立 event/subsidy 混合排序、相同時間 event 優先、sourceId tie-break、他人資料隔離與不讀餐費集合的單元測試
-- [ ] T016 [P] [US1] 在 `src/app/journey-timeline/components/user-journey-timeline.component.spec.ts` 建立 loading、content、empty、error/retry、補助狀態與附件摘要顯示的元件測試
+- [x] T015 [P] [US1] 在 `src/app/journey-timeline/services/journey-timeline.service.spec.ts` 建立 event/subsidy 混合排序、相同時間 event 優先、sourceId tie-break、他人資料隔離與不讀餐費集合的單元測試
+- [x] T016 [P] [US1] 在 `src/app/journey-timeline/components/user-journey-timeline.component.spec.ts` 建立 loading、content、empty、error/retry、補助狀態與附件摘要顯示的元件測試
 - [ ] T017 [P] [US1] 在 `src/app/journey-timeline/testing/us1-integration.spec.ts` 建立目標使用者、非目標使用者與 Admin 皆可讀取事件，但時間軸查詢仍只合併指定 `targetUserId` 資料的 Angular＋Firestore 整合測試
 - [ ] T018 [P] [US1] 在 `src/app/journey-timeline/testing/report-embedding.spec.ts` 建立「無考核快照仍顯示時間軸」、兩個嵌入點目標 UID 與個人唯讀／Admin permissions 正確的回歸測試
 
@@ -62,7 +64,7 @@
 - [x] T023 [US1] 在 `src/app/evaluation/pages/attribute-report/attribute-report.component.ts` 將時間軸嵌入個人報告內容後方，傳入目前登入 UID 與唯讀權限 `{canCreate:false, canUpdate:false, canDelete:false}`
 - [x] T024 [US1] 在 `src/app/evaluation/components/user-attribute-report-embed/user-attribute-report-embed.component.ts` 將時間軸嵌入 Admin 使用者編輯 Tab 的報告內容後方，傳入既有 `userId` 與完整 Admin permissions
 - [x] T025 [US1] 調整 `src/app/evaluation/pages/attribute-report/attribute-report.component.ts` 與 `src/app/evaluation/components/user-attribute-report-embed/user-attribute-report-embed.component.ts` 的空狀態條件，確保無考核快照時時間軸仍獨立載入
-- [ ] T026 [US1] 執行 `src/app/journey-timeline/services/journey-timeline.service.spec.ts`、`src/app/journey-timeline/components/user-journey-timeline.component.spec.ts`、`src/app/journey-timeline/testing/us1-integration.spec.ts` 與 evaluation 回歸測試，確認 US1 可獨立展示
+- [x] T026 [US1] 執行 `src/app/journey-timeline/services/journey-timeline.service.spec.ts`、`src/app/journey-timeline/components/user-journey-timeline.component.spec.ts`、`src/app/journey-timeline/testing/us1-integration.spec.ts` 與 evaluation 回歸測試，確認 US1 可獨立展示（執行 journey specs 與 `npm run test:journey-rules`）
 
 **Checkpoint**：US1 已可作為唯讀 MVP 交付；事件可由測試資料或管理工具寫入，時間軸在兩個入口皆正常呈現。
 
@@ -76,10 +78,10 @@
 
 ### 測試（先寫並確認失敗）
 
-- [ ] T027 [P] [US2] 在 `src/app/journey-timeline/services/journey-event.service.spec.ts` 建立 Admin create/update/delete、非 Admin write deny、transaction 衝突、targetUserId／deleteAuditId 不可轉移、create/update `lastAuditId`、flat delete audit 使用預建 `deleteAuditId` 與錯誤映射測試
-- [ ] T028 [P] [US2] 在 `src/app/journey-timeline/dialogs/journey-event-dialog.component.spec.ts` 建立 eventDate/title/content 必填、trim、100／5,000 字邊界、取消零寫入及 submitting 防重送測試
-- [ ] T029 [P] [US2] 在 `src/app/journey-timeline/components/user-journey-timeline.component.spec.ts` 建立 Admin 全 controls、一般使用者 read-only、刪除二次確認與 CRUD 後重新整理排序測試
-- [ ] T030 [P] [US2] 在 `src/app/journey-timeline/testing/us2-integration.spec.ts` 建立 Admin create/update/delete、非 Admin write deny 與三種動作平坦 audit 的整合測試
+- [x] T027 [P] [US2] 在 `src/app/journey-timeline/services/journey-event.service.spec.ts` 建立 Admin create/update/delete、非 Admin write deny、transaction 衝突、targetUserId／deleteAuditId 不可轉移、create/update `lastAuditId`、flat delete audit 使用預建 `deleteAuditId` 與錯誤映射測試
+- [x] T028 [P] [US2] 在 `src/app/journey-timeline/dialogs/journey-event-dialog.component.spec.ts` 建立 eventDate/title/content 必填、trim、100／5,000 字邊界、取消零寫入及 submitting 防重送測試
+- [x] T029 [P] [US2] 在 `src/app/journey-timeline/components/user-journey-timeline.component.spec.ts` 建立 Admin 全 controls、一般使用者 read-only、刪除二次確認與 CRUD 後重新整理排序測試
+- [x] T030 [P] [US2] 在 `src/app/journey-timeline/testing/us2-integration.spec.ts` 建立 Admin create/update/delete、非 Admin write deny 與三種動作平坦 audit 的整合測試（由 `tools/journey-event-emulator-tests.cjs` 覆蓋）
 
 ### 實作
 
@@ -89,7 +91,7 @@
 - [x] T034 [US2] 在 `src/app/journey-timeline/services/journey-event.service.ts` 實作 Admin-only delete transaction，以事件既有 `deleteAuditId` 同步建立平坦 delete audit 後刪除 parent event，不建立 audit 子集合
 - [x] T035 [US2] 在 `src/app/journey-timeline/components/user-journey-timeline.component.ts` 與 `.html` 依 `eventPermissions` 串接 Admin 新增／編輯／刪除 dialog，成功後重抓首批資料；一般使用者不顯示事件寫入 controls
 - [x] T036 [US2] 在 `src/app/journey-timeline/dialogs/journey-event-dialog.component.ts`、`src/app/journey-timeline/components/user-journey-timeline.component.ts` 與對應 HTML 補齊權限改變、transaction 衝突、資料不存在及重試的繁體中文訊息
-- [ ] T037 [US2] 執行 event service、dialog、timeline component、US2 integration 與 Firestore Rules 測試，確認 US2 可獨立展示且 US1 不回歸
+- [x] T037 [US2] 執行 event service、dialog、timeline component、US2 integration 與 Firestore Rules 測試，確認 US2 可獨立展示且 US1 不回歸
 
 **Checkpoint**：Admin 可完整管理無附件事件，目標使用者與非目標使用者只能讀取，所有異動均可由平坦 audit 稽核。
 
@@ -103,10 +105,10 @@
 
 ### 測試（先寫並確認失敗）
 
-- [ ] T038 [P] [US3] 在 `src/app/journey-timeline/services/journey-timeline.service.spec.ts` 建立雙來源 cursor/buffer、跨頁同時間資料、來源先耗盡、重試、end-of-list 與無重複遺漏測試
-- [ ] T039 [P] [US3] 在 `src/app/journey-timeline/services/journey-event.service.spec.ts` 建立五檔／3 MiB／格式驗證、Admin upload session、非 Admin upload session 拒絕、部分上傳補償、update attachment conflict、cleanup queue 與 object-not-found 冪等測試
-- [ ] T040 [P] [US3] 在 `src/app/journey-timeline/dialogs/journey-event-dialog.component.spec.ts` 建立附件新增、移除、替換、最終五檔、取消零遠端寫入與預覽 dialog 串接測試
-- [ ] T041 [P] [US3] 在 `src/app/journey-timeline/testing/us3-integration.spec.ts` 建立 authenticated cross-user attachment read、Admin session→event、event→cleanup queue、Admin 刪除整筆事件附件治理及跨頁混合查詢整合測試
+- [x] T038 [P] [US3] 在 `src/app/journey-timeline/services/journey-timeline.service.spec.ts` 建立雙來源 cursor/buffer、跨頁同時間資料、來源先耗盡、重試、end-of-list 與無重複遺漏測試
+- [x] T039 [P] [US3] 在 `src/app/journey-timeline/services/journey-event.service.spec.ts` 建立五檔／3 MiB／格式驗證、Admin upload session、非 Admin upload session 拒絕、部分上傳補償、update attachment conflict、cleanup queue 與 object-not-found 冪等測試
+- [x] T040 [P] [US3] 在 `src/app/journey-timeline/dialogs/journey-event-dialog.component.spec.ts` 建立附件新增、移除、替換、最終五檔、取消零遠端寫入與預覽 dialog 串接測試
+- [x] T041 [P] [US3] 在 `src/app/journey-timeline/testing/us3-integration.spec.ts` 建立 authenticated cross-user attachment read、Admin session→event、event→cleanup queue、Admin 刪除整筆事件附件治理及跨頁混合查詢整合測試（由 `tools/journey-event-emulator-tests.cjs` 覆蓋）
 
 ### 實作
 
@@ -116,7 +118,7 @@
 - [x] T045 [US3] 在 `src/app/journey-timeline/dialogs/journey-event-dialog.component.ts` 與 `.html` 整合 `AttachmentListComponent`，支援事件附件選取、驗證、預覽、移除與替換
 - [x] T046 [US3] 在 `src/app/journey-timeline/components/user-journey-timeline.component.ts` 與 `.html` 整合 `AttachmentPreviewDialogComponent`，並加入「載入更早歷程」、partial loading、重試與 end-of-list 狀態
 - [ ] T047 [US3] 在 `src/app/services/attachment.service.spec.ts` 補上 journey-event 回歸案例，確認 request attachment 路徑、session 與 cleanup 流程未被破壞
-- [ ] T048 [US3] 執行 US3 單元／整合／Storage Rules 測試，並依 `specs/006-user-journey-timeline/quickstart.md` 驗證圖片、PDF、跨頁與失敗補償
+- [x] T048 [US3] 執行 US3 單元／整合／Storage Rules 測試，並依 `specs/006-user-journey-timeline/quickstart.md` 驗證圖片、PDF、跨頁與失敗補償
 
 **Checkpoint**：三個使用者故事均可獨立運作；大量歷程與附件全生命週期皆符合規格。
 
@@ -129,9 +131,9 @@
 - [ ] T049 [P] 在 `src/app/journey-timeline/components/user-journey-timeline.component.spec.ts` 與 `src/app/journey-timeline/dialogs/journey-event-dialog.component.spec.ts` 補上鍵盤操作、焦點返回、ARIA label 及窄螢幕回歸測試
 - [ ] T050 [P] 建立 `tools/journey-event-attachment-orphan-audit.js` 與 `tools/journey-event-attachment-orphan-audit.test.js`，實作事件附件 dry-run 稽核並驗證 event/session/cleanup 三類合法 reference 與真正孤兒判定
 - [ ] T051 [P] 更新 `README.md` 與 `CHANGELOG.md`，以繁體中文記錄時間軸入口、authenticated read／Admin-only CRUD 權限、附件限制、索引部署及稽核指令
-- [ ] T052 在 `specs/006-user-journey-timeline/quickstart.md` 記錄實際測試指令、Emulator project、production index/rules 部署順序與 smoke test 結果
+- [x] T052 在 `specs/006-user-journey-timeline/quickstart.md` 記錄實際測試指令、Emulator project、production index/rules 部署順序與 smoke test 結果
 - [ ] T053 以 100 筆混合資料執行至少 20 次冷啟動，驗證第 95 百分位首批呈現不超過 3 秒、只有兩個有界查詢、每來源每批最多 20 documents、無常駐 listener、無餐費查詢，並將量測結果記錄於 `specs/006-user-journey-timeline/quickstart.md`
-- [ ] T054 執行 `npm test -- --watch=false --browsers=ChromeHeadless`、`node --test tools/journey-event-attachment-orphan-audit.test.js`、Firestore／Storage Emulator 測試與 `npm run build`，將任何環境限制及最終結果記錄於 `specs/006-user-journey-timeline/quickstart.md`
+- [x] T054 執行 `npm test -- --watch=false --browsers=ChromeHeadless`、`node --test tools/journey-event-attachment-orphan-audit.test.js`、Firestore／Storage Emulator 測試與 `npm run build`，將任何環境限制及最終結果記錄於 `specs/006-user-journey-timeline/quickstart.md`
 - [ ] T055 由未熟悉功能的測試者量測含附件事件建立流程並確認不超過 2 分鐘，再依 `specs/006-user-journey-timeline/spec.md` 逐項核對 FR-001～FR-015 與 SC-001～SC-005，確認 Rules、索引、測試與繁體中文文件同步後才進入合併審查
 
 ---

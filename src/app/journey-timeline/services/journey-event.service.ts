@@ -130,11 +130,12 @@ export class JourneyEventService {
     const eventRef = doc(this.firestore, 'userJourneyEvents', event.id);
     const lastAuditId = crypto.randomUUID();
     let prepared: PreparedAttachmentBatch | null = null;
+    let removed: AttachmentMetadata[] = [];
     try {
       prepared = await this.prepareUploads(event.id, event.targetUserId, actorUid, files);
       const normalized = this.normalize(input);
       const preparedBatch = prepared;
-      const removed = await runTransaction(this.firestore, async (transaction) => {
+      removed = await runTransaction(this.firestore, async (transaction) => {
         const snapshot = await transaction.get(eventRef);
         if (!snapshot.exists()) throw new Error('event-not-found');
         const current = { id: snapshot.id, ...snapshot.data() } as UserJourneyEvent;
@@ -173,19 +174,20 @@ export class JourneyEventService {
         return merged.removedItems;
       });
       prepared = null;
-      await Promise.all(removed.map((attachment) => this.processCleanup(attachment)));
     } catch (error) {
       if (prepared?.sessionId) await this.rollbackPrepared(prepared);
       const mapped = mapJourneyEventUpdateError(error);
       if (mapped) throw mapped;
       throw this.friendly('事件與附件未能更新，原資料未變更。', error);
     }
+    await this.processCommittedCleanup(removed, '事件已更新，但部分附件清理失敗，已保留清理佇列供稍後重試。');
   }
 
   private async deleteAsync(event: UserJourneyEvent, actorUid: string): Promise<void> {
     const eventRef = doc(this.firestore, 'userJourneyEvents', event.id);
+    let removed: AttachmentMetadata[] = [];
     try {
-      const removed = await runTransaction(this.firestore, async (transaction) => {
+      removed = await runTransaction(this.firestore, async (transaction) => {
         const snapshot = await transaction.get(eventRef);
         if (!snapshot.exists()) throw new Error('event-not-found');
         const current = { id: snapshot.id, ...snapshot.data() } as UserJourneyEvent;
@@ -205,10 +207,10 @@ export class JourneyEventService {
         transaction.delete(eventRef);
         return current.attachments ?? [];
       });
-      await Promise.all(removed.map((attachment) => this.processCleanup(attachment)));
     } catch (error) {
       throw this.friendly('事件未能刪除，原資料未變更。', error);
     }
+    await this.processCommittedCleanup(removed, '事件已刪除，但部分附件清理失敗，已保留清理佇列供稍後重試。');
   }
 
   private normalize(input: JourneyEventInput): JourneyEventInput & { eventDate: Timestamp } {
@@ -288,17 +290,30 @@ export class JourneyEventService {
     }
   }
 
-  private async processCleanup(attachment: AttachmentMetadata): Promise<void> {
+  private async processCommittedCleanup(attachments: readonly AttachmentMetadata[], warningMessage: string): Promise<void> {
+    const results = await Promise.all(attachments.map((attachment) => this.processCleanup(attachment)));
+    if (results.some((cleaned) => !cleaned)) {
+      console.warn(warningMessage);
+    }
+  }
+
+  private async processCleanup(attachment: AttachmentMetadata): Promise<boolean> {
     const queueRef = doc(this.firestore, 'journeyEventAttachmentCleanupQueue', attachment.id);
     try {
       await firstValueFrom(this.storage.deleteAttachment(attachment.storagePath));
       await deleteDoc(queueRef);
+      return true;
     } catch {
-      await updateDoc(queueRef, {
-        attemptCount: increment(1),
-        lastAttemptAt: serverTimestamp(),
-        lastErrorCode: 'storage-delete-failed',
-      });
+      try {
+        await updateDoc(queueRef, {
+          attemptCount: increment(1),
+          lastAttemptAt: serverTimestamp(),
+          lastErrorCode: 'storage-delete-failed',
+        });
+      } catch (error) {
+        console.warn('附件清理佇列更新失敗', error);
+      }
+      return false;
     }
   }
 

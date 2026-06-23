@@ -71,6 +71,13 @@ describe('UserJourneyTimelineComponent', () => {
     expect(component.timelineGap(1)).toBeGreaterThan(32);
   });
 
+  it('相同時間軸項目會重用同一個隨機色碼結果', () => {
+    const { component } = createComponent();
+    const timelineItem = item('cached-color', 1);
+
+    expect(component.timelineColor(timelineItem)).toBe(component.timelineColor(timelineItem));
+  });
+
   it('刪除事件在 Material Dialog 取消時不會呼叫刪除服務', async () => {
     const { component, dialog, events } = createComponent();
     component.userId = 'u1';
