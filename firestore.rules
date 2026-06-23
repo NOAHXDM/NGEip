@@ -309,10 +309,9 @@ service cloud.firestore {
     }
 
     function validJourneySessionParent(data) {
-      return (!exists(journeyEventPath(data.eventId)) && isAdmin())
-        || (exists(journeyEventPath(data.eventId))
-          && get(journeyEventPath(data.eventId)).data.targetUserId == data.targetUserId
-          && isAdmin());
+      let path = journeyEventPath(data.eventId);
+      return isAdmin()
+        && (!exists(path) || get(path).data.targetUserId == data.targetUserId);
     }
 
     match /journeyEventAttachmentUploadSessions/{sessionId} {

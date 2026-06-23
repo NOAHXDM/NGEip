@@ -52,6 +52,33 @@ export function compareTimelineItems(a: JourneyTimelineItem, b: JourneyTimelineI
   return b.sourceId.localeCompare(a.sourceId);
 }
 
+export async function loadTimelinePageFromBuffers(
+  session: JourneyTimelineSession,
+  ensureEventBuffer: () => Promise<void>,
+  ensureSubsidyBuffer: () => Promise<void>
+): Promise<TimelinePage> {
+  const items: JourneyTimelineItem[] = [];
+  while (items.length < OUTPUT_PAGE_SIZE) {
+    await Promise.all([
+      ensureEventBuffer(),
+      ensureSubsidyBuffer(),
+    ]);
+    const event = session.events.buffer[0];
+    const subsidy = session.subsidies.buffer[0];
+    if (!event && !subsidy) break;
+    if (event && (!subsidy || compareTimelineItems(event, subsidy) <= 0)) {
+      items.push(session.events.buffer.shift()!);
+    } else {
+      items.push(session.subsidies.buffer.shift()!);
+    }
+  }
+  return {
+    items,
+    hasMore: !!session.events.buffer.length || !!session.subsidies.buffer.length
+      || !session.events.done || !session.subsidies.done,
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class JourneyTimelineService {
   private readonly firestore = inject(Firestore);
@@ -65,26 +92,11 @@ export class JourneyTimelineService {
   }
 
   async loadNext(session: JourneyTimelineSession): Promise<TimelinePage> {
-    const items: JourneyTimelineItem[] = [];
-    while (items.length < OUTPUT_PAGE_SIZE) {
-      await Promise.all([
-        this.ensureEventBuffer(session),
-        this.ensureSubsidyBuffer(session),
-      ]);
-      const event = session.events.buffer[0];
-      const subsidy = session.subsidies.buffer[0];
-      if (!event && !subsidy) break;
-      if (event && (!subsidy || compareTimelineItems(event, subsidy) <= 0)) {
-        items.push(session.events.buffer.shift()!);
-      } else {
-        items.push(session.subsidies.buffer.shift()!);
-      }
-    }
-    return {
-      items,
-      hasMore: !!session.events.buffer.length || !!session.subsidies.buffer.length
-        || !session.events.done || !session.subsidies.done,
-    };
+    return loadTimelinePageFromBuffers(
+      session,
+      () => this.ensureEventBuffer(session),
+      () => this.ensureSubsidyBuffer(session)
+    );
   }
 
   private async ensureEventBuffer(session: JourneyTimelineSession): Promise<void> {

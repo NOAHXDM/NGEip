@@ -5,7 +5,6 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDoc,
   increment,
   runTransaction,
   serverTimestamp,
@@ -28,6 +27,34 @@ import {
   JourneyEventInput,
   UserJourneyEvent,
 } from '../models/journey-timeline.models';
+
+export function normalizeJourneyEventInput(input: JourneyEventInput): JourneyEventInput & { eventDate: Timestamp } {
+  const title = input.title.trim();
+  const content = input.content.trim();
+  if (!title || title.length > 100 || !content || content.length > 5000) {
+    throw new Error('invalid-event-fields');
+  }
+  return {
+    targetUserId: input.targetUserId,
+    eventDate: input.eventDate instanceof Timestamp ? input.eventDate : Timestamp.fromDate(input.eventDate),
+    title,
+    content,
+  };
+}
+
+export function mapJourneyEventUpdateError(error: unknown): Error | null {
+  if (!(error instanceof Error)) return null;
+  if (error.message === 'event-conflict') {
+    return new Error('事件已被其他人更新，請重新載入後再試。');
+  }
+  if (error.message === 'attachment-conflict') {
+    return new Error('附件已被其他人變更，請重新載入後再試。');
+  }
+  if (error.message === 'attachment-count-conflict') {
+    return new Error('另一個視窗已新增附件，請重新載入後再試。');
+  }
+  return null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class JourneyEventService {
@@ -149,9 +176,8 @@ export class JourneyEventService {
       await Promise.all(removed.map((attachment) => this.processCleanup(attachment)));
     } catch (error) {
       if (prepared?.sessionId) await this.rollbackPrepared(prepared);
-      if (error instanceof Error && error.message === 'event-conflict') {
-        throw new Error('事件已被其他人更新，請重新載入後再試。');
-      }
+      const mapped = mapJourneyEventUpdateError(error);
+      if (mapped) throw mapped;
       throw this.friendly('事件與附件未能更新，原資料未變更。', error);
     }
   }
@@ -186,17 +212,7 @@ export class JourneyEventService {
   }
 
   private normalize(input: JourneyEventInput): JourneyEventInput & { eventDate: Timestamp } {
-    const title = input.title.trim();
-    const content = input.content.trim();
-    if (!title || title.length > 100 || !content || content.length > 5000) {
-      throw new Error('invalid-event-fields');
-    }
-    return {
-      targetUserId: input.targetUserId,
-      eventDate: input.eventDate instanceof Timestamp ? input.eventDate : Timestamp.fromDate(input.eventDate),
-      title,
-      content,
-    };
+    return normalizeJourneyEventInput(input);
   }
 
   private async prepareUploads(
@@ -233,8 +249,7 @@ export class JourneyEventService {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    const session = await getDoc(sessionRef);
-    const uploadedAt = session.data()?.['createdAt'] as Timestamp ?? Timestamp.now();
+    const uploadedAt = Timestamp.now();
     const attachments: AttachmentMetadata[] = planned.map((item) => ({ ...item, uploadedAt }));
     const uploaded: AttachmentMetadata[] = [];
     try {
@@ -313,4 +328,3 @@ export class JourneyEventService {
     return new Error(message);
   }
 }
-

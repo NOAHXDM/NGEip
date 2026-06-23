@@ -45,7 +45,11 @@ export class JourneyEventDialogComponent {
     if (data.event) {
       const date = data.event.eventDate.toDate();
       this.form.setValue({
-        eventDate: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+        eventDate: [
+          date.getUTCFullYear(),
+          String(date.getUTCMonth() + 1).padStart(2, '0'),
+          String(date.getUTCDate()).padStart(2, '0'),
+        ].join('-'),
         title: data.event.title,
         content: data.event.content,
       });
@@ -80,7 +84,7 @@ export class JourneyEventDialogComponent {
     this.dialogRef.close({
       input: {
         targetUserId: this.data.targetUserId,
-        eventDate: new Date(`${raw.eventDate}T00:00:00`),
+        eventDate: new Date(`${raw.eventDate}T00:00:00Z`),
         title,
         content,
       },
@@ -89,4 +93,3 @@ export class JourneyEventDialogComponent {
     });
   }
 }
-
