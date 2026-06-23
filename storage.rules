@@ -90,8 +90,10 @@ service firebase.storage {
     }
 
     function hasValidJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId) {
-      let session = firestore.get(/databases/(default)/documents/journeyEventAttachmentUploadSessions/$(sessionId)).data;
-      return session.status == 'uploading'
+      let sessionPath = /databases/(default)/documents/journeyEventAttachmentUploadSessions/$(sessionId);
+      let session = firestore.get(sessionPath).data;
+      return firestore.exists(sessionPath)
+        && session.status == 'uploading'
         && session.actorUid == request.auth.uid
         && session.targetUserId == targetUserId
         && session.eventId == eventId
@@ -122,7 +124,8 @@ service firebase.storage {
     function hasJourneyCleanupOwnership(targetUserId, eventId, sessionId, attachmentId) {
       let queuePath = /databases/(default)/documents/journeyEventAttachmentCleanupQueue/$(attachmentId);
       let queue = firestore.get(queuePath).data;
-      return queue.actorUid == request.auth.uid
+      return firestore.exists(queuePath)
+        && queue.actorUid == request.auth.uid
         && queue.eventId == eventId
         && queue.targetUserId == targetUserId
         && queue.attachment.storagePath
@@ -143,7 +146,6 @@ service firebase.storage {
         && isAllowedAttachmentType()
         && request.resource.metadata.attachmentId == attachmentId
         && request.resource.metadata.uploadedBy == request.auth.uid
-        && hasJourneyUploadSession(sessionId)
         && hasValidJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId);
       allow update: if false;
       // 刪除必須由 upload session 或 cleanup queue 治理；Admin 不可繞過 Firestore 事件附件關聯直接刪除 Storage 物件。

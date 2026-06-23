@@ -8,7 +8,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { firstValueFrom } from 'rxjs';
+import { Observable, defaultIfEmpty, firstValueFrom } from 'rxjs';
 
 import { AttachmentListComponent } from '../../attachments/attachment-list.component';
 import { SubsidyType } from '../../services/subsidy.service';
@@ -67,6 +67,7 @@ export class UserJourneyTimelineComponent implements OnChanges {
   readonly error = signal('');
   readonly eventActionPending = signal(false);
   private session?: JourneyTimelineSession;
+  private sessionGeneration = 0;
   private actorUid = '';
   private readonly timelineColors = new Map<string, string>();
   private readonly destroyRef = inject(DestroyRef);
@@ -87,37 +88,46 @@ export class UserJourneyTimelineComponent implements OnChanges {
   }
 
   async reload(): Promise<void> {
-    this.session = this.timeline.createSession(this.userId);
+    const generation = ++this.sessionGeneration;
+    const session = this.timeline.createSession(this.userId);
+    this.session = session;
     this.items.set([]);
     this.timelineColors.clear();
     this.hasMore.set(false);
+    this.loadingMore.set(false);
     this.loading.set(true);
     this.error.set('');
     try {
-      const page = await this.timeline.loadNext(this.session);
+      const page = await this.timeline.loadNext(session);
+      if (!this.isCurrentSession(session, generation)) return;
       this.items.set(page.items);
       this.hasMore.set(page.hasMore);
     } catch (error) {
+      if (!this.isCurrentSession(session, generation)) return;
       console.error('使用者歷程載入失敗', error);
       this.error.set('歷程資料暫時無法載入，請稍後重試。');
     } finally {
-      this.loading.set(false);
+      if (this.isCurrentSession(session, generation)) this.loading.set(false);
     }
   }
 
   async loadMore(): Promise<void> {
     if (!this.session || this.loadingMore() || !this.hasMore()) return;
+    const session = this.session;
+    const generation = this.sessionGeneration;
     this.loadingMore.set(true);
     this.error.set('');
     try {
-      const page = await this.timeline.loadNext(this.session);
+      const page = await this.timeline.loadNext(session);
+      if (!this.isCurrentSession(session, generation)) return;
       this.items.update((items) => [...items, ...page.items]);
       this.hasMore.set(page.hasMore);
     } catch (error) {
+      if (!this.isCurrentSession(session, generation)) return;
       console.error('更早歷程載入失敗', error);
       this.error.set('更早的歷程暫時無法載入，請重試。');
     } finally {
-      this.loadingMore.set(false);
+      if (this.isCurrentSession(session, generation)) this.loadingMore.set(false);
     }
   }
 
@@ -132,10 +142,11 @@ export class UserJourneyTimelineComponent implements OnChanges {
         width: '720px',
         maxWidth: '95vw',
       });
-      const result = await firstValueFrom(ref.afterClosed());
+      const result = await this.afterClosed(ref.afterClosed());
+      if (!this.isAlive()) return;
       if (result) await this.createEvent(result, actorUid);
     } finally {
-      this.eventActionPending.set(false);
+      if (this.isAlive()) this.eventActionPending.set(false);
     }
   }
 
@@ -150,10 +161,11 @@ export class UserJourneyTimelineComponent implements OnChanges {
         width: '720px',
         maxWidth: '95vw',
       });
-      const result = await firstValueFrom(ref.afterClosed());
+      const result = await this.afterClosed(ref.afterClosed());
+      if (!this.isAlive()) return;
       if (result) await this.updateEvent(event, result, actorUid);
     } finally {
-      this.eventActionPending.set(false);
+      if (this.isAlive()) this.eventActionPending.set(false);
     }
   }
 
@@ -163,13 +175,14 @@ export class UserJourneyTimelineComponent implements OnChanges {
     if (!actorUid) return;
     this.eventActionPending.set(true);
     try {
-      const confirmed = await firstValueFrom(this.dialog
+      const confirmed = await this.afterClosed(this.dialog
         .open(JourneyDeleteConfirmDialogComponent, {
           data: { title: event.title },
           width: '420px',
           maxWidth: '92vw',
         })
         .afterClosed());
+      if (!this.isAlive()) return;
       if (!confirmed) return;
       try {
         await this.events.delete(event, actorUid);
@@ -179,7 +192,7 @@ export class UserJourneyTimelineComponent implements OnChanges {
         this.showError(error);
       }
     } finally {
-      this.eventActionPending.set(false);
+      if (this.isAlive()) this.eventActionPending.set(false);
     }
   }
 
@@ -262,5 +275,20 @@ export class UserJourneyTimelineComponent implements OnChanges {
     if (this.actorUid) return this.actorUid;
     this.snackBar.open('登入狀態確認中，請稍後再試。', '關閉', { duration: 3000 });
     return null;
+  }
+
+  private afterClosed<T>(closed$: Observable<T | undefined>): Promise<T | undefined> {
+    return firstValueFrom(closed$.pipe(
+      takeUntilDestroyed(this.destroyRef),
+      defaultIfEmpty(undefined)
+    ));
+  }
+
+  private isCurrentSession(session: JourneyTimelineSession, generation: number): boolean {
+    return this.isAlive() && this.session === session && this.sessionGeneration === generation;
+  }
+
+  private isAlive(): boolean {
+    return !this.destroyRef.destroyed;
   }
 }

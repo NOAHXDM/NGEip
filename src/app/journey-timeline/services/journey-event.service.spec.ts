@@ -124,6 +124,24 @@ describe('JourneyEventService business rules', () => {
     )).toEqual(['eventDate', 'title', 'content', 'attachments']);
   });
 
+  it('缺少 eventDate 的異常快照不會被誤記為 eventDate 變更', () => {
+    const current: any = {
+      id: 'event-1',
+      targetUserId: 'u1',
+      title: '標題',
+      content: '內容',
+      attachments: [],
+    };
+    const normalized = {
+      targetUserId: 'u1',
+      eventDate: Timestamp.fromDate(new Date('2026-06-23T00:00:00Z')),
+      title: '標題',
+      content: '內容',
+    };
+
+    expect(changedJourneyEventFields(current, normalized, [], [])).toEqual([]);
+  });
+
   it('更新前會以既有附件、移除附件與新檔案預檢附件數量', () => {
     const event = { attachments: ['a', 'b', 'c', 'd'].map(attachment) };
     const files = Array.from({ length: 2 }, (_, index) => new File(['x'], `${index}.pdf`, { type: 'application/pdf' }));

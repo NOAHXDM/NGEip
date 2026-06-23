@@ -117,6 +117,19 @@ T043（將 journey-event attachment 完整整合進共用 `AttachmentService` do
 
 本輪依複審修正：`deleteAsync()` 加入與 update 相同的 `updatedAt` 樂觀鎖檢查，避免 Admin 以舊確認框刪除已被他人更新的事件；`event-not-found` 改為明確顯示「事件已不存在，請重新整理頁面。」並套用於 update/delete；更新前新增附件數量預檢，僅扣除確實存在且本次移除的附件 ID，避免明顯超量時先上傳再回滾；`processCleanup()` 抽出 `processJourneyEventAttachmentCleanup()`，單測覆蓋 Storage object-not-found 冪等成功、Storage delete 失敗與 queue delete 失敗三條補償路徑；時間軸垂直間距加入 200px 額外上限，避免多年歷史資料在小裝置產生極端空白；`JourneyTimelineItem` 改為 discriminated union，`source === 'event'` 時由 TypeScript 強制要求 `event` 存在，template 也改以來源型別窄化補助專屬欄位。
 
+## 2026-06-23 Claude Bot 第八輪複審修正驗證結果
+
+- `npx tsc -p tsconfig.app.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：39 個 journey timeline 測試通過；新增 reload/loadMore session generation 競態、afterClosed 完成但未 emit 時不送出，以及缺 eventDate 異常快照不誤記 changedFields 的回歸測試。
+- `npm run test:journey-rules`：通過；確認 journey-event Storage create/delete helper guard 調整後仍維持 session／cleanup queue 治理。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：273 個測試通過、68 個既有測試略過，無失敗。
+- `npm run build`：通過；production bundle 產出至 `dist/angular-eip`。沙盒內 build 仍會無錯誤訊息中止（exit 134），以外層權限重跑後通過。
+
+本輪依複審修正：`reload()` 與 `loadMore()` 加入 `sessionGeneration` 與 session identity guard，舊 session 的 `loadMore()` 在 reload 後完成時不會把舊頁資料附加到新清單；事件新增／編輯／刪除 dialog 的 `afterClosed()` 改由 `takeUntilDestroyed(this.destroyRef)` 與 `defaultIfEmpty(undefined)` 保護，元件銷毀或串流完成但未 emit 時不再送出事件，也不更新已銷毀元件的 signals；Storage Rules 將 journey-event upload session exists guard 收斂到 `hasValidJourneyUploadSession()`，並讓 `hasJourneyCleanupOwnership()` 自帶 exists guard，避免未來獨立呼叫時產生 null evaluation；`changedJourneyEventFields()` 移除對非 optional `eventDate` 的 optional chaining，只有現值確實是 `Timestamp` 且毫秒值不同時才記錄 `eventDate`，避免異常快照造成過度稽核。
+
+T017／T018／T047 仍維持為後續技術債：目前本分支以 journey service/component/dialog specs 與 `tools/journey-event-emulator-tests.cjs` 覆蓋 userId 查詢隔離、Rules 跨使用者讀取、Admin-only 寫入、附件 session/cleanup queue 與嵌入權限主要行為；若要補齊 tasks 原文指定的 Angular＋Firestore integration spec 與共用 `AttachmentService` adapter 回歸，需整理專案既有多處 `testing/*.spec.ts`／Jest emulator 架構與 T043 adapter 重構，適合另開獨立 PR 收斂，避免本修正輪擴大為跨 attendance/subsidy 的測試平台重整。
+
 ## 部署順序
 
 1. 先部署 `firestore.rules`、`storage.rules` 與 `firestore.indexes.json`。

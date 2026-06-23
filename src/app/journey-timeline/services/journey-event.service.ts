@@ -82,7 +82,9 @@ export function changedJourneyEventFields(
   addedAttachments: readonly AttachmentMetadata[]
 ): string[] {
   const changedFields: string[] = [];
-  if (current.eventDate?.toMillis() !== normalized.eventDate.toMillis()) changedFields.push('eventDate');
+  if (current.eventDate instanceof Timestamp && current.eventDate.toMillis() !== normalized.eventDate.toMillis()) {
+    changedFields.push('eventDate');
+  }
   if (current.title !== normalized.title) changedFields.push('title');
   if (current.content !== normalized.content) changedFields.push('content');
   if (removedAttachments.length || addedAttachments.length) changedFields.push('attachments');
