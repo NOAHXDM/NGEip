@@ -120,14 +120,15 @@ describe('UserJourneyTimelineComponent', () => {
     expect(events.delete).not.toHaveBeenCalled();
   });
 
-  it('登入狀態 emit null 時不會因讀取 uid 拋出錯誤，並阻擋建立事件', async () => {
-    const { component, dialog } = createComponent(of(null));
+  it('登入狀態 emit null 時不會因讀取 uid 拋出錯誤，並提示稍後再試', async () => {
+    const { component, dialog, snackBar } = createComponent(of(null));
     component.userId = 'u1';
     component.eventPermissions = { canCreate: true, canUpdate: true, canDelete: true };
 
     await component.openCreate();
 
     expect(dialog.open).not.toHaveBeenCalled();
+    expect(snackBar.open).toHaveBeenCalledOnceWith('登入狀態確認中，請稍後再試。', '關閉', { duration: 3000 });
   });
 
   it('新增事件使用 firstValueFrom 等待 dialog 結果並送出', async () => {

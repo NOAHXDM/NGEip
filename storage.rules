@@ -58,7 +58,7 @@ service firebase.storage {
 
     function hasCleanupOwnership(attachmentId) {
       let queuePath = /databases/(default)/documents/requestAttachmentCleanupQueue/$(attachmentId);
-      // exists 先防止缺失 queue 對 get(...).data 產生 runtime error；相同文件的存取可由 Rules runtime 快取。
+      // exists guard 會多一次 rules read，但可避免 Storage Rules 對缺失 cleanup queue 的 get(...).data 產生 null evaluation warning。
       return firestore.exists(queuePath)
         && 'actorUid' in firestore.get(queuePath).data
         && firestore.get(queuePath).data.actorUid == request.auth.uid;
@@ -145,6 +145,8 @@ service firebase.storage {
         && request.resource.metadata.uploadedBy == request.auth.uid
         && hasValidJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId);
       allow update: if false;
+      // 刪除必須由 upload session 或 cleanup queue 治理；Admin 不可繞過 Firestore 事件附件關聯直接刪除 Storage 物件。
+      // exists guard 會多一次 rules read，但可避免 Storage Rules 對缺失文件 get(...).data 產生 null evaluation warning。
       allow delete: if request.auth != null && (
         (hasJourneyUploadSession(sessionId) && ownsJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId))
         || (hasJourneyCleanupQueue(attachmentId) && hasJourneyCleanupOwnership(targetUserId, eventId, sessionId, attachmentId))

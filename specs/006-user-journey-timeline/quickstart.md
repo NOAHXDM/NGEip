@@ -81,6 +81,18 @@
 
 本輪依複審修正：`openCreate()` 與 `openEdit()` 改為 `async` 並以 `firstValueFrom(dialog.afterClosed())` 等待內層事件 dialog 結果，不再因外層使用者編輯 Dialog 銷毀時間軸元件而取消訂閱、靜默丟失使用者輸入；`currentUser$` 訂閱改用 `user?.uid ?? ''` 防禦登出或 session 過期時 emit null；事件更新移除基於舊 snapshot 的附件數量前置檢查，統一由 transaction 內最新 Firestore snapshot 與 `mergeAttachmentChanges` 判斷並映射錯誤；`JourneyEventService` 的 create/update/delete 改為直接回傳 Promise，移除元件端多餘 Observable 解包。
 
+## 2026-06-23 Claude Bot 第五輪複審修正驗證結果
+
+- `npx tsc -p tsconfig.app.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：27 個 journey timeline 測試通過。
+- `npm run test:journey-rules`：通過；確認 Storage Rules 保留 journey-event exists guard 後無 null evaluation warning，並維持 session／cleanup queue 治理。
+- `npm run test:attachment-rules`：通過；確認 request attachment 既有 Rules matrix 無回歸，且 cleanup ownership 維持與 attendance/subsidy 上傳附件規章一致。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：261 個測試通過、68 個既有測試略過，無失敗。
+- `npm run build`：通過；production bundle 產出至 `dist/angular-eip`。
+
+本輪依複審修正：`JourneyEventService.rollbackPrepared()` 補上個別附件回滾失敗的 sessionId、attachmentId、storagePath 與 errorCode log，並以 best-effort 更新 session 狀態；`processCleanup()` 拆分 Storage delete 與 cleanup queue delete，Storage 失敗記錄 `storage-delete-failed`，queue 刪除失敗記錄 `queue-delete-failed`，Storage object-not-found 則視為可繼續移除 queue；Storage Rules 的 journey-event delete 規則保留 exists guard 並加註說明，以避免缺失 session/queue 文件造成 null evaluation warning，同時明確記錄 Admin 不可繞過 Firestore 附件關聯直接刪除 journey event Storage 物件；request attachment cleanup ownership 也保留 exists guard，避免 emulator 出現 null/undefined warning；時間軸 Admin 操作在 actorUid 尚未就緒時顯示 snackbar 提示；事件 dialog 移除 trim 後不可達的 `!title || !content` 檢查；Firestore Rules 移除 userJourneyEvents update 上多餘的 `isSignedIn()`。
+
 ## 部署順序
 
 1. 先部署 `firestore.rules`、`storage.rules` 與 `firestore.indexes.json`。

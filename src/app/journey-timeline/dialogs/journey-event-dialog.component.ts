@@ -81,12 +81,12 @@ export class JourneyEventDialogComponent {
 
   submit(): void {
     const raw = this.form.getRawValue();
-    const title = raw.title.trim();
-    const content = raw.content.trim();
-    if (this.form.invalid || !title || !content) {
+    if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
+    const title = raw.title.trim();
+    const content = raw.content.trim();
     this.dialogRef.close({
       input: {
         targetUserId: this.data.targetUserId,
