@@ -108,8 +108,12 @@ service firebase.storage {
 
     function ownsJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId) {
       let sessionPath = /databases/(default)/documents/journeyEventAttachmentUploadSessions/$(sessionId);
-      let session = firestore.get(sessionPath).data;
       let storagePath = 'journey-event-attachments/' + targetUserId + '/' + eventId + '/' + sessionId + '/' + attachmentId;
+      return firestore.exists(sessionPath)
+        && ownsJourneyUploadSessionData(firestore.get(sessionPath).data, targetUserId, eventId, storagePath);
+    }
+
+    function ownsJourneyUploadSessionData(session, targetUserId, eventId, storagePath) {
       return session.actorUid == request.auth.uid
         && session.status in ['uploading', 'cleanup-pending']
         && session.targetUserId == targetUserId
@@ -124,12 +128,16 @@ service firebase.storage {
 
     function hasJourneyCleanupOwnership(targetUserId, eventId, sessionId, attachmentId) {
       let queuePath = /databases/(default)/documents/journeyEventAttachmentCleanupQueue/$(attachmentId);
-      let queue = firestore.get(queuePath).data;
+      let storagePath = 'journey-event-attachments/' + targetUserId + '/' + eventId + '/' + sessionId + '/' + attachmentId;
+      return firestore.exists(queuePath)
+        && hasJourneyCleanupOwnershipData(firestore.get(queuePath).data, targetUserId, eventId, storagePath);
+    }
+
+    function hasJourneyCleanupOwnershipData(queue, targetUserId, eventId, storagePath) {
       return isAdmin()
         && queue.eventId == eventId
         && queue.targetUserId == targetUserId
-        && queue.attachment.storagePath
-          == 'journey-event-attachments/' + targetUserId + '/' + eventId + '/' + sessionId + '/' + attachmentId;
+        && queue.attachment.storagePath == storagePath;
     }
 
     function hasJourneyCleanupQueue(attachmentId) {
