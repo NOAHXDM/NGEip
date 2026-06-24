@@ -120,6 +120,32 @@ export function isValidJourneyEventAttachmentMetadata(value: unknown): value is 
     && attachment.uploadedAt instanceof Timestamp;
 }
 
+export function recoverJourneyEventAttachmentMetadata(value: unknown, fallbackUploadedBy: string): AttachmentMetadata | null {
+  if (isValidJourneyEventAttachmentMetadata(value)) return value;
+  if (!value || typeof value !== 'object') return null;
+  const partial = value as Partial<AttachmentMetadata>;
+  if (typeof partial.storagePath !== 'string' || !partial.storagePath.length) return null;
+  const id = partial.id && partial.id.length ? partial.id : partial.storagePath.split('/').filter(Boolean).at(-1);
+  if (!id) return null;
+  return {
+    id,
+    storagePath: partial.storagePath,
+    originalName: partial.originalName && partial.originalName.length ? partial.originalName : `${id}.pdf`,
+    contentType: partial.contentType && partial.contentType.length
+      ? partial.contentType
+      : 'application/pdf',
+    size: typeof partial.size === 'number' && partial.size > 0 ? partial.size : 1,
+    uploadedBy: partial.uploadedBy && partial.uploadedBy.length ? partial.uploadedBy : fallbackUploadedBy,
+    uploadedAt: partial.uploadedAt instanceof Timestamp ? partial.uploadedAt : Timestamp.now(),
+  };
+}
+
+export function hasMatchingJourneyEventUpdatedAt(current: unknown, expected: unknown): boolean {
+  return current instanceof Timestamp
+    && expected instanceof Timestamp
+    && current.toMillis() === expected.toMillis();
+}
+
 export type JourneyEventCleanupFailureCode = 'storage-delete-failed' | 'queue-delete-failed';
 
 interface JourneyEventCleanupOperations {
@@ -243,7 +269,7 @@ export class JourneyEventService {
         const snapshot = await transaction.get(eventRef);
         if (!snapshot.exists()) throw new Error('event-not-found');
         const current = { id: snapshot.id, ...snapshot.data() } as UserJourneyEvent;
-        if (current.updatedAt?.toMillis() !== event.updatedAt?.toMillis()) throw new Error('event-conflict');
+        if (!hasMatchingJourneyEventUpdatedAt(current.updatedAt, event.updatedAt)) throw new Error('event-conflict');
         const merged = mergeAttachmentChanges(
           current.attachments ?? [],
           removedAttachmentIds,
@@ -298,14 +324,16 @@ export class JourneyEventService {
         const snapshot = await transaction.get(eventRef);
         if (!snapshot.exists()) throw new Error('event-not-found');
         const current = { id: snapshot.id, ...snapshot.data() } as UserJourneyEvent;
-        if (current.updatedAt?.toMillis() !== event.updatedAt?.toMillis()) throw new Error('event-conflict');
-        const attachments = (current.attachments ?? []).filter((attachment) => {
-          if (isValidJourneyEventAttachmentMetadata(attachment)) return true;
+        if (!hasMatchingJourneyEventUpdatedAt(current.updatedAt, event.updatedAt)) throw new Error('event-conflict');
+        const attachments = (current.attachments ?? []).flatMap((attachment) => {
+          const recovered = recoverJourneyEventAttachmentMetadata(attachment, actorUid);
+          if (recovered) return [recovered];
           console.error('事件含有無效附件 metadata，刪除事件時略過 cleanup queue 建立', {
             eventId: current.id,
+            storagePath: (attachment as Partial<AttachmentMetadata> | null)?.storagePath,
             attachment,
           });
-          return false;
+          return [];
         });
         transaction.set(doc(this.firestore, 'userJourneyEventAudits', current.deleteAuditId), this.audit(
           current.id, current.targetUserId, 'delete', actorUid, current.title, [], attachments

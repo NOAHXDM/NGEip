@@ -5,12 +5,14 @@ import { mergeAttachmentChanges } from '../../services/attachment.service';
 import {
   changedJourneyEventFields,
   exceedsJourneyEventAttachmentLimit,
+  hasMatchingJourneyEventUpdatedAt,
   isValidJourneyEventAttachmentMetadata,
   journeyCreateChangedFields,
   mapJourneyEventAttachmentValidationError,
   mapJourneyEventUpdateError,
   normalizeJourneyEventInput,
   processJourneyEventAttachmentCleanup,
+  recoverJourneyEventAttachmentMetadata,
 } from './journey-event.service';
 
 function attachment(id: string): AttachmentMetadata {
@@ -166,6 +168,32 @@ describe('JourneyEventService business rules', () => {
     expect(isValidJourneyEventAttachmentMetadata({ rogue: 'data' })).toBeFalse();
     expect(isValidJourneyEventAttachmentMetadata({ ...attachment('b'), id: '' })).toBeFalse();
     expect(isValidJourneyEventAttachmentMetadata({ ...attachment('c'), uploadedAt: new Date() })).toBeFalse();
+  });
+
+  it('可從含 storagePath 的歷史異常附件 metadata 補回 cleanup queue 所需欄位', () => {
+    const recovered = recoverJourneyEventAttachmentMetadata({
+      storagePath: 'journey-event-attachments/u/e/s/recovered',
+    }, 'admin');
+
+    expect(recovered).toEqual(jasmine.objectContaining({
+      id: 'recovered',
+      storagePath: 'journey-event-attachments/u/e/s/recovered',
+      originalName: 'recovered.pdf',
+      contentType: 'application/pdf',
+      size: 1,
+      uploadedBy: 'admin',
+    }));
+    expect(recovered?.uploadedAt).toEqual(jasmine.any(Timestamp));
+    expect(recoverJourneyEventAttachmentMetadata({ rogue: 'data' }, 'admin')).toBeNull();
+  });
+
+  it('樂觀鎖只接受兩側皆為 Timestamp 且毫秒值相同', () => {
+    const timestamp = Timestamp.fromMillis(1000);
+
+    expect(hasMatchingJourneyEventUpdatedAt(timestamp, Timestamp.fromMillis(1000))).toBeTrue();
+    expect(hasMatchingJourneyEventUpdatedAt(timestamp, Timestamp.fromMillis(2000))).toBeFalse();
+    expect(hasMatchingJourneyEventUpdatedAt(undefined, undefined)).toBeFalse();
+    expect(hasMatchingJourneyEventUpdatedAt(timestamp, undefined)).toBeFalse();
   });
 });
 

@@ -1,5 +1,5 @@
 import { Component, Inject } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogClose, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -11,6 +11,15 @@ import {
   JourneyEventDialogData,
   JourneyEventDialogResult,
 } from '../models/journey-timeline.models';
+
+export function trimMaxLength(maxLength: number): ValidatorFn {
+  return (control: AbstractControl<string>): ValidationErrors | null => {
+    const value = control.value ?? '';
+    return value.trim().length > maxLength
+      ? { trimMaxLength: { requiredLength: maxLength, actualLength: value.trim().length } }
+      : null;
+  };
+}
 
 @Component({
   selector: 'app-journey-event-dialog',
@@ -34,11 +43,11 @@ export class JourneyEventDialogComponent {
     eventDate: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     title: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.pattern(/\S/), Validators.maxLength(100)],
+      validators: [Validators.required, Validators.pattern(/\S/), trimMaxLength(100)],
     }),
     content: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.pattern(/\S/), Validators.maxLength(5000)],
+      validators: [Validators.required, Validators.pattern(/\S/), trimMaxLength(5000)],
     }),
   });
   pendingFiles: File[] = [];
