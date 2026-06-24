@@ -186,9 +186,11 @@ export class UserJourneyTimelineComponent implements OnChanges {
       if (!confirmed) return;
       try {
         await this.events.delete(event, actorUid);
+        if (!this.isAlive()) return;
         this.snackBar.open('事件已刪除', '關閉', { duration: 3000 });
         await this.reload();
       } catch (error) {
+        if (!this.isAlive()) return;
         this.showError(error);
       }
     } finally {

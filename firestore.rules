@@ -440,11 +440,11 @@ service cloud.firestore {
       allow create: if isAdmin()
         && request.resource.data.actorUid == request.auth.uid
         && validJourneyCleanupTransfer(request.resource.data, attachmentId);
-      // delete 只能在 Storage 物件已完成清理後由 service 執行；Rules 無法反查 Storage 狀態，
-      // 因此不可透過 Console 先手動刪除 queue，否則會使 Storage delete 失去治理依據。
+      // delete 只能在 Storage 物件已完成清理後由 service 執行；Rules 無法反查 Storage 狀態。
+      // 任意現任 Admin 可清理 queue，避免原 actor 降權後 queue 永久卡住。
       allow get: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin());
-      allow delete: if isAdmin() && resource.data.actorUid == request.auth.uid;
-      allow update: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin())
+      allow delete: if isAdmin();
+      allow update: if isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['attemptCount', 'lastAttemptAt', 'lastErrorCode']);
       allow list: if isAdmin();

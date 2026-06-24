@@ -191,25 +191,7 @@ export class JourneyEventService {
   private readonly firestore = inject(Firestore);
   private readonly storage = inject(StorageService);
 
-  create(input: JourneyEventInput, actorUid: string, files: readonly File[]): Promise<string> {
-    return this.createAsync(input, actorUid, files);
-  }
-
-  update(
-    event: UserJourneyEvent,
-    input: JourneyEventInput,
-    actorUid: string,
-    files: readonly File[],
-    removedAttachmentIds: readonly string[]
-  ): Promise<void> {
-    return this.updateAsync(event, input, actorUid, files, removedAttachmentIds);
-  }
-
-  delete(event: UserJourneyEvent, actorUid: string): Promise<void> {
-    return this.deleteAsync(event, actorUid);
-  }
-
-  private async createAsync(
+  async create(
     input: JourneyEventInput,
     actorUid: string,
     files: readonly File[]
@@ -249,7 +231,7 @@ export class JourneyEventService {
     }
   }
 
-  private async updateAsync(
+  async update(
     event: UserJourneyEvent,
     input: JourneyEventInput,
     actorUid: string,
@@ -316,7 +298,7 @@ export class JourneyEventService {
     await this.processCommittedCleanup(removed, '事件已更新，但部分附件清理失敗，已保留清理佇列供稍後重試。');
   }
 
-  private async deleteAsync(event: UserJourneyEvent, actorUid: string): Promise<void> {
+  async delete(event: UserJourneyEvent, actorUid: string): Promise<void> {
     const eventRef = doc(this.firestore, 'userJourneyEvents', event.id);
     let removed: AttachmentMetadata[] = [];
     try {
@@ -407,7 +389,7 @@ export class JourneyEventService {
     const failedUpload = uploadResults.find((result): result is PromiseRejectedResult => result.status === 'rejected');
     if (failedUpload) {
       try {
-        await this.rollbackPrepared({ sessionId: sessionRef.id, attachments });
+        await this.rollbackPreparedPaths(sessionRef.id, planned);
       } catch (rollbackError) {
         console.error('事件附件平行上傳失敗後回滾未完全成功', {
           sessionId: sessionRef.id,
@@ -422,22 +404,29 @@ export class JourneyEventService {
   }
 
   private async rollbackPrepared(batch: PreparedAttachmentBatch): Promise<void> {
-    if (!batch.sessionId) return;
+    await this.rollbackPreparedPaths(batch.sessionId, batch.attachments);
+  }
+
+  private async rollbackPreparedPaths(
+    sessionId: string | null,
+    attachments: readonly Pick<AttachmentMetadata, 'id' | 'storagePath'>[]
+  ): Promise<void> {
+    if (!sessionId) return;
     let failed = false;
-    for (const attachment of batch.attachments) {
+    for (const attachment of attachments) {
       try {
         await firstValueFrom(this.storage.deleteAttachment(attachment.storagePath));
       } catch (error) {
         failed = true;
         console.error('事件附件上傳回滾清理失敗', {
-          sessionId: batch.sessionId,
+          sessionId,
           attachmentId: attachment.id,
           storagePath: attachment.storagePath,
           errorCode: this.errorCode(error),
         });
       }
     }
-    const sessionRef = doc(this.firestore, 'journeyEventAttachmentUploadSessions', batch.sessionId);
+    const sessionRef = doc(this.firestore, 'journeyEventAttachmentUploadSessions', sessionId);
     if (failed) {
       await this.bestEffort(
         () => updateDoc(sessionRef, {
@@ -446,13 +435,13 @@ export class JourneyEventService {
           lastErrorCode: 'cleanup-failed',
         }),
         '事件附件上傳回滾 session 狀態更新失敗',
-        { sessionId: batch.sessionId }
+        { sessionId }
       );
     } else {
       await this.bestEffort(
         () => deleteDoc(sessionRef),
         '事件附件上傳回滾 session 移除失敗',
-        { sessionId: batch.sessionId }
+        { sessionId }
       );
     }
   }
