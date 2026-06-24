@@ -443,7 +443,7 @@ service cloud.firestore {
       // delete 只能在 Storage 物件已完成清理後由 service 執行；Rules 無法反查 Storage 狀態，
       // 因此不可透過 Console 先手動刪除 queue，否則會使 Storage delete 失去治理依據。
       allow get: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin());
-      allow delete: if isSignedIn() && resource.data.actorUid == request.auth.uid;
+      allow delete: if isAdmin() && resource.data.actorUid == request.auth.uid;
       allow update: if isSignedIn() && (resource.data.actorUid == request.auth.uid || isAdmin())
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['attemptCount', 'lastAttemptAt', 'lastErrorCode']);

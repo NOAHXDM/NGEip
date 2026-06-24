@@ -167,6 +167,21 @@ T017／T018／T047 仍維持為後續技術債：目前本分支以 journey serv
 
 補充限制：`JourneyEventService.prepareUploads()` 目前仍使用 client-side `Timestamp.now()` 記錄事件附件 `uploadedAt`；此差異已歸入 T043（journey-event attachment 整合回共用 `AttachmentService` domain adapter）後續收斂。T050（journey-event attachment orphan audit）仍是後續治理項目，將補上 dry-run 稽核與真正 orphan / broken reference 判定。
 
+## 2026-06-24 Claude Bot 第十二輪複審修正驗證結果
+
+- `npx tsc -p tsconfig.app.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：45 個 journey timeline 測試通過；確認 timeline / dialog / service 回歸皆維持。
+- `npm run test:journey-rules`：通過；新增 queue actor 被移除 Admin 身分後不可刪除 `journeyEventAttachmentCleanupQueue` 的 emulator 回歸。沙盒內若遇 localhost port EPERM，需以外層權限重跑；emulator 輸出中的 `PERMISSION_DENIED` 屬 `assertFails(...)` 預期拒絕案例。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：279 個測試通過、68 個既有測試略過，無失敗。
+- `npm run build`：通過；production bundle 產出至 `dist/angular-eip`。
+
+本輪依複審修正：`journeyEventAttachmentCleanupQueue` delete 規則改為「仍具 Admin 身分且為 queue actor」才可刪除，避免曾經建立 queue 的 Admin 被降權後仍能提前刪除治理依據；emulator 測試補上降權後刪除失敗與復權後僅 actor 可刪的案例。
+
+`JourneyEventService.prepareUploads()` 改為以 `Promise.allSettled()` 平行上傳事件附件，並在任一檔失敗時等待所有檔案完成或失敗後再回滾所有已成功上傳的 Storage 物件，避免 `Promise.all()` 早退造成後續成功檔案逃過 rollback。事件 dialog 也改用 `signal()` / `computed()` 搭配 OnPush，讓可見附件清單只在移除清單變更時重算，降低小裝置表單輸入時的 change detection 負擔。
+
+補充限制：連 `storagePath` 都缺失的歷史異常附件 metadata 仍無法可靠建立 cleanup queue；目前 `deleteAsync()` 會記錄 `eventId`、`storagePath` 與附件內容後略過，避免阻斷事件刪除。真正 orphan / broken reference 的 dry-run 稽核仍由 T050 收斂；T043/T047 的共用 `AttachmentService` journey-event adapter 與回歸測試仍維持後續技術債，避免本輪擴大為 attendance/subsidy 上傳架構重構。
+
 ## 部署順序
 
 1. 先部署 `firestore.rules`、`storage.rules` 與 `firestore.indexes.json`。

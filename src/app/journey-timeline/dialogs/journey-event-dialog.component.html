@@ -28,8 +28,8 @@
     </mat-form-field>
 
     <app-attachment-list
-      [attachments]="visibleAttachments"
-      [pendingFiles]="pendingFiles"
+      [attachments]="visibleAttachments()"
+      [pendingFiles]="pendingFiles()"
       [canManage]="true"
       (filesSelected)="addFiles($event)"
       (pendingFileRemoved)="removePending($event)"
@@ -40,4 +40,3 @@
   <button mat-button mat-dialog-close>取消</button>
   <button mat-flat-button color="primary" (click)="submit()">儲存</button>
 </mat-dialog-actions>
-

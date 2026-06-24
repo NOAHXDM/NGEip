@@ -393,21 +393,30 @@ export class JourneyEventService {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    const attachments: AttachmentMetadata[] = [];
-    const uploaded: AttachmentMetadata[] = [];
-    try {
-      for (let index = 0; index < planned.length; index++) {
-        let attachment: AttachmentMetadata = { ...planned[index], uploadedAt: Timestamp.now() };
+    const uploadResults = await Promise.allSettled(
+      planned.map(async (item, index) => {
+        let attachment: AttachmentMetadata = { ...item, uploadedAt: Timestamp.now() };
         await firstValueFrom(this.storage.uploadJourneyEventAttachment(
           attachment, files[index], { targetUserId, eventId }
         ));
         attachment = { ...attachment, uploadedAt: Timestamp.now() };
-        attachments.push(attachment);
-        uploaded.push(attachment);
+        return attachment;
+      })
+    );
+    const attachments = uploadResults.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
+    const failedUpload = uploadResults.find((result): result is PromiseRejectedResult => result.status === 'rejected');
+    if (failedUpload) {
+      try {
+        await this.rollbackPrepared({ sessionId: sessionRef.id, attachments });
+      } catch (rollbackError) {
+        console.error('事件附件平行上傳失敗後回滾未完全成功', {
+          sessionId: sessionRef.id,
+          eventId,
+          targetUserId,
+          rollbackError,
+        });
       }
-    } catch (error) {
-      await this.rollbackPrepared({ sessionId: sessionRef.id, attachments: uploaded });
-      throw error;
+      throw failedUpload.reason;
     }
     return { sessionId: sessionRef.id, attachments };
   }

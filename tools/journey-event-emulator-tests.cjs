@@ -262,6 +262,13 @@ async function main() {
       auditData('audit-relaxed-cleanup-timestamp', 'update', adminUid, '到職事件（更新）')
     );
     await assertSucceeds(relaxedTimestampCleanup.commit());
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'users', adminUid), { role: 'user' });
+    });
+    await assertFails(deleteDoc(doc(admin.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId)));
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'users', adminUid), { role: 'admin' });
+    });
     await assertFails(deleteDoc(doc(admin2.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId)));
     await assertSucceeds(deleteDoc(doc(admin.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId)));
 
