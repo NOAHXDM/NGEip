@@ -182,6 +182,19 @@ T017／T018／T047 仍維持為後續技術債：目前本分支以 journey serv
 
 補充限制：連 `storagePath` 都缺失的歷史異常附件 metadata 仍無法可靠建立 cleanup queue；目前 `deleteAsync()` 會記錄 `eventId`、`storagePath` 與附件內容後略過，避免阻斷事件刪除。真正 orphan / broken reference 的 dry-run 稽核仍由 T050 收斂；T043/T047 的共用 `AttachmentService` journey-event adapter 與回歸測試仍維持後續技術債，避免本輪擴大為 attendance/subsidy 上傳架構重構。
 
+## 2026-06-24 Claude Bot 第十三輪複審修正驗證結果
+
+- `npx tsc -p tsconfig.app.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：45 個 journey timeline 測試通過。
+- `npm run test:journey-rules`：通過；新增任意現任 Admin 可更新 cleanup retry 欄位、原 actor 降權後不可更新或刪除、任意現任 Admin 可刪 queue，且可依完整 path 匹配的 cleanup queue 刪除 Storage 物件的 emulator 回歸。沙盒內若遇 localhost port EPERM，需以外層權限重跑；emulator 輸出中的 `PERMISSION_DENIED` 屬 `assertFails(...)` 預期拒絕案例。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：279 個測試通過、68 個既有測試略過，無失敗。
+- `npm run build`：通過；production bundle 產出至 `dist/angular-eip`。
+
+本輪依產品回覆修正：`journeyEventAttachmentCleanupQueue` 的 retry 欄位更新維持「任意現任 Admin」可操作，但排除已降權的原 actor；queue delete 改為任意現任 Admin 可刪，避免建立者降權後 entry 永久卡住。Storage Rules 的 cleanup queue 刪除授權也同步改為任意現任 Admin 可依完整 `targetUserId/eventId/sessionId/attachmentId/storagePath` 匹配刪除實體物件，避免只放寬 Firestore queue 但 Storage 仍被 actor 綁死。
+
+中低優先建議同步採用：Storage Rules 將 journey upload session / cleanup queue 文件讀取收斂為 exists guard 後單次 `get(...).data` 傳入 helper，減少同文件重複讀取；`deleteEvent()` 在刪除成功與錯誤路徑補上 `isAlive()` guard，避免元件銷毀後仍開 snackbar 或 reload；`prepareUploads()` 上傳失敗時改回滾所有 planned storage paths，而不只回滾 fulfilled 結果，降低部分失敗上傳留下 bytes 的風險；`JourneyEventService` 移除 public method 到 private `*Async` 的純委派層，直接以公開 async CRUD 方法承載實作。
+
 ## 部署順序
 
 1. 先部署 `firestore.rules`、`storage.rules` 與 `firestore.indexes.json`。

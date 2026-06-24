@@ -1,5 +1,5 @@
 const { initializeTestEnvironment, assertFails, assertSucceeds } = require('@firebase/rules-unit-testing');
-const { deleteDoc, doc, getDoc, serverTimestamp, setDoc, writeBatch } = require('firebase/firestore');
+const { deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc, writeBatch } = require('firebase/firestore');
 const { deleteObject, getBytes, ref, uploadBytes } = require('firebase/storage');
 
 const projectId = 'demo-user-journey';
@@ -262,15 +262,21 @@ async function main() {
       auditData('audit-relaxed-cleanup-timestamp', 'update', adminUid, '到職事件（更新）')
     );
     await assertSucceeds(relaxedTimestampCleanup.commit());
+    await assertSucceeds(updateDoc(doc(admin2.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId), {
+      attemptCount: 1,
+      lastErrorCode: 'storage-delete-failed',
+    }));
     await env.withSecurityRulesDisabled(async (context) => {
       await setDoc(doc(context.firestore(), 'users', adminUid), { role: 'user' });
     });
+    await assertFails(updateDoc(doc(admin.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId), {
+      attemptCount: 2,
+    }));
     await assertFails(deleteDoc(doc(admin.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId)));
+    await assertSucceeds(deleteDoc(doc(admin2.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId)));
     await env.withSecurityRulesDisabled(async (context) => {
       await setDoc(doc(context.firestore(), 'users', adminUid), { role: 'admin' });
     });
-    await assertFails(deleteDoc(doc(admin2.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId)));
-    await assertSucceeds(deleteDoc(doc(admin.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId)));
 
     const restoreAttachment = writeBatch(admin.firestore());
     restoreAttachment.update(eventRef, {
@@ -304,7 +310,7 @@ async function main() {
     removeWithCleanup.delete(eventRef);
     await assertSucceeds(removeWithCleanup.commit());
     await assertFails(deleteObject(altFileRef));
-    await assertSucceeds(deleteObject(fileRef));
+    await assertSucceeds(deleteObject(ref(admin2.storage(), storagePath)));
     await assertFails(getDoc(doc(anonymous.firestore(), 'userJourneyEventAudits', 'audit-delete')));
     await assertFails(getDoc(doc(owner.firestore(), 'userJourneyEventAudits', 'audit-delete')));
     await assertFails(getDoc(doc(other.firestore(), 'userJourneyEventAudits', 'audit-delete')));
