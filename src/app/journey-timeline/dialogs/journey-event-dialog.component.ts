@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Inject, computed, signal } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogClose, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
@@ -37,6 +37,7 @@ export function trimMaxLength(maxLength: number): ValidatorFn {
   ],
   templateUrl: './journey-event-dialog.component.html',
   styleUrl: './journey-event-dialog.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class JourneyEventDialogComponent {
   readonly form = new FormGroup({
@@ -50,8 +51,12 @@ export class JourneyEventDialogComponent {
       validators: [Validators.required, Validators.pattern(/\S/), trimMaxLength(5000)],
     }),
   });
-  pendingFiles: File[] = [];
-  removedAttachmentIds: string[] = [];
+  readonly pendingFiles = signal<File[]>([]);
+  readonly removedAttachmentIds = signal<string[]>([]);
+  readonly visibleAttachments = computed<AttachmentMetadata[]>(() => {
+    const removed = new Set(this.removedAttachmentIds());
+    return (this.data.event?.attachments ?? []).filter((item) => !removed.has(item.id));
+  });
 
   constructor(
     @Inject(MAT_DIALOG_DATA) readonly data: JourneyEventDialogData,
@@ -71,21 +76,16 @@ export class JourneyEventDialogComponent {
     }
   }
 
-  get visibleAttachments(): AttachmentMetadata[] {
-    const removed = new Set(this.removedAttachmentIds);
-    return (this.data.event?.attachments ?? []).filter((item) => !removed.has(item.id));
-  }
-
   addFiles(files: File[]): void {
-    this.pendingFiles = [...this.pendingFiles, ...files];
+    this.pendingFiles.update((current) => [...current, ...files]);
   }
 
   removePending(file: File): void {
-    this.pendingFiles = this.pendingFiles.filter((item) => item !== file);
+    this.pendingFiles.update((current) => current.filter((item) => item !== file));
   }
 
   removeExisting(id: string): void {
-    this.removedAttachmentIds = [...this.removedAttachmentIds, id];
+    this.removedAttachmentIds.update((current) => current.includes(id) ? current : [...current, id]);
   }
 
   submit(): void {
@@ -103,8 +103,8 @@ export class JourneyEventDialogComponent {
         title,
         content,
       },
-      files: this.pendingFiles,
-      removedAttachmentIds: this.removedAttachmentIds,
+      files: this.pendingFiles(),
+      removedAttachmentIds: this.removedAttachmentIds(),
     });
   }
 }
