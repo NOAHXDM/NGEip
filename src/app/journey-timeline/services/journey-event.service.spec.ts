@@ -1,8 +1,14 @@
 import { Timestamp } from '@angular/fire/firestore';
+import { TestBed } from '@angular/core/testing';
+import { of, throwError } from 'rxjs';
 
 import { AttachmentMetadata } from '../../attachments/attachment.models';
 import { mergeAttachmentChanges } from '../../services/attachment.service';
+import { StorageService } from '../../services/storage.service';
 import {
+  JOURNEY_EVENT_FIRESTORE_OPS,
+  JourneyEventFirestoreOps,
+  JourneyEventService,
   changedJourneyEventFields,
   exceedsJourneyEventAttachmentLimit,
   hasMatchingJourneyEventUpdatedAt,
@@ -13,6 +19,7 @@ import {
   normalizeJourneyEventInput,
   processJourneyEventAttachmentCleanup,
   recoverJourneyEventAttachmentMetadata,
+  toUtcDayStartTimestamp,
 } from './journey-event.service';
 
 function attachment(id: string): AttachmentMetadata {
@@ -25,6 +32,98 @@ function attachment(id: string): AttachmentMetadata {
     uploadedBy: 'u',
     uploadedAt: Timestamp.now(),
   };
+}
+
+function eventSnapshot(data: Record<string, unknown>, id = 'event-1') {
+  return {
+    id,
+    exists: () => true,
+    data: () => data,
+  };
+}
+
+function missingSnapshot(id = 'event-1') {
+  return {
+    id,
+    exists: () => false,
+    data: () => ({}),
+  };
+}
+
+function createFakeFirestoreOps(snapshot = eventSnapshot({})): JourneyEventFirestoreOps & {
+  batches: Array<{ sets: any[]; updates: any[]; deletes: any[]; commit: jasmine.Spy }>;
+  transactions: Array<{ sets: any[]; updates: any[]; deletes: any[] }>;
+  setDoc: jasmine.Spy;
+  updateDoc: jasmine.Spy;
+  deleteDoc: jasmine.Spy;
+} {
+  const batches: Array<{ sets: any[]; updates: any[]; deletes: any[]; commit: jasmine.Spy }> = [];
+  const transactions: Array<{ sets: any[]; updates: any[]; deletes: any[] }> = [];
+  const ref = (collectionName: string, id: string) => ({ id, path: `${collectionName}/${id}` });
+  return {
+    batches,
+    transactions,
+    eventRef: () => ref('userJourneyEvents', 'event-new'),
+    uploadSessionRef: () => ref('journeyEventAttachmentUploadSessions', 'session-new'),
+    ref,
+    setDoc: jasmine.createSpy('setDoc').and.resolveTo(),
+    updateDoc: jasmine.createSpy('updateDoc').and.resolveTo(),
+    deleteDoc: jasmine.createSpy('deleteDoc').and.resolveTo(),
+    writeBatch: () => {
+      const batch = {
+        sets: [] as any[],
+        updates: [] as any[],
+        deletes: [] as any[],
+        commit: jasmine.createSpy('commit').and.resolveTo(),
+      };
+      batches.push(batch);
+      return {
+        set: (docRef: unknown, data: unknown) => batch.sets.push({ ref: docRef, data }),
+        update: (docRef: unknown, data: unknown) => batch.updates.push({ ref: docRef, data }),
+        delete: (docRef: unknown) => batch.deletes.push(docRef),
+        commit: batch.commit,
+      };
+    },
+    runTransaction: async (updateFunction) => {
+      const transaction = {
+        sets: [] as any[],
+        updates: [] as any[],
+        deletes: [] as any[],
+      };
+      transactions.push(transaction);
+      return updateFunction({
+        get: async () => snapshot,
+        set: (docRef: unknown, data: unknown) => transaction.sets.push({ ref: docRef, data }),
+        update: (docRef: unknown, data: unknown) => transaction.updates.push({ ref: docRef, data }),
+        delete: (docRef: unknown) => transaction.deletes.push(docRef),
+      } as any);
+    },
+  };
+}
+
+function createService(
+  ops: JourneyEventFirestoreOps,
+  storage = jasmine.createSpyObj<StorageService>('StorageService', [
+    'journeyEventAttachmentPath',
+    'uploadJourneyEventAttachment',
+    'deleteAttachment',
+  ])
+) {
+  TestBed.resetTestingModule();
+  storage.journeyEventAttachmentPath.and.callFake(
+    (targetUserId: string, eventId: string, sessionId: string, attachmentId: string) =>
+      `journey-event-attachments/${targetUserId}/${eventId}/${sessionId}/${attachmentId}`
+  );
+  storage.uploadJourneyEventAttachment.and.returnValue(of(undefined));
+  storage.deleteAttachment.and.returnValue(of(undefined));
+  TestBed.configureTestingModule({
+    providers: [
+      JourneyEventService,
+      { provide: JOURNEY_EVENT_FIRESTORE_OPS, useValue: ops },
+      { provide: StorageService, useValue: storage },
+    ],
+  });
+  return { service: TestBed.inject(JourneyEventService), storage };
 }
 
 describe('JourneyEvent attachment rules', () => {
@@ -63,6 +162,12 @@ describe('JourneyEventService business rules', () => {
     expect(result.content).toBe('通過課程');
     expect(result.eventDate).toEqual(jasmine.any(Timestamp));
     expect(result.eventDate.toDate().toISOString()).toBe('2026-06-23T00:00:00.000Z');
+  });
+
+  it('事件日期會正規化為 UTC 日起點，避免編輯匯入資料時保留非日界時間', () => {
+    const result = toUtcDayStartTimestamp(Timestamp.fromDate(new Date('2026-06-23T09:30:00Z')));
+
+    expect(result.toDate().toISOString()).toBe('2026-06-23T00:00:00.000Z');
   });
 
   it('拒絕空白或超長事件欄位', () => {
@@ -194,6 +299,164 @@ describe('JourneyEventService business rules', () => {
     expect(hasMatchingJourneyEventUpdatedAt(timestamp, Timestamp.fromMillis(2000))).toBeFalse();
     expect(hasMatchingJourneyEventUpdatedAt(undefined, undefined)).toBeFalse();
     expect(hasMatchingJourneyEventUpdatedAt(timestamp, undefined)).toBeFalse();
+  });
+});
+
+describe('JourneyEventService public methods', () => {
+  const event = {
+    id: 'event-1',
+    targetUserId: 'u1',
+    eventDate: Timestamp.fromDate(new Date('2026-06-23T00:00:00Z')),
+    title: '原標題',
+    content: '原內容',
+    attachments: [attachment('a')],
+    createdBy: 'admin',
+    createdAt: Timestamp.now(),
+    updatedBy: 'admin',
+    updatedAt: Timestamp.fromMillis(1000),
+    lastAuditId: 'audit-old',
+    deleteAuditId: 'audit-delete',
+  };
+
+  it('create 會以 batch 建立事件與 create audit', async () => {
+    const ops = createFakeFirestoreOps();
+    const { service } = createService(ops);
+
+    const eventId = await service.create({
+      targetUserId: 'u1',
+      eventDate: new Date('2026-06-23T09:30:00Z'),
+      title: '  新事件  ',
+      content: '  內容  ',
+    }, 'admin', []);
+
+    expect(eventId).toBe('event-new');
+    expect(ops.batches.length).toBe(1);
+    expect(ops.batches[0].sets[0]).toEqual(jasmine.objectContaining({
+      ref: jasmine.objectContaining({ path: 'userJourneyEvents/event-new' }),
+      data: jasmine.objectContaining({
+        targetUserId: 'u1',
+        title: '新事件',
+        content: '內容',
+        attachments: [],
+        createdBy: 'admin',
+        updatedBy: 'admin',
+      }),
+    }));
+    expect(ops.batches[0].sets[0].data.eventDate.toDate().toISOString()).toBe('2026-06-23T00:00:00.000Z');
+    expect(ops.batches[0].sets[1]).toEqual(jasmine.objectContaining({
+      ref: jasmine.objectContaining({ path: jasmine.stringMatching(/^userJourneyEventAudits\//) }),
+      data: jasmine.objectContaining({
+        eventId: 'event-new',
+        action: 'create',
+        actorUid: 'admin',
+        changedFields: ['eventDate', 'title', 'content'],
+      }),
+    }));
+    expect(ops.batches[0].commit).toHaveBeenCalled();
+  });
+
+  it('update 會檢查樂觀鎖、寫入 update audit、建立 cleanup queue 並清理移除附件', async () => {
+    const current = { ...event };
+    const ops = createFakeFirestoreOps(eventSnapshot(current));
+    const { service, storage } = createService(ops);
+
+    await service.update(event, {
+      targetUserId: 'u1',
+      eventDate: new Date('2026-06-24T00:00:00Z'),
+      title: '新標題',
+      content: '原內容',
+    }, 'admin', [], ['a']);
+
+    expect(ops.transactions.length).toBe(1);
+    expect(ops.transactions[0].updates[0]).toEqual(jasmine.objectContaining({
+      ref: jasmine.objectContaining({ path: 'userJourneyEvents/event-1' }),
+      data: jasmine.objectContaining({
+        title: '新標題',
+        attachments: [],
+        updatedBy: 'admin',
+      }),
+    }));
+    expect(ops.transactions[0].sets.some((entry) =>
+      entry.ref.path.startsWith('userJourneyEventAudits/')
+      && entry.data.action === 'update'
+      && entry.data.changedFields.includes('attachments')
+    )).toBeTrue();
+    expect(ops.transactions[0].sets.some((entry) =>
+      entry.ref.path === 'journeyEventAttachmentCleanupQueue/a'
+      && entry.data.attachment.id === 'a'
+    )).toBeTrue();
+    expect(storage.deleteAttachment).toHaveBeenCalledWith('journey-event-attachments/u/e/s/a');
+    expect(ops.deleteDoc).toHaveBeenCalledWith(jasmine.objectContaining({
+      path: 'journeyEventAttachmentCleanupQueue/a',
+    }));
+  });
+
+  it('delete 會寫入 delete audit、建立 cleanup queue、刪除事件並清理附件', async () => {
+    const current = { ...event };
+    const ops = createFakeFirestoreOps(eventSnapshot(current));
+    const { service, storage } = createService(ops);
+
+    await service.delete(event, 'admin');
+
+    expect(ops.transactions[0].sets.some((entry) =>
+      entry.ref.path === 'userJourneyEventAudits/audit-delete'
+      && entry.data.action === 'delete'
+      && entry.data.attachmentSummary[0].id === 'a'
+    )).toBeTrue();
+    expect(ops.transactions[0].sets.some((entry) =>
+      entry.ref.path === 'journeyEventAttachmentCleanupQueue/a'
+      && entry.data.actorUid === 'admin'
+    )).toBeTrue();
+    expect(ops.transactions[0].deletes).toContain(jasmine.objectContaining({
+      path: 'userJourneyEvents/event-1',
+    }));
+    expect(storage.deleteAttachment).toHaveBeenCalledWith('journey-event-attachments/u/e/s/a');
+  });
+
+  it('update 遇到樂觀鎖衝突時回傳可理解訊息', async () => {
+    const stale = { ...event, updatedAt: Timestamp.fromMillis(2000) };
+    const ops = createFakeFirestoreOps(eventSnapshot(stale));
+    const { service } = createService(ops);
+
+    await expectAsync(service.update(event, {
+      targetUserId: 'u1',
+      eventDate: event.eventDate.toDate(),
+      title: '新標題',
+      content: '原內容',
+    }, 'admin', [], [])).toBeRejectedWithError('事件已被其他人更新，請重新載入後再試。');
+  });
+
+  it('create 上傳失敗時會回滾所有 planned storage paths 並移除 session', async () => {
+    const ops = createFakeFirestoreOps(missingSnapshot());
+    const storage = jasmine.createSpyObj<StorageService>('StorageService', [
+      'journeyEventAttachmentPath',
+      'uploadJourneyEventAttachment',
+      'deleteAttachment',
+    ]);
+    storage.journeyEventAttachmentPath.and.callFake(
+      (targetUserId: string, eventId: string, sessionId: string, attachmentId: string) =>
+        `journey-event-attachments/${targetUserId}/${eventId}/${sessionId}/${attachmentId}`
+    );
+    storage.deleteAttachment.and.returnValue(of(undefined));
+    const { service } = createService(ops, storage);
+    storage.uploadJourneyEventAttachment.and.returnValue(throwError(() => new Error('storage/retry-limit-exceeded')));
+    const file = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d])], 'proof.pdf', {
+      type: 'application/pdf',
+    });
+
+    await expectAsync(service.create({
+      targetUserId: 'u1',
+      eventDate: new Date('2026-06-23T00:00:00Z'),
+      title: '事件',
+      content: '內容',
+    }, 'admin', [file])).toBeRejectedWithError('事件與附件未能建立，請稍後重試。');
+
+    expect(storage.deleteAttachment).toHaveBeenCalledWith(jasmine.stringMatching(
+      /^journey-event-attachments\/u1\/event-new\/session-new\//
+    ));
+    expect(ops.deleteDoc).toHaveBeenCalledWith(jasmine.objectContaining({
+      path: 'journeyEventAttachmentUploadSessions/session-new',
+    }));
   });
 });
 

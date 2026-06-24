@@ -195,6 +195,22 @@ T017／T018／T047 仍維持為後續技術債：目前本分支以 journey serv
 
 中低優先建議同步採用：Storage Rules 將 journey upload session / cleanup queue 文件讀取收斂為 exists guard 後單次 `get(...).data` 傳入 helper，減少同文件重複讀取；`deleteEvent()` 在刪除成功與錯誤路徑補上 `isAlive()` guard，避免元件銷毀後仍開 snackbar 或 reload；`prepareUploads()` 上傳失敗時改回滾所有 planned storage paths，而不只回滾 fulfilled 結果，降低部分失敗上傳留下 bytes 的風險；`JourneyEventService` 移除 public method 到 private `*Async` 的純委派層，直接以公開 async CRUD 方法承載實作。
 
+## 2026-06-24 Claude Bot 第十四輪複審修正驗證結果
+
+- `npx tsc -p tsconfig.app.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/services/journey-event.service.spec.ts'`：23 個 JourneyEventService 測試通過；新增 public `create()` / `update()` / `delete()` batch/transaction/cleanup 行為、樂觀鎖衝突與上傳失敗 rollback 回歸。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：51 個 journey timeline 測試通過。
+- `npm run test:journey-rules`：通過；確認 Storage Rules 在 helper 內部保留 exists guard 後仍維持 journey event attachment session / cleanup queue 治理。沙盒內若遇 localhost port EPERM，需以外層權限重跑；emulator 輸出中的 `PERMISSION_DENIED` 屬 `assertFails(...)` 預期拒絕案例。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：285 個測試通過、68 個既有測試略過，無失敗。
+- `npm run build`：通過；production bundle 產出至 `dist/angular-eip`。
+
+本輪依複審修正：`JourneyEventService` 新增可注入的 Firestore ops seam，正式環境仍使用 AngularFire 原生 `doc`、`collection`、`writeBatch`、`runTransaction`、`setDoc`、`updateDoc` 與 `deleteDoc`，測試則以 fake ops 直接覆蓋 public CRUD 的商業流程，補上 create event/audit、update optimistic lock/audit/cleanup queue、delete audit/cleanup queue，以及上傳失敗時回滾 planned storage paths 與移除 upload session 的單元測試。
+
+中低優先建議同步收斂：事件日期在 service 邊界統一正規化為 UTC 日起點，避免非 UTC 午夜匯入資料在 dialog 編輯後以不明確時間保存；Storage Rules 的 `ownsJourneyUploadSession()` 與 `hasJourneyCleanupOwnership()` 在 helper 內部保留 `exists()` guard，避免缺失 session/queue 文件時直接讀取 `.data`；`JourneyTimelineService.loadNext()` 對同一 session 加上 `inFlightPromise` 序列化，避免 public API 被並發呼叫時重複 shift buffer；`journeyCreateChangedFields()` 補註須與 `changedJourneyEventFields()` 同步維護。
+
+補充限制：`recoverJourneyEventAttachmentMetadata()` 仍保留歷史異常資料 cleanup 能力，這是前輪為避免部署前 corrupt metadata 造成 Storage 永久無法清理而加入的保守路徑；正式新寫入仍由 Rules schema 阻擋無效附件 metadata。若後續確認沒有部署前歷史資料，可另開議題移除 recovery 或改為一次性 migration。
+
 ## 部署順序
 
 1. 先部署 `firestore.rules`、`storage.rules` 與 `firestore.indexes.json`。

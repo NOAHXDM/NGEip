@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { InjectionToken, Injectable, inject } from '@angular/core';
 import {
   Firestore,
   Timestamp,
@@ -28,6 +28,70 @@ import {
   UserJourneyEvent,
 } from '../models/journey-timeline.models';
 
+interface JourneyEventDocRef {
+  id: string;
+}
+
+interface JourneyEventSnapshot {
+  id: string;
+  exists(): boolean;
+  data(): unknown;
+}
+
+interface JourneyEventWriteBatch {
+  set(ref: JourneyEventDocRef, data: unknown): void;
+  update(ref: JourneyEventDocRef, data: unknown): void;
+  delete(ref: JourneyEventDocRef): void;
+  commit(): Promise<void>;
+}
+
+interface JourneyEventTransaction {
+  get(ref: JourneyEventDocRef): Promise<JourneyEventSnapshot>;
+  set(ref: JourneyEventDocRef, data: unknown): void;
+  update(ref: JourneyEventDocRef, data: unknown): void;
+  delete(ref: JourneyEventDocRef): void;
+}
+
+export interface JourneyEventFirestoreOps {
+  eventRef(): JourneyEventDocRef;
+  uploadSessionRef(): JourneyEventDocRef;
+  ref(collectionName: string, id: string): JourneyEventDocRef;
+  setDoc(ref: JourneyEventDocRef, data: unknown): Promise<void>;
+  updateDoc(ref: JourneyEventDocRef, data: unknown): Promise<void>;
+  deleteDoc(ref: JourneyEventDocRef): Promise<void>;
+  writeBatch(): JourneyEventWriteBatch;
+  runTransaction<T>(updateFunction: (transaction: JourneyEventTransaction) => Promise<T>): Promise<T>;
+}
+
+export const JOURNEY_EVENT_FIRESTORE_OPS = new InjectionToken<JourneyEventFirestoreOps>('JourneyEventFirestoreOps', {
+  providedIn: 'root',
+  factory: () => {
+    const firestore = inject(Firestore);
+    return {
+      eventRef: () => doc(collection(firestore, 'userJourneyEvents')),
+      uploadSessionRef: () => doc(collection(firestore, 'journeyEventAttachmentUploadSessions')),
+      ref: (collectionName: string, id: string) => doc(firestore, collectionName, id),
+      setDoc: (ref, data) => setDoc(ref as ReturnType<typeof doc>, data as Record<string, unknown>),
+      updateDoc: (ref, data) => updateDoc(ref as never, data as never),
+      deleteDoc: (ref) => deleteDoc(ref as ReturnType<typeof doc>),
+      writeBatch: () => writeBatch(firestore) as unknown as JourneyEventWriteBatch,
+      runTransaction: (updateFunction) => runTransaction(
+        firestore,
+        (transaction) => updateFunction(transaction as unknown as JourneyEventTransaction)
+      ),
+    };
+  },
+});
+
+export function toUtcDayStartTimestamp(value: Date | Timestamp): Timestamp {
+  const date = value instanceof Timestamp ? value.toDate() : value;
+  return Timestamp.fromDate(new Date(Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate()
+  )));
+}
+
 export function normalizeJourneyEventInput(input: JourneyEventInput): JourneyEventInput & { eventDate: Timestamp } {
   const title = input.title.trim();
   const content = input.content.trim();
@@ -36,7 +100,7 @@ export function normalizeJourneyEventInput(input: JourneyEventInput): JourneyEve
   }
   return {
     targetUserId: input.targetUserId,
-    eventDate: input.eventDate instanceof Timestamp ? input.eventDate : Timestamp.fromDate(input.eventDate),
+    eventDate: toUtcDayStartTimestamp(input.eventDate),
     title,
     content,
   };
@@ -103,6 +167,7 @@ export function exceedsJourneyEventAttachmentLimit(
 }
 
 export function journeyCreateChangedFields(attachments: readonly AttachmentMetadata[]): string[] {
+  // Must stay in sync with changedJourneyEventFields() when JourneyEventInput adds auditable fields.
   return attachments.length
     ? ['eventDate', 'title', 'content', 'attachments']
     : ['eventDate', 'title', 'content'];
@@ -188,7 +253,7 @@ export async function processJourneyEventAttachmentCleanup(
 
 @Injectable({ providedIn: 'root' })
 export class JourneyEventService {
-  private readonly firestore = inject(Firestore);
+  private readonly firestoreOps = inject(JOURNEY_EVENT_FIRESTORE_OPS);
   private readonly storage = inject(StorageService);
 
   async create(
@@ -196,14 +261,14 @@ export class JourneyEventService {
     actorUid: string,
     files: readonly File[]
   ): Promise<string> {
-    const eventRef = doc(collection(this.firestore, 'userJourneyEvents'));
+    const eventRef = this.firestoreOps.eventRef();
     const lastAuditId = crypto.randomUUID();
     const deleteAuditId = crypto.randomUUID();
     let prepared: PreparedAttachmentBatch | null = null;
     try {
       const normalized = normalizeJourneyEventInput(input);
       prepared = await this.prepareUploads(eventRef.id, normalized.targetUserId, actorUid, files);
-      const batch = writeBatch(this.firestore);
+      const batch = this.firestoreOps.writeBatch();
       batch.set(eventRef, {
         ...normalized,
         attachments: prepared.attachments,
@@ -214,12 +279,12 @@ export class JourneyEventService {
         lastAuditId,
         deleteAuditId,
       });
-      batch.set(doc(this.firestore, 'userJourneyEventAudits', lastAuditId), this.audit(
+      batch.set(this.firestoreOps.ref('userJourneyEventAudits', lastAuditId), this.audit(
         eventRef.id, normalized.targetUserId, 'create', actorUid, normalized.title,
         journeyCreateChangedFields(prepared.attachments), prepared.attachments
       ));
       if (prepared.sessionId) {
-        batch.delete(doc(this.firestore, 'journeyEventAttachmentUploadSessions', prepared.sessionId));
+        batch.delete(this.firestoreOps.ref('journeyEventAttachmentUploadSessions', prepared.sessionId));
       }
       await batch.commit();
       return eventRef.id;
@@ -238,7 +303,7 @@ export class JourneyEventService {
     files: readonly File[],
     removedAttachmentIds: readonly string[]
   ): Promise<void> {
-    const eventRef = doc(this.firestore, 'userJourneyEvents', event.id);
+    const eventRef = this.firestoreOps.ref('userJourneyEvents', event.id);
     const lastAuditId = crypto.randomUUID();
     let prepared: PreparedAttachmentBatch | null = null;
     let removed: AttachmentMetadata[] = [];
@@ -247,10 +312,10 @@ export class JourneyEventService {
       if (exceedsJourneyEventAttachmentLimit(event, removedAttachmentIds, files)) throw new Error('too-many-files');
       prepared = await this.prepareUploads(event.id, event.targetUserId, actorUid, files);
       const preparedBatch = prepared;
-      removed = await runTransaction(this.firestore, async (transaction) => {
+      removed = await this.firestoreOps.runTransaction(async (transaction) => {
         const snapshot = await transaction.get(eventRef);
         if (!snapshot.exists()) throw new Error('event-not-found');
-        const current = { id: snapshot.id, ...snapshot.data() } as UserJourneyEvent;
+        const current = { id: snapshot.id, ...(snapshot.data() as Record<string, unknown>) } as UserJourneyEvent;
         if (!hasMatchingJourneyEventUpdatedAt(current.updatedAt, event.updatedAt)) throw new Error('event-conflict');
         const merged = mergeAttachmentChanges(
           current.attachments ?? [],
@@ -266,16 +331,16 @@ export class JourneyEventService {
           updatedAt: serverTimestamp(),
           lastAuditId,
         });
-        transaction.set(doc(this.firestore, 'userJourneyEventAudits', lastAuditId), this.audit(
+        transaction.set(this.firestoreOps.ref('userJourneyEventAudits', lastAuditId), this.audit(
           event.id, event.targetUserId, 'update', actorUid, normalized.title,
           changedJourneyEventFields(current, normalized, merged.removedItems, preparedBatch.attachments),
           merged.finalItems
         ));
         if (preparedBatch.sessionId) {
-          transaction.delete(doc(this.firestore, 'journeyEventAttachmentUploadSessions', preparedBatch.sessionId));
+          transaction.delete(this.firestoreOps.ref('journeyEventAttachmentUploadSessions', preparedBatch.sessionId));
         }
         for (const attachment of merged.removedItems) {
-          transaction.set(doc(this.firestore, 'journeyEventAttachmentCleanupQueue', attachment.id), {
+          transaction.set(this.firestoreOps.ref('journeyEventAttachmentCleanupQueue', attachment.id), {
             eventId: event.id,
             targetUserId: event.targetUserId,
             actorUid,
@@ -299,13 +364,13 @@ export class JourneyEventService {
   }
 
   async delete(event: UserJourneyEvent, actorUid: string): Promise<void> {
-    const eventRef = doc(this.firestore, 'userJourneyEvents', event.id);
+    const eventRef = this.firestoreOps.ref('userJourneyEvents', event.id);
     let removed: AttachmentMetadata[] = [];
     try {
-      removed = await runTransaction(this.firestore, async (transaction) => {
+      removed = await this.firestoreOps.runTransaction(async (transaction) => {
         const snapshot = await transaction.get(eventRef);
         if (!snapshot.exists()) throw new Error('event-not-found');
-        const current = { id: snapshot.id, ...snapshot.data() } as UserJourneyEvent;
+        const current = { id: snapshot.id, ...(snapshot.data() as Record<string, unknown>) } as UserJourneyEvent;
         if (!hasMatchingJourneyEventUpdatedAt(current.updatedAt, event.updatedAt)) throw new Error('event-conflict');
         const attachments = (current.attachments ?? []).flatMap((attachment) => {
           const recovered = recoverJourneyEventAttachmentMetadata(attachment, actorUid);
@@ -317,11 +382,11 @@ export class JourneyEventService {
           });
           return [];
         });
-        transaction.set(doc(this.firestore, 'userJourneyEventAudits', current.deleteAuditId), this.audit(
+        transaction.set(this.firestoreOps.ref('userJourneyEventAudits', current.deleteAuditId), this.audit(
           current.id, current.targetUserId, 'delete', actorUid, current.title, [], attachments
         ));
         for (const attachment of attachments) {
-          transaction.set(doc(this.firestore, 'journeyEventAttachmentCleanupQueue', attachment.id), {
+          transaction.set(this.firestoreOps.ref('journeyEventAttachmentCleanupQueue', attachment.id), {
             eventId: current.id,
             targetUserId: current.targetUserId,
             actorUid,
@@ -353,7 +418,7 @@ export class JourneyEventService {
       const validationError = await validateAttachmentFile(file);
       if (validationError) throw new Error(validationError);
     }
-    const sessionRef = doc(collection(this.firestore, 'journeyEventAttachmentUploadSessions'));
+    const sessionRef = this.firestoreOps.uploadSessionRef();
     const planned = files.map((file) => {
       const id = crypto.randomUUID();
       return {
@@ -365,7 +430,7 @@ export class JourneyEventService {
         uploadedBy: actorUid,
       };
     });
-    await setDoc(sessionRef, {
+    await this.firestoreOps.setDoc(sessionRef, {
       eventId,
       targetUserId,
       actorUid,
@@ -377,12 +442,11 @@ export class JourneyEventService {
     });
     const uploadResults = await Promise.allSettled(
       planned.map(async (item, index) => {
-        let attachment: AttachmentMetadata = { ...item, uploadedAt: Timestamp.now() };
+        const pendingAttachment: AttachmentMetadata = { ...item, uploadedAt: Timestamp.now() };
         await firstValueFrom(this.storage.uploadJourneyEventAttachment(
-          attachment, files[index], { targetUserId, eventId }
+          pendingAttachment, files[index], { targetUserId, eventId }
         ));
-        attachment = { ...attachment, uploadedAt: Timestamp.now() };
-        return attachment;
+        return { ...pendingAttachment, uploadedAt: Timestamp.now() };
       })
     );
     const attachments = uploadResults.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
@@ -426,10 +490,10 @@ export class JourneyEventService {
         });
       }
     }
-    const sessionRef = doc(this.firestore, 'journeyEventAttachmentUploadSessions', sessionId);
+    const sessionRef = this.firestoreOps.ref('journeyEventAttachmentUploadSessions', sessionId);
     if (failed) {
       await this.bestEffort(
-        () => updateDoc(sessionRef, {
+        () => this.firestoreOps.updateDoc(sessionRef, {
           status: 'cleanup-pending',
           updatedAt: serverTimestamp(),
           lastErrorCode: 'cleanup-failed',
@@ -439,7 +503,7 @@ export class JourneyEventService {
       );
     } else {
       await this.bestEffort(
-        () => deleteDoc(sessionRef),
+        () => this.firestoreOps.deleteDoc(sessionRef),
         '事件附件上傳回滾 session 移除失敗',
         { sessionId }
       );
@@ -454,22 +518,22 @@ export class JourneyEventService {
   }
 
   private async processCleanup(attachment: AttachmentMetadata): Promise<boolean> {
-    const queueRef = doc(this.firestore, 'journeyEventAttachmentCleanupQueue', attachment.id);
+    const queueRef = this.firestoreOps.ref('journeyEventAttachmentCleanupQueue', attachment.id);
     return processJourneyEventAttachmentCleanup(attachment, {
       deleteAttachment: () => firstValueFrom(this.storage.deleteAttachment(attachment.storagePath)),
-      deleteQueue: () => deleteDoc(queueRef),
+      deleteQueue: () => this.firestoreOps.deleteDoc(queueRef),
       recordFailure: (lastErrorCode, context) => this.recordCleanupFailure(queueRef, lastErrorCode, context),
       errorCode: (error) => this.errorCode(error),
     });
   }
 
   private async recordCleanupFailure(
-    queueRef: ReturnType<typeof doc>,
+    queueRef: JourneyEventDocRef,
     lastErrorCode: 'storage-delete-failed' | 'queue-delete-failed',
     context: Record<string, unknown>
   ): Promise<void> {
     await this.bestEffort(
-      () => updateDoc(queueRef, {
+      () => this.firestoreOps.updateDoc(queueRef, {
         attemptCount: increment(1),
         lastAttemptAt: serverTimestamp(),
         lastErrorCode,

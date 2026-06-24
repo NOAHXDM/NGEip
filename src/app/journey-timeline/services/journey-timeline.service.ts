@@ -36,6 +36,7 @@ export interface JourneyTimelineSession {
   userId: string;
   events: SourceState;
   subsidies: SourceState;
+  inFlightPromise?: Promise<TimelinePage>;
 }
 
 const SUBSIDY_TITLES: Record<SubsidyType, string> = {
@@ -105,11 +106,16 @@ export class JourneyTimelineService {
   }
 
   async loadNext(session: JourneyTimelineSession): Promise<TimelinePage> {
-    return loadTimelinePageFromBuffers(
+    if (session.inFlightPromise) return session.inFlightPromise;
+    const promise = loadTimelinePageFromBuffers(
       session,
       () => this.ensureEventBuffer(session),
       () => this.ensureSubsidyBuffer(session)
-    );
+    ).finally(() => {
+      if (session.inFlightPromise === promise) delete session.inFlightPromise;
+    });
+    session.inFlightPromise = promise;
+    return promise;
   }
 
   private async ensureEventBuffer(session: JourneyTimelineSession): Promise<void> {
