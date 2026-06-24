@@ -211,6 +211,21 @@ T017／T018／T047 仍維持為後續技術債：目前本分支以 journey serv
 
 補充限制：`recoverJourneyEventAttachmentMetadata()` 仍保留歷史異常資料 cleanup 能力，這是前輪為避免部署前 corrupt metadata 造成 Storage 永久無法清理而加入的保守路徑；正式新寫入仍由 Rules schema 阻擋無效附件 metadata。若後續確認沒有部署前歷史資料，可另開議題移除 recovery 或改為一次性 migration。
 
+## 2026-06-24 Claude Bot 第十五輪複審修正驗證結果
+
+- `npx tsc -p tsconfig.app.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：51 個 journey timeline 測試通過；確認既有 journey timeline/service/component 行為無回歸。
+- `npm run test:journey-rules`：通過；新增事件附件 `storagePath` 必須匹配正式事件 `targetUserId/eventId` 的 emulator 回歸，避免 Admin 先用 A 使用者建立 upload session、再將同一路徑掛到 B 使用者事件。沙盒內若遇 localhost port EPERM，需以外層權限重跑；emulator 輸出中的 `PERMISSION_DENIED` 屬 `assertFails(...)` 預期拒絕案例。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：285 個測試通過、68 個既有測試略過，無失敗。
+- `npm run build`：通過；production bundle 產出至 `dist/angular-eip`。沙盒內曾因 process/cache 資源限制以 134 中止，已用外層權限重跑通過。
+
+本輪依複審修正：Firestore Rules 的事件附件 schema 不再只驗證附件欄位存在與型別，而是要求 `storagePath` 必須落在 `journey-event-attachments/{targetUserId}/{eventId}/{sessionId}/{attachmentId}` 結構下，並以事件本身的 `targetUserId` 與文件 `eventId` 作為授權來源，阻斷跨使用者路徑挪用。Rules schema 同步補上 `hasAll()` required-field 檢查，避免缺欄位資料在拒絕時走到不必要的欄位存取。
+
+中低優先建議同步收斂：`pairedJourneyAudit()` 改為先確認 `existsAfter(auditPath)` 再讀取 audit；audit create/update/delete effect 也拆為 helper，先檢查交易前後事件文件存在狀態後再讀 `getAfter()` / `get()`，降低缺少 paired 文件時的 rules evaluation 噪音。個人職場屬性報告頁的時間軸入口在 `currentUser()` 尚未初始化時改顯示載入卡片，避免 auth signal 初始 `undefined` 時直接隱藏時間軸。
+
+補充限制：journey event Storage 物件仍維持「不可由 Admin 直接 emergency delete」的治理方向，必須透過 upload session 或 cleanup queue 關聯刪除，以保持與 attendance/subsidy 附件治理一致。若未來要處理真正 orphan / broken reference，仍由 T050 的 dry-run orphan audit 與治理流程另行收斂，避免在 Storage Rules 加入可繞過 Firestore 關聯的直通刪除權限。
+
 ## 部署順序
 
 1. 先部署 `firestore.rules`、`storage.rules` 與 `firestore.indexes.json`。
