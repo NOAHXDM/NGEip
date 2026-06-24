@@ -202,6 +202,24 @@ async function main() {
     );
     await assertFails(invalidAttachmentUpdate.commit());
 
+    const mismatchedTargetAttachment = writeBatch(admin.firestore());
+    mismatchedTargetAttachment.set(
+      doc(admin.firestore(), 'userJourneyEvents', 'mismatched-target-event'),
+      eventData('audit-mismatched-target', {
+        targetUserId: otherUid,
+        attachments: [attachmentMeta],
+        deleteAuditId: 'audit-mismatched-target-delete',
+      })
+    );
+    mismatchedTargetAttachment.set(
+      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-mismatched-target'),
+      auditData('audit-mismatched-target', 'create', adminUid, '到職事件', {
+        eventId: 'mismatched-target-event',
+        targetUserId: otherUid,
+      })
+    );
+    await assertFails(mismatchedTargetAttachment.commit());
+
     const remove = writeBatch(admin.firestore());
     remove.update(eventRef, {
       attachments: [attachmentMeta],

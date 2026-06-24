@@ -317,7 +317,14 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
         }
       }
 
-      @if (currentUser()?.uid; as uid) {
+      @if (currentUser() === undefined) {
+        <mat-card class="timeline-loading-card">
+          <mat-card-content class="timeline-loading-content">
+            <mat-progress-spinner mode="indeterminate" diameter="24" />
+            <span>使用者歷程載入中...</span>
+          </mat-card-content>
+        </mat-card>
+      } @else if (currentUser()?.uid; as uid) {
         <app-user-journey-timeline
           [userId]="uid"
           [eventPermissions]="personalEventPermissions" />
@@ -632,6 +639,20 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
 
     .trend-card mat-card-content {
       overflow-x: auto;
+    }
+
+    .timeline-loading-card {
+      border: 1px solid #e0f2f1;
+      box-shadow: none;
+    }
+
+    .timeline-loading-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #546e7a;
+      font-size: 13px;
+      padding: 16px;
     }
   `],
 })
