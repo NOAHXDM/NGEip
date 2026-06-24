@@ -154,6 +154,19 @@ T017／T018／T047 仍維持為後續技術債：目前本分支以 journey serv
 
 本輪依複審修正：Firestore Rules 的 `validJourneyEventData()` 補上 `attachments` 陣列 per-item schema 驗證，至少要求每筆附件 metadata 具備 `id`、`storagePath`、`originalName`、`contentType`、`size`、`uploadedBy`、`uploadedAt` 等必要欄位與基本型別，避免 Admin 透過 Console 或 SDK 寫入 `{ rogue: 'data' }` 後導致事件刪除流程無法建立 cleanup queue；`deleteAsync()` 也加入 runtime guard，對歷史異常附件 metadata 會記錄錯誤並略過 cleanup queue 建立，使事件仍可刪除；create audit 的 `changedFields` 改為僅在實際有附件時加入 `attachments`；`journeyEventAttachmentCleanupQueue` delete 規則補上註解，明確說明 queue 應由 service 在 Storage 清理完成後移除，不能先手動刪除；Storage Rules 的 `ownsJourneyUploadSession()` 自帶 `exists()` guard；Angular contract 文件補回 `JourneyEventDialogData.actorUid`。
 
+## 2026-06-24 Claude Bot 第十一輪複審修正驗證結果
+
+- `npx tsc -p tsconfig.app.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：45 個 journey timeline 測試通過；新增歷史附件 metadata 復原、嚴格樂觀鎖與 trim 後長度驗證回歸。
+- `npm run test:journey-rules`：通過；新增純空白 title Firestore Rules 拒絕、非 actor Admin 不可提前刪 cleanup queue，以及歷史缺 `id` 但具合法 `storagePath` 的附件可在 delete transaction 建立 cleanup queue 的 emulator 驗證。沙盒內因 localhost port EPERM 失敗一次，已用外層權限重跑通過；emulator 輸出中的 `PERMISSION_DENIED` 為 `assertFails(...)` 預期拒絕案例。
+- `npm test -- --watch=false --browsers=ChromeHeadless`：279 個測試通過、68 個既有測試略過，無失敗。
+- `npm run build`：通過；production bundle 產出至 `dist/angular-eip`。沙盒內 build 仍會無錯誤訊息中止（exit 134），以外層權限重跑後通過。
+
+本輪依複審修正：`deleteAsync()` 對歷史異常附件 metadata 不再直接略過；若仍保有合法 `storagePath`，會從 path 末段補回 attachment id 並產生最小可清理 metadata，讓 delete transaction 能建立 cleanup queue，避免 Storage 物件因沒有 queue 而永久卡住；只有連 `storagePath` 都缺失的資料才記錄錯誤並略過。Firestore Rules 的 cleanup transfer 同步支援這類歷史附件：正式新寫入仍需完整 schema，但歷史附件可用 `storagePath` 佐證原事件引用，且交易後必須移除同一 `storagePath`。`journeyEventAttachmentCleanupQueue` delete 收斂為只有 queue actor 可刪除，避免其他 Admin 提前刪 queue；`updateAsync()` / `deleteAsync()` 的樂觀鎖改為兩側皆為 `Timestamp` 且毫秒相同才放行，缺 `updatedAt` 的歷史快照會明確進入 conflict；事件 dialog 的長度驗證改以 trim 後字數計算，避免尾端空白造成 UI 與 service 規則不一致；cleanup queue create 移除多餘 `isSignedIn()`。
+
+補充限制：`JourneyEventService.prepareUploads()` 目前仍使用 client-side `Timestamp.now()` 記錄事件附件 `uploadedAt`；此差異已歸入 T043（journey-event attachment 整合回共用 `AttachmentService` domain adapter）後續收斂。T050（journey-event attachment orphan audit）仍是後續治理項目，將補上 dry-run 稽核與真正 orphan / broken reference 判定。
+
 ## 部署順序
 
 1. 先部署 `firestore.rules`、`storage.rules` 與 `firestore.indexes.json`。

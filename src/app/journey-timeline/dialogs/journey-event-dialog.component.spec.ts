@@ -2,7 +2,7 @@ import { Timestamp } from '@angular/fire/firestore';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { TestBed } from '@angular/core/testing';
 
-import { JourneyEventDialogComponent } from './journey-event-dialog.component';
+import { JourneyEventDialogComponent, trimMaxLength } from './journey-event-dialog.component';
 import { JourneyEventDialogData } from '../models/journey-timeline.models';
 
 describe('JourneyEventDialogComponent', () => {
@@ -136,5 +136,32 @@ describe('JourneyEventDialogComponent', () => {
     component.submit();
 
     expect(dialogRef.close).not.toHaveBeenCalled();
+  });
+
+  it('長度驗證以 trim 後文字計算', () => {
+    const validator = trimMaxLength(10);
+
+    expect(validator({ value: `有效標題${' '.repeat(20)}` } as any)).toBeNull();
+    expect(validator({ value: `${' '.repeat(2)}${'x'.repeat(11)}${' '.repeat(2)}` } as any))
+      .toEqual({ trimMaxLength: { requiredLength: 10, actualLength: 11 } });
+  });
+
+  it('submit 接受 trim 後未超過上限的標題與內容', () => {
+    const { component, dialogRef } = createComponent({
+      targetUserId: 'u1',
+      actorUid: 'admin',
+      permissions: { canCreate: true, canUpdate: true, canDelete: true },
+    });
+    component.form.setValue({
+      eventDate: '2026-06-23',
+      title: `${'標'.repeat(100)} `,
+      content: `${'內'.repeat(5000)} `,
+    });
+
+    component.submit();
+
+    expect(dialogRef.close).toHaveBeenCalled();
+    expect(dialogRef.close.calls.mostRecent().args[0]?.input.title).toBe('標'.repeat(100));
+    expect(dialogRef.close.calls.mostRecent().args[0]?.input.content).toBe('內'.repeat(5000));
   });
 });

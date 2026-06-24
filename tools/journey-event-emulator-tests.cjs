@@ -6,6 +6,7 @@ const projectId = 'demo-user-journey';
 const ownerUid = 'journey-owner';
 const otherUid = 'journey-other';
 const adminUid = 'journey-admin';
+const admin2Uid = 'journey-admin-2';
 const eventId = 'event-1';
 
 function eventData(auditId, overrides = {}) {
@@ -48,12 +49,14 @@ async function main() {
         setDoc(doc(db, 'users', ownerUid), { role: 'user' }),
         setDoc(doc(db, 'users', otherUid), { role: 'user' }),
         setDoc(doc(db, 'users', adminUid), { role: 'admin' }),
+        setDoc(doc(db, 'users', admin2Uid), { role: 'admin' }),
       ]);
     });
 
     const owner = env.authenticatedContext(ownerUid);
     const other = env.authenticatedContext(otherUid);
     const admin = env.authenticatedContext(adminUid);
+    const admin2 = env.authenticatedContext(admin2Uid);
     const anonymous = env.unauthenticatedContext();
     const eventRef = doc(admin.firestore(), 'userJourneyEvents', eventId);
 
@@ -72,6 +75,17 @@ async function main() {
       auditData('audit-bad', 'create', adminUid, '到職事件', { eventId: 'bad-event' })
     );
     await assertFails(invalidCreate.commit());
+
+    const blankTitleCreate = writeBatch(admin.firestore());
+    blankTitleCreate.set(doc(admin.firestore(), 'userJourneyEvents', 'blank-title-event'), {
+      ...eventData('audit-blank-title'),
+      title: '   ',
+    });
+    blankTitleCreate.set(
+      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-blank-title'),
+      auditData('audit-blank-title', 'create', adminUid, '   ', { eventId: 'blank-title-event' })
+    );
+    await assertFails(blankTitleCreate.commit());
 
     const create = writeBatch(admin.firestore());
     create.set(eventRef, eventData('audit-create'));
@@ -248,6 +262,7 @@ async function main() {
       auditData('audit-relaxed-cleanup-timestamp', 'update', adminUid, '到職事件（更新）')
     );
     await assertSucceeds(relaxedTimestampCleanup.commit());
+    await assertFails(deleteDoc(doc(admin2.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId)));
     await assertSucceeds(deleteDoc(doc(admin.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId)));
 
     const restoreAttachment = writeBatch(admin.firestore());
@@ -286,6 +301,51 @@ async function main() {
     await assertFails(getDoc(doc(anonymous.firestore(), 'userJourneyEventAudits', 'audit-delete')));
     await assertFails(getDoc(doc(owner.firestore(), 'userJourneyEventAudits', 'audit-delete')));
     await assertFails(getDoc(doc(other.firestore(), 'userJourneyEventAudits', 'audit-delete')));
+
+    const legacyEventId = 'legacy-event';
+    const legacyAttachmentId = 'legacy-proof';
+    const legacyStoragePath = `journey-event-attachments/${ownerUid}/${legacyEventId}/legacy-session/${legacyAttachmentId}`;
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'userJourneyEvents', legacyEventId), eventData('audit-legacy-create', {
+        title: '歷史附件事件',
+        attachments: [{
+          storagePath: legacyStoragePath,
+          originalName: 'legacy.pdf',
+          contentType: 'application/pdf',
+          size: 5,
+          uploadedBy: adminUid,
+          uploadedAt: new Date('2026-06-20T00:00:00Z'),
+        }],
+        lastAuditId: 'audit-legacy-create',
+        deleteAuditId: 'audit-legacy-delete',
+      }));
+    });
+    const deleteLegacy = writeBatch(admin.firestore());
+    deleteLegacy.set(
+      doc(admin.firestore(), 'journeyEventAttachmentCleanupQueue', legacyAttachmentId),
+      {
+        eventId: legacyEventId,
+        targetUserId: ownerUid,
+        actorUid: adminUid,
+        attachment: {
+          id: legacyAttachmentId,
+          storagePath: legacyStoragePath,
+          originalName: 'legacy.pdf',
+          contentType: 'application/pdf',
+          size: 5,
+          uploadedBy: adminUid,
+          uploadedAt: new Date('2026-06-20T00:00:00Z'),
+        },
+        createdAt: serverTimestamp(),
+        attemptCount: 0,
+      }
+    );
+    deleteLegacy.set(
+      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-legacy-delete'),
+      auditData('audit-legacy-delete', 'delete', adminUid, '歷史附件事件', { eventId: legacyEventId })
+    );
+    deleteLegacy.delete(doc(admin.firestore(), 'userJourneyEvents', legacyEventId));
+    await assertSucceeds(deleteLegacy.commit());
 
     console.log('Journey event Firestore/Storage rules tests passed.');
   } finally {
