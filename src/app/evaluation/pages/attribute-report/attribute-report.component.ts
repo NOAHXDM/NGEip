@@ -40,6 +40,8 @@ import { UserAttributeSnapshotService } from '../../services/user-attribute-snap
 import { RadarChartComponent } from '../../components/radar-chart/radar-chart.component';
 import { TrendLineChartComponent } from '../../components/trend-line-chart/trend-line-chart.component';
 import { CareerArchetypeBadgeComponent } from '../../components/career-archetype-badge/career-archetype-badge.component';
+import { UserJourneyTimelineComponent } from '../../../journey-timeline/components/user-journey-timeline.component';
+import { UserService } from '../../../services/user.service';
 
 // ── 職等及格說明 ──────────────────────────────────────────────────────────────
 
@@ -95,6 +97,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
     RadarChartComponent,
     TrendLineChartComponent,
     CareerArchetypeBadgeComponent,
+    UserJourneyTimelineComponent,
   ],
   template: `
     <div class="page-container">
@@ -312,6 +315,19 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
             </mat-card-content>
           </mat-card>
         }
+      }
+
+      @if (currentUser() === undefined) {
+        <mat-card class="timeline-loading-card">
+          <mat-card-content class="timeline-loading-content">
+            <mat-progress-spinner mode="indeterminate" diameter="24" />
+            <span>使用者歷程載入中...</span>
+          </mat-card-content>
+        </mat-card>
+      } @else if (currentUser()?.uid; as uid) {
+        <app-user-journey-timeline
+          [userId]="uid"
+          [eventPermissions]="personalEventPermissions" />
       }
     </div>
   `,
@@ -624,11 +640,33 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
     .trend-card mat-card-content {
       overflow-x: auto;
     }
+
+    .timeline-loading-card {
+      border: 1px solid #e0f2f1;
+      box-shadow: none;
+    }
+
+    .timeline-loading-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #546e7a;
+      font-size: 13px;
+      padding: 16px;
+    }
   `],
 })
 export class AttributeReportComponent implements OnInit, OnDestroy {
   private readonly snapshotService = inject(UserAttributeSnapshotService);
   private readonly cycleService = inject(EvaluationCycleService);
+  private readonly userService = inject(UserService);
+
+  readonly currentUser = toSignal(this.userService.currentUser$);
+  readonly personalEventPermissions = {
+    canCreate: false,
+    canUpdate: false,
+    canDelete: false,
+  } as const;
 
   readonly attributeKeys = ATTRIBUTE_KEYS;
 
