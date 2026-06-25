@@ -58,7 +58,7 @@ service firebase.storage {
 
     function hasCleanupOwnership(attachmentId) {
       let queuePath = /databases/(default)/documents/requestAttachmentCleanupQueue/$(attachmentId);
-      // exists 先防止缺失 queue 對 get(...).data 產生 runtime error；相同文件的存取可由 Rules runtime 快取。
+      // exists guard 會多一次 rules read，但可避免 Storage Rules 對缺失 cleanup queue 的 get(...).data 產生 null evaluation warning。
       return firestore.exists(queuePath)
         && 'actorUid' in firestore.get(queuePath).data
         && firestore.get(queuePath).data.actorUid == request.auth.uid;
@@ -86,6 +86,81 @@ service firebase.storage {
         isAdmin()
         || ownsUploadSessionPath(kind, requestId, sessionId, attachmentId)
         || hasCleanupOwnership(attachmentId)
+      );
+    }
+
+    function hasValidJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId) {
+      let sessionPath = /databases/(default)/documents/journeyEventAttachmentUploadSessions/$(sessionId);
+      let storagePath = 'journey-event-attachments/' + targetUserId + '/' + eventId + '/' + sessionId + '/' + attachmentId;
+      return firestore.exists(sessionPath)
+        && validJourneyUploadSessionData(firestore.get(sessionPath).data, targetUserId, eventId, storagePath);
+    }
+
+    function validJourneyUploadSessionData(session, targetUserId, eventId, storagePath) {
+      return session.status == 'uploading'
+        && session.actorUid == request.auth.uid
+        && session.targetUserId == targetUserId
+        && session.eventId == eventId
+        && request.resource.metadata.targetUserId == targetUserId
+        && request.resource.metadata.eventId == eventId
+        && session.plannedPaths.hasAny([storagePath]);
+    }
+
+    function ownsJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId) {
+      let sessionPath = /databases/(default)/documents/journeyEventAttachmentUploadSessions/$(sessionId);
+      let storagePath = 'journey-event-attachments/' + targetUserId + '/' + eventId + '/' + sessionId + '/' + attachmentId;
+      return firestore.exists(sessionPath)
+        && ownsJourneyUploadSessionData(firestore.get(sessionPath).data, targetUserId, eventId, storagePath);
+    }
+
+    function ownsJourneyUploadSessionData(session, targetUserId, eventId, storagePath) {
+      return session.actorUid == request.auth.uid
+        && session.status in ['uploading', 'cleanup-pending']
+        && session.targetUserId == targetUserId
+        && session.eventId == eventId
+        && resource.metadata.targetUserId == targetUserId
+        && session.plannedPaths.hasAny([storagePath]);
+    }
+
+    function hasJourneyUploadSession(sessionId) {
+      return firestore.exists(/databases/(default)/documents/journeyEventAttachmentUploadSessions/$(sessionId));
+    }
+
+    function hasJourneyCleanupOwnership(targetUserId, eventId, sessionId, attachmentId) {
+      let queuePath = /databases/(default)/documents/journeyEventAttachmentCleanupQueue/$(attachmentId);
+      let storagePath = 'journey-event-attachments/' + targetUserId + '/' + eventId + '/' + sessionId + '/' + attachmentId;
+      return firestore.exists(queuePath)
+        && hasJourneyCleanupOwnershipData(firestore.get(queuePath).data, targetUserId, eventId, storagePath);
+    }
+
+    function hasJourneyCleanupOwnershipData(queue, targetUserId, eventId, storagePath) {
+      return isAdmin()
+        && queue.eventId == eventId
+        && queue.targetUserId == targetUserId
+        && queue.attachment.storagePath == storagePath;
+    }
+
+    function hasJourneyCleanupQueue(attachmentId) {
+      return firestore.exists(/databases/(default)/documents/journeyEventAttachmentCleanupQueue/$(attachmentId));
+    }
+
+    match /journey-event-attachments/{targetUserId}/{eventId}/{sessionId}/{attachmentId} {
+      allow get: if request.auth != null;
+      allow list: if false;
+      allow create: if resource == null
+        && request.auth != null
+        && request.resource.size > 0
+        && request.resource.size <= 3 * 1024 * 1024
+        && isAllowedAttachmentType()
+        && request.resource.metadata.attachmentId == attachmentId
+        && request.resource.metadata.uploadedBy == request.auth.uid
+        && hasValidJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId);
+      allow update: if false;
+      // 刪除必須由 upload session 或 cleanup queue 治理；Admin 不可繞過 Firestore 事件附件關聯直接刪除 Storage 物件。
+      // exists guard 會多一次 rules read，但可避免 Storage Rules 對缺失文件 get(...).data 產生 null evaluation warning。
+      allow delete: if request.auth != null && (
+        (hasJourneyUploadSession(sessionId) && ownsJourneyUploadSession(targetUserId, eventId, sessionId, attachmentId))
+        || (hasJourneyCleanupQueue(attachmentId) && hasJourneyCleanupOwnership(targetUserId, eventId, sessionId, attachmentId))
       );
     }
 

@@ -29,6 +29,7 @@ import { UserAttributeSnapshotService } from '../../services/user-attribute-snap
 import { RadarChartComponent } from '../radar-chart/radar-chart.component';
 import { TrendLineChartComponent } from '../trend-line-chart/trend-line-chart.component';
 import { CareerArchetypeBadgeComponent } from '../career-archetype-badge/career-archetype-badge.component';
+import { UserJourneyTimelineComponent } from '../../../journey-timeline/components/user-journey-timeline.component';
 
 // ── 職等及格說明 ──────────────────────────────────────────────────────────────
 
@@ -80,6 +81,7 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
     RadarChartComponent,
     TrendLineChartComponent,
     CareerArchetypeBadgeComponent,
+    UserJourneyTimelineComponent,
   ],
   template: `
     <div class="embed-container">
@@ -282,6 +284,10 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
           </mat-card>
         }
       }
+
+      <app-user-journey-timeline
+        [userId]="userId"
+        [eventPermissions]="adminEventPermissions" />
     </div>
   `,
   styles: [`
@@ -565,6 +571,12 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
 })
 export class UserAttributeReportEmbedComponent implements OnInit, OnDestroy {
   @Input({ required: true }) userId!: string;
+
+  readonly adminEventPermissions = {
+    canCreate: true,
+    canUpdate: true,
+    canDelete: true,
+  } as const;
 
   private readonly snapshotService = inject(UserAttributeSnapshotService);
   private readonly cycleService = inject(EvaluationCycleService);
