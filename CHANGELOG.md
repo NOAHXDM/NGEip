@@ -26,6 +26,7 @@
 - Subsidy 申請儲存失敗時保留 dialog 與使用者已選資料，改在表單內顯示錯誤，不再以「建立失敗」結果直接關閉 dialog。
 
 ### 安全
+- **Breaking security change**：收斂 `attendanceLogs` 的更新權限（GitHub issue #22）。原本任意已登入使用者皆可修改他人申請的非附件欄位（`status`、`reason`、`type` 等），現收斂為僅 admin 或「pending 狀態下的申請人本人」可更新，且 status 轉換（核准／拒絕／退回待審）一律保留給 admin。若有 kiosk 或外部整合曾以非 owner／非 admin 身分修改他人 attendance 欄位，部署前必須改用 admin 或申請人本人帳號。詳見 `specs/007-attendance-permission-hardening/`。
 - **Breaking security change**：`attendanceLogs` 的讀取、建立與更新由匿名可存取收斂為至少需要 Firebase Authentication 登入；若有 kiosk 或外部整合曾依賴匿名寫入，部署前必須改用已登入流程。
 - 新增 Firestore／Storage Rules 附件權限矩陣：登入者可預覽、owner 僅能修改自己的 pending 申請、admin 可代辦；未登入、Storage list、同路徑 overwrite、缺少 actor 的 cleanup queue 刪除授權及未搭配 parent removal 的 queue create 均拒絕。
 - Storage attachment path 採 create-only，正式 bucket CORS 僅允許 Firebase Hosting origins 與本機 `http://localhost:4200` 的 `GET`／`HEAD`。

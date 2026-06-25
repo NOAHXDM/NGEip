@@ -9,6 +9,7 @@
     "test": "ng test",
     "test:attachment-audit": "node --test tools/request-attachment-orphan-audit.test.js",
     "test:attachment-rules": "firebase emulators:exec --config firebase.local.json --project demo-request-attachments --only firestore,storage \"node tools/request-attachment-emulator-tests.cjs\"",
+    "test:attendance-rules": "firebase emulators:exec --config firebase.local.json --project demo-attendance-permission --only firestore \"node tools/attendance-permission-emulator-tests.cjs\"",
     "test:journey-rules": "firebase emulators:exec --config firebase.local.json --project demo-user-journey --only firestore,storage \"node tools/journey-event-emulator-tests.cjs\"",
     "audit:request-attachments": "node tools/request-attachment-orphan-audit.js",
     "audit:request-attachments:local": "node tools/request-attachment-orphan-audit.js --fixture src/app/attachments/testing/orphan-audit-fixture.json"

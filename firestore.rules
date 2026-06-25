@@ -54,6 +54,15 @@ service cloud.firestore {
       return !('attachments' in data) || (data.attachments is list && data.attachments.size() <= 5);
     }
 
+    // 申請人僅能在自己仍為 pending 的 attendance 申請上編輯內容與附件，
+    // 且不得變更 userId 與 status；status 轉換（核准／拒絕／退回待審）一律收斂為 admin。
+    function attendanceOwnerEditable(existing, incoming, uid) {
+      return existing.userId == uid
+        && existing.status == 'pending'
+        && incoming.userId == existing.userId
+        && incoming.status == existing.status;
+    }
+
     function validAttendanceAuditAction(action) {
       return action in ['create', 'update', '建立', '更新', '新增附件', '刪除附件'];
     }
@@ -94,13 +103,12 @@ service cloud.firestore {
       allow create: if isSignedIn() && validAttachmentCount(request.resource.data)
         && (!('attachments' in request.resource.data) || request.resource.data.attachments.size() == 0
           || request.resource.data.userId == request.auth.uid || isAdmin());
-      // 已知歷史行為：非附件欄位仍允許任意已登入使用者更新；權限收斂追蹤：GitHub issue #22。
+      // 權限收斂（GitHub issue #22）：attendance 文件僅允許 admin 或「pending 狀態下的申請人本人」更新；
+      // 其他已登入使用者不得修改他人申請的任何欄位（含 status、reason、type 等非附件欄位）。
+      // status 轉換一律保留給 admin，避免申請人自我核准或非授權者越權審核。
       allow update: if isSignedIn() && validAttachmentCount(request.resource.data)
-        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['attachments'])
-          || isAdmin()
-          || (resource.data.userId == request.auth.uid && resource.data.status == 'pending'
-            && request.resource.data.userId == resource.data.userId
-            && request.resource.data.status == resource.data.status));
+        && (isAdmin()
+          || attendanceOwnerEditable(resource.data, request.resource.data, request.auth.uid));
       allow delete: if isAdmin();
 
       match /auditTrail/{auditId} {
