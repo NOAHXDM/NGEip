@@ -5,9 +5,19 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
-## [未發布]
+## [4.0.0] - 2026-06-26
+
+本版為主版本升級（major），整合「使用者歷程時間軸」新模組與既有附件治理、補助共用池調整，
+並包含 `attendanceLogs` 權限收斂等 **Breaking security change**；部署前請詳閱「安全」一節。
 
 ### 新增
+- 新增「使用者歷程時間軸」模組（`specs/006-user-journey-timeline`）：
+  - 合併非餐費補助申請與 Admin 建立的 `userJourneyEvents`，依業務日期由近到遠分頁呈現，支援載入更多、空狀態與錯誤狀態。
+  - 嵌入「我的職場屬性報告」與 Admin「編輯使用者」的職場屬性報告 Tab；個人頁為唯讀，Admin 入口可新增、更新與刪除事件。
+  - 事件支援 0–5 個附件、畫面內預覽，並沿用既有附件 metadata 契約與 upload session／cleanup queue 治理。
+  - 左右交替卡片、依日期差距拉開垂直距離、穩定隨機色碼，並為筆電補助、健康檢查、訓練課程、AI 工具與旅遊補助提供不同 icon。
+- 新增 `tools/seed-salary-summary-events.js`：一次性依各年度 Bonus_Report 計算每人「N 個月本薪」（N = 12 + 該年度獎金發放比例總和），於各使用者時間軸建立「年度總薪酬統計」事件。採內嵌已驗證靜態數據表、確定性 doc id 冪等、預設 dry-run，並以 `--actor=<adminUid>`（須為 admin）作為建立者與稽核 actor。
+- 新增 `tools/seed-salary-adjustment-events.js`：一次性依 `salary.xlsx` 逐月本薪矩陣偵測每次本薪變動，於時間軸建立「薪資調整核定」事件，調幅為 `(新−舊)/舊`（兩位小數）。同採內嵌靜態表、冪等與 dry-run／`--apply` 流程。
 - Attendance 與 subsidy 申請支援選填附件：
   - 每筆申請最多 5 個檔案，每檔最多 3 MiB。
   - 支援 PDF、JPEG、PNG、WebP，並於 client 驗證副檔名、MIME 與 magic bytes。
@@ -26,6 +36,7 @@
 - Subsidy 申請儲存失敗時保留 dialog 與使用者已選資料，改在表單內顯示錯誤，不再以「建立失敗」結果直接關閉 dialog。
 
 ### 安全
+- 新增 `userJourneyEvents`、`userJourneyEventAudits`、journey event 附件 session／cleanup 規則與索引：事件與附件可由所有已登入者讀取，但新增、更新、刪除與附件寫入 session 僅允許 `users/{uid}.role == admin`；audit 文件 create-only、不可更新或刪除，create／update 與 delete 各自綁定不可重用的 audit ID。
 - **Breaking security change**：收斂 `attendanceLogs` 的更新權限（GitHub issue #22）。原本任意已登入使用者皆可修改他人申請的非附件欄位（`status`、`reason`、`type` 等），現收斂為僅 admin 或「pending 狀態下的申請人本人」可更新，且 status 轉換（核准／拒絕／退回待審）一律保留給 admin。若有 kiosk 或外部整合曾以非 owner／非 admin 身分修改他人 attendance 欄位，部署前必須改用 admin 或申請人本人帳號。詳見 `specs/007-attendance-permission-hardening/`。
 - **Breaking security change**：`attendanceLogs` 的讀取、建立與更新由匿名可存取收斂為至少需要 Firebase Authentication 登入；若有 kiosk 或外部整合曾依賴匿名寫入，部署前必須改用已登入流程。
 - 新增 Firestore／Storage Rules 附件權限矩陣：登入者可預覽、owner 僅能修改自己的 pending 申請、admin 可代辦；未登入、Storage list、同路徑 overwrite、缺少 actor 的 cleanup queue 刪除授權及未搭配 parent removal 的 queue create 均拒絕。
@@ -38,6 +49,7 @@
 - 新增共用池純計算單元測試，涵蓋一般使用、AI Tool 超過舊 10,000 門檻、用盡 24,000 與既有資料超額等情境。
 - 補充服務整合測試，確認回傳結果只包含一張共用池卡片。
 - 新增附件格式、3 MiB 邊界、五檔替換、預覽清理與重試競態防護、owner/admin UI、audit 顯示、孤兒分類與 Emulator Rules 測試；完整 Angular 測試共 222 項通過。
+- 新增 journey-timeline 服務與元件測試，並新增 journey event emulator 測試腳本與 `npm run test:journey-rules`，覆蓋 authenticated cross-user read、非 Admin 寫入拒絕、Admin CRUD、audit 原子性、Admin-only 附件 session 與 Storage 附件讀取限制。
 
 ### 維護
 - AI Tool 不再建立假的個別 `annualLimit` 設定，統計結果直接併入共用池。
@@ -48,6 +60,7 @@
 - 新增 `specs/004-training-ai-shared-pool` 產品規格與實作計畫，並同步 README 與程式註解。
 - 本節規則取代 3.0.8 與更早版本記載的 AI Tool 10,000 個別上限；歷史段落保留原版本行為紀錄。
 - 新增 `specs/005-request-attachments` 規格、資料模型、Rules／CORS 契約、快速驗證與任務紀錄，並同步 README 的附件操作與部署說明。
+- 新增 `specs/006-user-journey-timeline` 規格、計畫、資料模型、契約、任務與 quickstart，並同步 README 的使用者歷程時間軸與一次性資料腳本說明。
 
 ## [3.1.0] - 2026-06-18
 
@@ -591,7 +604,10 @@
 - Cloudinary
 - Karma/Jasmine
 
-[2.2.4]: https://github.com/NOAHXDM/NGEip/compare/v2.2.3...HEAD
+[4.0.0]: https://github.com/NOAHXDM/NGEip/compare/v3.1.0...v4.0.0
+[3.1.0]: https://github.com/NOAHXDM/NGEip/compare/v3.0.20...v3.1.0
+[3.0.20]: https://github.com/NOAHXDM/NGEip/compare/v3.0.19...v3.0.20
+[2.2.4]: https://github.com/NOAHXDM/NGEip/compare/v2.2.3...v2.2.4
 [2.2.3]: https://github.com/NOAHXDM/NGEip/compare/v2.2.2...v2.2.3
 [2.2.2]: https://github.com/NOAHXDM/NGEip/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/NOAHXDM/NGEip/compare/v2.2.0...v2.2.1
