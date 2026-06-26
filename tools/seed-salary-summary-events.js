@@ -12,11 +12,10 @@
  *   - months（= 12 + bonusMonths，四捨五入至小數一位）即文案中的 N。
  *
  * 資料來源：各年度 Bonus_Report 版面互不相容（2021 僅年終、2022 為中文 PDF、
- * 2023 多區塊、2024 實發/比例雙列、2025 逐月佔成），故採「已驗證靜態數據表」內嵌，
- * 數字可人工核對，不在執行期解析 xlsx。
- *
- * 2022：原始檔為無法可靠解析的中文 CID PDF，數據暫缺，已於下方留待補資料槽；
- *       未填妥前該年度自動略過（會於輸出提示）。
+ * 2023 多區塊、2024 實發/比例雙列、2025 逐月佔成），故由人工核對後彙整為「已驗證
+ * 數據表」，存於 tools/data/salary-summary.json。該檔含員工薪酬個資，已於 .gitignore
+ * 排除、不納入版控；執行期讀入，不在版控原始碼內嵌任何薪資。格式見同目錄
+ * salary-summary.example.json，亦可用環境變數 SALARY_SUMMARY_FILE 覆寫路徑。
  *
  * 對應使用者：以 Bonus_Report 內「姓名」對應 Firestore `users.name` 取得 UID。
  *   - 找不到對應姓名 → 略過並警示。
@@ -38,6 +37,8 @@
  */
 
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const { initializeApp, applicationDefault } = require('firebase-admin/app');
 const { getFirestore, Timestamp, FieldValue } = require('firebase-admin/firestore');
 
@@ -48,156 +49,42 @@ const yearArg = process.argv.find((a) => a.startsWith('--year='));
 const ONLY_YEAR = yearArg ? yearArg.slice('--year='.length) : null;
 
 /**
- * 已驗證的每年度每人「個月本薪」數據表。
- *   bonusMonths：該年度所有獎金發放比例（佔成）總和。
- *   months：N = 12 + bonusMonths，四捨五入至小數一位，即文案數字。
- *
- * 2022 待補：請以 Bonus_Report_2022.pdf 內每人各項獎金發放比例加總，
- * 依下列格式補入（months 可留待腳本計算，亦可直接填寫）。
+ * 薪資資料來源檔（含員工姓名與獎金月數，屬個人資料）。
+ *   - 預設 tools/data/salary-summary.json，已於 .gitignore 排除，不得 commit。
+ *   - 可用環境變數 SALARY_SUMMARY_FILE 覆寫路徑（例：自 Secret Manager 解密後的暫存檔）。
+ *   - 格式見 tools/data/salary-summary.example.json：每年度一陣列，每筆 { name, bonusMonths }。
+ *   - bonusMonths：該年度所有獎金發放比例（佔成）總和；
+ *     months（= 12 + bonusMonths，四捨五入至小數一位，即文案 N）由腳本於執行期計算。
  */
-const SALARY_DATA = {
-  '2021': [
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-  ],
-  // 2022 資料暫缺（原始為無法解析的中文 PDF），補齊後移除本註解並填入下列陣列：
-  // { name: '姓名', bonusMonths: <該年度獎金發放比例總和>, months: <12 + bonusMonths> },
-  '2022': [
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-  ],
-  '2023': [
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-  ],
-  '2024': [
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-  ],
-  '2025': [
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-    { /* salary data redacted from history */ },
-  ],
-};
+const DATA_FILE = process.env.SALARY_SUMMARY_FILE || path.join(__dirname, 'data', 'salary-summary.json');
+
+/** 讀取並驗證薪資資料檔；缺檔或格式錯誤時以清楚訊息中止。 */
+function loadSalaryData(file) {
+  if (!fs.existsSync(file)) {
+    throw new Error(
+      `找不到薪資資料檔：${file}\n` +
+        '此檔含員工個人薪酬資料，不納入版控。請依 tools/data/salary-summary.example.json 格式\n' +
+        '建立 tools/data/salary-summary.json，或以環境變數 SALARY_SUMMARY_FILE 指定路徑。'
+    );
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (err) {
+    throw new Error(`薪資資料檔解析失敗（${file}）：${err.message}`);
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`薪資資料檔格式錯誤（${file}）：應為 { "<year>": [ { name, bonusMonths } ] }。`);
+  }
+  return parsed;
+}
+
+/** N = 12 + bonusMonths，四捨五入至小數一位。 */
+function monthsFromBonus(bonusMonths) {
+  return Math.round((12 + bonusMonths) * 10) / 10;
+}
+
+const SALARY_DATA = loadSalaryData(DATA_FILE);
 
 /** 文案：標題。 */
 function eventTitle(year) {
@@ -260,12 +147,12 @@ async function seedOne(year, uid, months) {
   const existing = await eventRef.get();
   if (existing.exists) return 'skipped';
 
+  if (!APPLY) return 'created';
+
   const lastAuditId = crypto.randomUUID();
   const deleteAuditId = crypto.randomUUID();
   const title = eventTitle(year);
   const now = FieldValue.serverTimestamp();
-
-  if (!APPLY) return 'created';
 
   const batch = db.batch();
   batch.set(eventRef, {
@@ -321,7 +208,8 @@ async function main() {
       continue;
     }
     console.log(`--- ${year}（${rows.length} 人）---`);
-    for (const { name, months } of rows) {
+    for (const { name, bonusMonths } of rows) {
+      const months = monthsFromBonus(bonusMonths);
       const uid = index.get(name);
       if (!uid) {
         unmatched++;

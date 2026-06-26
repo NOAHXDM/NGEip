@@ -1,0 +1,7 @@
+[
+  {
+    "_comment": "範本檔。實際資料請複製為 tools/data/salary-adjustments.json（已被 .gitignore 排除，不得 commit）。每筆＝一次本薪變動：name 對應 users.name；date 為生效當月 YYYY-MM-01；pct 為調幅百分比（已四捨五入至小數兩位）；from/to 僅供人工核對，不寫入 Firestore。"
+  },
+  { "name": "範例員工A", "date": "2024-02-01", "pct": 5.0, "from": 60000, "to": 63000 },
+  { "name": "範例員工A", "date": "2025-02-01", "pct": 7.94, "from": 63000, "to": 68000 }
+]

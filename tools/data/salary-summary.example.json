@@ -1,0 +1,7 @@
+{
+  "_comment": "範本檔。實際資料請複製為 tools/data/salary-summary.json（已被 .gitignore 排除，不得 commit）。每個年度為一陣列，每筆僅需 name 與 bonusMonths；months（= 12 + bonusMonths，四捨五入至小數一位）由腳本於執行期計算。",
+  "2024": [
+    { "name": "範例員工A", "bonusMonths": 5.0 },
+    { "name": "範例員工B", "bonusMonths": 2.5 }
+  ]
+}

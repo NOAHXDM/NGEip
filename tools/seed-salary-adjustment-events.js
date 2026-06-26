@@ -12,8 +12,11 @@
  *   - salary.xlsx 全部變動皆為調升，無調降；文案正向語氣與此一致。
  *   - eventDate 取該次新本薪生效當月（矩陣欄位日期，當月 1 日 UTC）。
  *
- * 資料來源：salary.xlsx 為均勻逐月網格，已於本機解析、人工核對後，採「已驗證靜態
- * 數據表」內嵌（含 from/to 供核對），執行期不需 xlsx 依賴。共 161 筆調整。
+ * 資料來源：salary.xlsx 為均勻逐月網格，已於本機解析、人工核對後彙整為「已驗證
+ * 數據表」，存於 tools/data/salary-adjustments.json（含 from/to 供核對）。該檔含員工
+ * 薪酬個資，已於 .gitignore 排除、不納入版控；執行期讀入，不在版控原始碼內嵌任何
+ * 薪資。格式見同目錄 salary-adjustments.example.json，亦可用環境變數
+ * SALARY_ADJUSTMENTS_FILE 覆寫路徑。
  *
  * 對應使用者：以 salary.xlsx 內「姓名」對應 Firestore `users.name` 取得 UID。
  *   - 找不到對應姓名 → 略過並警示。
@@ -34,6 +37,8 @@
  */
 
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const { initializeApp, applicationDefault } = require('firebase-admin/app');
 const { getFirestore, Timestamp, FieldValue } = require('firebase-admin/firestore');
 
@@ -42,175 +47,38 @@ const actorArg = process.argv.find((a) => a.startsWith('--actor='));
 const ACTOR_UID = actorArg ? actorArg.slice('--actor='.length) : process.env.ACTOR_UID;
 
 /**
- * 已驗證的薪資調整數據表（每筆＝一次本薪變動）。
- *   name：salary.xlsx 姓名（對應 users.name）。
- *   date：新本薪生效當月（YYYY-MM-01）。
- *   pct：調幅百分比（已四捨五入至小數兩位），即文案 xx.xx%。
- *   from/to：調整前後本薪，僅供人工核對，不寫入 Firestore。
+ * 薪資調整資料來源檔（每筆＝一次本薪變動，含員工姓名與本薪，屬個人資料）。
+ *   - 預設 tools/data/salary-adjustments.json，已於 .gitignore 排除，不得 commit。
+ *   - 可用環境變數 SALARY_ADJUSTMENTS_FILE 覆寫路徑（例：自 Secret Manager 解密後的暫存檔）。
+ *   - 格式見 tools/data/salary-adjustments.example.json：陣列，每筆
+ *     { name, date(YYYY-MM-01), pct, from, to }；from/to 僅供人工核對，不寫入 Firestore。
  */
-const SALARY_ADJUSTMENTS = [
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-  { /* salary data redacted from history */ },
-];
+const DATA_FILE =
+  process.env.SALARY_ADJUSTMENTS_FILE || path.join(__dirname, 'data', 'salary-adjustments.json');
+
+/** 讀取並驗證薪資調整資料檔；缺檔或格式錯誤時以清楚訊息中止。 */
+function loadAdjustments(file) {
+  if (!fs.existsSync(file)) {
+    throw new Error(
+      `找不到薪資調整資料檔：${file}\n` +
+        '此檔含員工個人薪酬資料，不納入版控。請依 tools/data/salary-adjustments.example.json 格式\n' +
+        '建立 tools/data/salary-adjustments.json，或以環境變數 SALARY_ADJUSTMENTS_FILE 指定路徑。'
+    );
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (err) {
+    throw new Error(`薪資調整資料檔解析失敗（${file}）：${err.message}`);
+  }
+  if (!Array.isArray(parsed)) {
+    throw new Error(`薪資調整資料檔格式錯誤（${file}）：應為 [ { name, date, pct, from, to } ]。`);
+  }
+  // 容忍範本檔的 _comment 物件：僅保留具備必要欄位者。
+  return parsed.filter((row) => row && row.name && row.date && typeof row.pct === 'number');
+}
+
+const SALARY_ADJUSTMENTS = loadAdjustments(DATA_FILE);
 
 /** 文案：標題。 */
 const EVENT_TITLE = '薪資調整核定';
