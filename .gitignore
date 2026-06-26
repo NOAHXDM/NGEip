@@ -49,8 +49,6 @@ Thumbs.db
 # Temp
 .env
 tools/eipImages.json
-
-# 員工薪酬個資（僅本機，不得 commit；範本檔 *.example.json 仍納入版控）
 tools/data/salary-summary.json
 tools/data/salary-adjustments.json
 
