@@ -36,6 +36,7 @@ Firebase Authentication、Cloud Firestore、Firebase Storage 與 Firebase Hostin
 - 請假規則、餘額與異動管理
 - 補助申請、審核與統計
 - Attendance 與 subsidy 多檔附件、畫面內預覽、異動稽核與孤兒檔治理
+- 使用者歷程時間軸（合併補助申請與 Admin 事件，依業務日期分頁呈現）
 - 系統設定與 Firebase Emulator 本地開發流程
 
 ### Training + AI Tool 補助額度
@@ -54,6 +55,29 @@ Firebase Authentication、Cloud Firestore、Firebase Storage 與 Firebase Hostin
 - 申請人僅能管理自己 pending 申請的附件；管理員可在既有可開啟的表單中處理任意狀態。Subsidy list 不新增 approved／rejected 的任意編輯入口。
 - 替換附件時先上傳新檔再標記移除舊檔；最終仍須不超過 5 個。新檔上傳或 transaction 失敗時，舊檔與原 metadata 保持不變。
 - 每次新增／刪除都記錄實際操作者。實體檔必須由 parent request、upload session 或 cleanup queue 持有，並可用 `npm run audit:request-attachments` 進行 dry-run 稽核。
+
+### 使用者歷程時間軸
+
+- 將非餐費補助申請與 Admin 建立的 `userJourneyEvents` 合併為單一時間軸，依業務日期由近到遠分頁呈現，支援載入更多、空狀態與錯誤狀態。
+- 嵌入「我的職場屬性報告」與 Admin「編輯使用者」的職場屬性報告 Tab：個人頁為唯讀；Admin 入口可新增、更新與刪除事件。
+- 事件可附 0–5 個附件並於畫面內預覽，沿用既有附件 metadata 契約與 upload session／cleanup queue 治理。
+- 事件與附件可由所有已登入者讀取，但寫入（新增／更新／刪除與附件 session）僅限 `users/{uid}.role == admin`；所有異動寫入 create-only 的 `userJourneyEventAudits`。可用 `npm run test:journey-rules` 驗證 Rules。
+
+#### 一次性資料腳本
+
+兩支位於 `tools/` 的一次性腳本，可將歷史薪酬資料寫入使用者歷程時間軸（與前端 `JourneyEventService.create` 相同的文件＋稽核結構）。皆預設 dry-run、採確定性 doc id 冪等可重跑，並以 `--actor=<adminUid>`（須為 admin）作為事件建立者與稽核 actor；姓名以 `users.name` 對應 UID，查無或同名多筆者略過並警示。
+
+```bash
+# 年度總薪酬統計（N = 12 + 該年度獎金發放比例總和）
+node tools/seed-salary-summary-events.js --actor=<adminUid>            # dry-run 預覽
+node tools/seed-salary-summary-events.js --actor=<adminUid> --apply    # 實際寫入
+
+# 薪資調整核定（逐月本薪變動，調幅 =(新−舊)/舊）
+node tools/seed-salary-adjustment-events.js --actor=<adminUid>         # dry-run 預覽
+node tools/seed-salary-adjustment-events.js --actor=<adminUid> --apply # 實際寫入
+```
+
+> 兩支腳本透過 Firebase Admin SDK 寫入，執行前需 `npm i -D firebase-admin` 並設定 `GOOGLE_APPLICATION_CREDENTIALS`。
 
 ## 技術堆疊
 
