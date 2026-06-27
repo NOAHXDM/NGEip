@@ -22,6 +22,11 @@ import {
   PreparedAttachmentBatch,
   UploadedAttachmentBatch,
 } from '../../attachments/attachment.models';
+import {
+  AttachmentCleanupFailureCode,
+  processAttachmentCleanup,
+  rollbackPreparedAttachments,
+} from '../../attachments/attachment-session';
 import { mergeAttachmentChanges } from '../../services/attachment.service';
 import { StorageService } from '../../services/storage.service';
 import { validateAttachmentFile } from '../../utils/attachment-validation';
@@ -213,45 +218,9 @@ export function hasMatchingJourneyEventUpdatedAt(current: unknown, expected: unk
     && current.toMillis() === expected.toMillis();
 }
 
-export type JourneyEventCleanupFailureCode = 'storage-delete-failed' | 'queue-delete-failed';
-
-interface JourneyEventCleanupOperations {
-  deleteAttachment: () => Promise<void>;
-  deleteQueue: () => Promise<void>;
-  recordFailure: (lastErrorCode: JourneyEventCleanupFailureCode, context: Record<string, unknown>) => Promise<void>;
-  errorCode: (error: unknown) => string;
-}
-
-export async function processJourneyEventAttachmentCleanup(
-  attachment: AttachmentMetadata,
-  operations: JourneyEventCleanupOperations
-): Promise<boolean> {
-  try {
-    await operations.deleteAttachment();
-  } catch (storageError) {
-    const storageErrorCode = operations.errorCode(storageError);
-    if (storageErrorCode !== 'storage/object-not-found') {
-      await operations.recordFailure('storage-delete-failed', {
-        attachmentId: attachment.id,
-        storagePath: attachment.storagePath,
-        storageErrorCode,
-      });
-      return false;
-    }
-  }
-
-  try {
-    await operations.deleteQueue();
-    return true;
-  } catch (queueError) {
-    await operations.recordFailure('queue-delete-failed', {
-      attachmentId: attachment.id,
-      storagePath: attachment.storagePath,
-      queueErrorCode: operations.errorCode(queueError),
-    });
-    return false;
-  }
-}
+// journey event 的附件清理已收斂至共用 helper；保留同名 re-export 以維持既有匯入與相容性。
+export type JourneyEventCleanupFailureCode = AttachmentCleanupFailureCode;
+export { processAttachmentCleanup as processJourneyEventAttachmentCleanup } from '../../attachments/attachment-session';
 
 @Injectable({ providedIn: 'root' })
 export class JourneyEventService {
@@ -478,23 +447,16 @@ export class JourneyEventService {
     attachments: readonly Pick<AttachmentMetadata, 'id' | 'storagePath'>[]
   ): Promise<void> {
     if (!sessionId) return;
-    let failed = false;
-    for (const attachment of attachments) {
-      try {
-        await firstValueFrom(this.storage.deleteAttachment(attachment.storagePath));
-      } catch (error) {
-        failed = true;
-        console.error('事件附件上傳回滾清理失敗', {
-          sessionId,
-          attachmentId: attachment.id,
-          storagePath: attachment.storagePath,
-          errorCode: this.errorCode(error),
-        });
-      }
-    }
     const sessionRef = this.firestoreOps.ref('journeyEventAttachmentUploadSessions', sessionId);
-    if (failed) {
-      await this.bestEffort(
+    await rollbackPreparedAttachments(attachments, {
+      deleteAttachment: (storagePath) => firstValueFrom(this.storage.deleteAttachment(storagePath)),
+      onDeleteError: (attachment, error) => console.error('事件附件上傳回滾清理失敗', {
+        sessionId,
+        attachmentId: attachment.id,
+        storagePath: attachment.storagePath,
+        errorCode: this.errorCode(error),
+      }),
+      markSessionCleanupPending: () => this.bestEffort(
         () => this.firestoreOps.updateDoc(sessionRef, {
           status: 'cleanup-pending',
           updatedAt: serverTimestamp(),
@@ -502,14 +464,13 @@ export class JourneyEventService {
         }),
         '事件附件上傳回滾 session 狀態更新失敗',
         { sessionId }
-      );
-    } else {
-      await this.bestEffort(
+      ),
+      deleteSession: () => this.bestEffort(
         () => this.firestoreOps.deleteDoc(sessionRef),
         '事件附件上傳回滾 session 移除失敗',
         { sessionId }
-      );
-    }
+      ),
+    });
   }
 
   private async processCommittedCleanup(attachments: readonly AttachmentMetadata[], warningMessage: string): Promise<void> {
@@ -521,7 +482,7 @@ export class JourneyEventService {
 
   private async processCleanup(attachment: AttachmentMetadata): Promise<boolean> {
     const queueRef = this.firestoreOps.ref('journeyEventAttachmentCleanupQueue', attachment.id);
-    return processJourneyEventAttachmentCleanup(attachment, {
+    return processAttachmentCleanup(attachment, {
       deleteAttachment: () => firstValueFrom(this.storage.deleteAttachment(attachment.storagePath)),
       deleteQueue: () => this.firestoreOps.deleteDoc(queueRef),
       recordFailure: (lastErrorCode, context) => this.recordCleanupFailure(queueRef, lastErrorCode, context),
