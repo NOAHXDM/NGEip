@@ -107,14 +107,14 @@ export class AttachmentService {
       });
       if (prepared.attachments.length) {
         batch.set(doc(collection(requestRef, 'auditTrail')), this.audit('新增附件', options.actorUid, prepared.attachments));
-        if (prepared.sessionId) {
+        if (prepared.sessionId !== null) {
           batch.delete(doc(this.firestore, 'requestAttachmentUploadSessions', prepared.sessionId));
         }
       }
       await batch.commit();
       return requestRef.id;
     } catch (error) {
-      if (prepared?.sessionId) await this.rollbackPrepared(prepared);
+      if (prepared && prepared.sessionId !== null) await this.rollbackPrepared(prepared);
       throw this.friendlyError('申請與附件未能儲存，原資料未變更。', error);
     }
   }
@@ -149,7 +149,7 @@ export class AttachmentService {
         }
         if (preparedBatch.attachments.length) {
           transaction.set(doc(collection(requestRef, 'auditTrail')), this.audit('新增附件', options.actorUid, preparedBatch.attachments));
-          if (preparedBatch.sessionId) {
+          if (preparedBatch.sessionId !== null) {
             transaction.delete(doc(this.firestore, 'requestAttachmentUploadSessions', preparedBatch.sessionId));
           }
         }
@@ -169,7 +169,7 @@ export class AttachmentService {
       prepared = null;
       await Promise.all(removed.map((attachment) => this.processCleanup(attachment)));
     } catch (error) {
-      if (prepared?.sessionId) await this.rollbackPrepared(prepared);
+      if (prepared && prepared.sessionId !== null) await this.rollbackPrepared(prepared);
       throw this.friendlyError(
         this.updateErrorMessage(error),
         error
@@ -235,8 +235,7 @@ export class AttachmentService {
     }
   }
 
-  private async rollbackPrepared(batch: PreparedAttachmentBatch): Promise<void> {
-    if (!batch.sessionId) return;
+  private async rollbackPrepared(batch: UploadedAttachmentBatch): Promise<void> {
     let failed = false;
     for (const attachment of batch.attachments) {
       try { await firstValueFrom(this.storage.deleteAttachment(attachment.storagePath)); }

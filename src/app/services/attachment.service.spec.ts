@@ -101,18 +101,14 @@ describe('AttachmentService', () => {
     const prepared = await (service as any).prepareUploads('attendance', 'request', 'owner', 'actor', []);
 
     expect(prepared).toBe(EMPTY_ATTACHMENT_BATCH);
-    expect(prepared.sessionId).toBeNull();
-    expect(prepared.attachments).toEqual([]);
     expect(storage.uploadAttachment).not.toHaveBeenCalled();
   });
 
-  it('treats an empty batch rollback as a no-op without touching Storage', async () => {
-    const storage = { deleteAttachment: jasmine.createSpy() };
-    const service = serviceWithStorage(storage);
-
-    await (service as any).rollbackPrepared(EMPTY_ATTACHMENT_BATCH);
-
-    expect(storage.deleteAttachment).not.toHaveBeenCalled();
+  it('freezes the shared empty batch so the singleton cannot be polluted at runtime', () => {
+    expect(Object.isFrozen(EMPTY_ATTACHMENT_BATCH)).toBeTrue();
+    expect(Object.isFrozen(EMPTY_ATTACHMENT_BATCH.attachments)).toBeTrue();
+    expect(() => ((EMPTY_ATTACHMENT_BATCH as any).sessionId = 'leaked')).toThrowError(TypeError);
+    expect(EMPTY_ATTACHMENT_BATCH.sessionId).toBeNull();
   });
 
   it('uploads every file of an attachment batch without rolling back on success', async () => {
