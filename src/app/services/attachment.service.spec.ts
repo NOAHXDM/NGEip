@@ -5,6 +5,7 @@ import {
   hasRequestFieldChanges,
   mergeAttachmentChanges,
 } from './attachment.service';
+import { EMPTY_ATTACHMENT_BATCH } from '../attachments/attachment.models';
 
 describe('AttachmentService', () => {
   const attachment = (id: string) => ({ id } as any);
@@ -91,6 +92,40 @@ describe('AttachmentService', () => {
     )).toBeRejectedWithError('upload-failed');
 
     expect(rollback).toHaveBeenCalledWith({ sessionId: 'session', attachments: [first] });
+  });
+
+  it('returns the shared empty batch with a null session when no files are provided', async () => {
+    const storage = { uploadAttachment: jasmine.createSpy() };
+    const service = serviceWithStorage(storage);
+
+    const prepared = await (service as any).prepareUploads('attendance', 'request', 'owner', 'actor', []);
+
+    expect(prepared).toBe(EMPTY_ATTACHMENT_BATCH);
+    expect(storage.uploadAttachment).not.toHaveBeenCalled();
+  });
+
+  it('freezes the shared empty batch so the singleton cannot be polluted at runtime', () => {
+    expect(Object.isFrozen(EMPTY_ATTACHMENT_BATCH)).toBeTrue();
+    expect(Object.isFrozen(EMPTY_ATTACHMENT_BATCH.attachments)).toBeTrue();
+    expect(() => ((EMPTY_ATTACHMENT_BATCH as any).sessionId = 'leaked')).toThrowError(TypeError);
+    expect(EMPTY_ATTACHMENT_BATCH.sessionId).toBeNull();
+  });
+
+  it('uploads every file of an attachment batch without rolling back on success', async () => {
+    const first = attachment('first');
+    const second = attachment('second');
+    const storage = { uploadAttachment: jasmine.createSpy().and.returnValue(of(undefined)) };
+    const service = serviceWithStorage(storage);
+    const rollback = spyOn<any>(service, 'rollbackPrepared').and.resolveTo();
+
+    await (service as any).uploadPreparedFiles(
+      { sessionId: 'session', attachments: [first, second] },
+      [new File(['1'], '1.pdf'), new File(['2'], '2.pdf')],
+      { requestKind: 'attendance', requestId: 'request', ownerUid: 'owner' }
+    );
+
+    expect(storage.uploadAttachment).toHaveBeenCalledTimes(2);
+    expect(rollback).not.toHaveBeenCalled();
   });
 
   it('builds attachment audit content without storage path or download URL', () => {

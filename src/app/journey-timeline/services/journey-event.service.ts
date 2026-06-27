@@ -17,8 +17,10 @@ import { firstValueFrom } from 'rxjs';
 import {
   AttachmentContentType,
   AttachmentMetadata,
+  EMPTY_ATTACHMENT_BATCH,
   MAX_ATTACHMENT_COUNT,
   PreparedAttachmentBatch,
+  UploadedAttachmentBatch,
 } from '../../attachments/attachment.models';
 import { mergeAttachmentChanges } from '../../services/attachment.service';
 import { StorageService } from '../../services/storage.service';
@@ -283,13 +285,13 @@ export class JourneyEventService {
         eventRef.id, normalized.targetUserId, 'create', actorUid, normalized.title,
         journeyCreateChangedFields(prepared.attachments), prepared.attachments
       ));
-      if (prepared.sessionId) {
+      if (prepared.sessionId !== null) {
         batch.delete(this.firestoreOps.ref('journeyEventAttachmentUploadSessions', prepared.sessionId));
       }
       await batch.commit();
       return eventRef.id;
     } catch (error) {
-      if (prepared?.sessionId) await this.rollbackPrepared(prepared);
+      if (prepared && prepared.sessionId !== null) await this.rollbackPrepared(prepared);
       const validationError = mapJourneyEventAttachmentValidationError(error);
       if (validationError) throw validationError;
       throw this.friendly('事件與附件未能建立，請稍後重試。', error);
@@ -336,7 +338,7 @@ export class JourneyEventService {
           changedJourneyEventFields(current, normalized, merged.removedItems, preparedBatch.attachments),
           merged.finalItems
         ));
-        if (preparedBatch.sessionId) {
+        if (preparedBatch.sessionId !== null) {
           transaction.delete(this.firestoreOps.ref('journeyEventAttachmentUploadSessions', preparedBatch.sessionId));
         }
         for (const attachment of merged.removedItems) {
@@ -353,7 +355,7 @@ export class JourneyEventService {
       });
       prepared = null;
     } catch (error) {
-      if (prepared?.sessionId) await this.rollbackPrepared(prepared);
+      if (prepared && prepared.sessionId !== null) await this.rollbackPrepared(prepared);
       const mapped = mapJourneyEventUpdateError(error);
       if (mapped) throw mapped;
       const validationError = mapJourneyEventAttachmentValidationError(error);
@@ -412,7 +414,7 @@ export class JourneyEventService {
     actorUid: string,
     files: readonly File[]
   ): Promise<PreparedAttachmentBatch> {
-    if (!files.length) return { sessionId: null, attachments: [] };
+    if (!files.length) return EMPTY_ATTACHMENT_BATCH;
     if (files.length > MAX_ATTACHMENT_COUNT) throw new Error('too-many-files');
     for (const file of files) {
       const validationError = await validateAttachmentFile(file);
@@ -467,7 +469,7 @@ export class JourneyEventService {
     return { sessionId: sessionRef.id, attachments };
   }
 
-  private async rollbackPrepared(batch: PreparedAttachmentBatch): Promise<void> {
+  private async rollbackPrepared(batch: UploadedAttachmentBatch): Promise<void> {
     await this.rollbackPreparedPaths(batch.sessionId, batch.attachments);
   }
 

@@ -355,6 +355,21 @@ describe('JourneyEventService public methods', () => {
     expect(ops.batches[0].commit).toHaveBeenCalled();
   });
 
+  it('create 空批次不建立 upload session，故 batch 不含 session 刪除', async () => {
+    const ops = createFakeFirestoreOps();
+    const { service, storage } = createService(ops);
+
+    await service.create({
+      targetUserId: 'u1',
+      eventDate: new Date('2026-06-23T00:00:00Z'),
+      title: '事件',
+      content: '內容',
+    }, 'admin', []);
+
+    expect(storage.uploadJourneyEventAttachment).not.toHaveBeenCalled();
+    expect(ops.batches[0].deletes).toEqual([]);
+  });
+
   it('update 會檢查樂觀鎖、寫入 update audit、建立 cleanup queue 並清理移除附件', async () => {
     const current = { ...event };
     const ops = createFakeFirestoreOps(eventSnapshot(current));

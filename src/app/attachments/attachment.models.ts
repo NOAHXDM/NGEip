@@ -47,12 +47,33 @@ export interface AttachmentUploadContext {
 }
 
 /**
- * 空批次以 sessionId: null 表示未建立遠端工作階段；有附件時 sessionId 必為非空字串。
+ * 附件批次以 discriminated union 在編譯期表達不變量，判別欄位為 `sessionId`：
+ * - {@link EmptyAttachmentBatch}：sessionId 為 null 且無附件，代表未建立遠端上傳 session。
+ * - {@link UploadedAttachmentBatch}：sessionId 必為已建立 session 的字串，attachments 為該 session 的附件。
+ * 使用端應以 `if (batch.sessionId !== null)` 進行型別縮窄，取得有 session 的批次；
+ * 不要倚賴 truthiness（`if (batch.sessionId)`），以免日後若出現空字串 session 被靜默誤判為空批次。
  */
-export interface PreparedAttachmentBatch {
-  sessionId: string | null;
-  attachments: AttachmentMetadata[];
+export interface EmptyAttachmentBatch {
+  sessionId: null;
+  attachments: readonly [];
 }
+
+export interface UploadedAttachmentBatch {
+  sessionId: string;
+  attachments: readonly AttachmentMetadata[];
+}
+
+export type PreparedAttachmentBatch = EmptyAttachmentBatch | UploadedAttachmentBatch;
+
+/**
+ * 共用的空批次常數，避免各處重複建立並確保 narrowing 行為一致。
+ * 以 Object.freeze 凍結物件與內層陣列，使 `readonly` 的編譯期約束在執行期亦不可被污染；
+ * 此為全域共享 singleton，任何透過 JS 互操作的改寫都會影響所有後續空批次呼叫。
+ */
+export const EMPTY_ATTACHMENT_BATCH: EmptyAttachmentBatch = Object.freeze({
+  sessionId: null,
+  attachments: Object.freeze([]) as readonly [],
+});
 
 export const MAX_ATTACHMENT_COUNT = 5;
 export const MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024;

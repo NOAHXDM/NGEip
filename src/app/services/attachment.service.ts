@@ -20,9 +20,11 @@ import {
   AttachmentChanges,
   AttachmentContentType,
   AttachmentMetadata,
+  EMPTY_ATTACHMENT_BATCH,
   MAX_ATTACHMENT_COUNT,
   PreparedAttachmentBatch,
   RequestKind,
+  UploadedAttachmentBatch,
 } from '../attachments/attachment.models';
 import { StorageService } from './storage.service';
 import { validateAttachmentFile } from '../utils/attachment-validation';
@@ -105,14 +107,14 @@ export class AttachmentService {
       });
       if (prepared.attachments.length) {
         batch.set(doc(collection(requestRef, 'auditTrail')), this.audit('新增附件', options.actorUid, prepared.attachments));
-        if (prepared.sessionId) {
+        if (prepared.sessionId !== null) {
           batch.delete(doc(this.firestore, 'requestAttachmentUploadSessions', prepared.sessionId));
         }
       }
       await batch.commit();
       return requestRef.id;
     } catch (error) {
-      if (prepared?.sessionId) await this.rollbackPrepared(prepared);
+      if (prepared && prepared.sessionId !== null) await this.rollbackPrepared(prepared);
       throw this.friendlyError('申請與附件未能儲存，原資料未變更。', error);
     }
   }
@@ -147,7 +149,7 @@ export class AttachmentService {
         }
         if (preparedBatch.attachments.length) {
           transaction.set(doc(collection(requestRef, 'auditTrail')), this.audit('新增附件', options.actorUid, preparedBatch.attachments));
-          if (preparedBatch.sessionId) {
+          if (preparedBatch.sessionId !== null) {
             transaction.delete(doc(this.firestore, 'requestAttachmentUploadSessions', preparedBatch.sessionId));
           }
         }
@@ -167,7 +169,7 @@ export class AttachmentService {
       prepared = null;
       await Promise.all(removed.map((attachment) => this.processCleanup(attachment)));
     } catch (error) {
-      if (prepared?.sessionId) await this.rollbackPrepared(prepared);
+      if (prepared && prepared.sessionId !== null) await this.rollbackPrepared(prepared);
       throw this.friendlyError(
         this.updateErrorMessage(error),
         error
@@ -182,7 +184,7 @@ export class AttachmentService {
     actorUid: string,
     files: readonly File[]
   ): Promise<PreparedAttachmentBatch> {
-    if (!files.length) return { sessionId: null, attachments: [] };
+    if (!files.length) return EMPTY_ATTACHMENT_BATCH;
     if (files.length > MAX_ATTACHMENT_COUNT) throw new Error('too-many-files');
     for (const file of files) {
       const validationError = await validateAttachmentFile(file);
@@ -217,7 +219,7 @@ export class AttachmentService {
   }
 
   private async uploadPreparedFiles(
-    batch: PreparedAttachmentBatch,
+    batch: UploadedAttachmentBatch,
     files: readonly File[],
     metadata: { requestKind: RequestKind; requestId: string; ownerUid: string }
   ): Promise<void> {
@@ -233,8 +235,7 @@ export class AttachmentService {
     }
   }
 
-  private async rollbackPrepared(batch: PreparedAttachmentBatch): Promise<void> {
-    if (!batch.sessionId) return;
+  private async rollbackPrepared(batch: UploadedAttachmentBatch): Promise<void> {
     let failed = false;
     for (const attachment of batch.attachments) {
       try { await firstValueFrom(this.storage.deleteAttachment(attachment.storagePath)); }
@@ -290,7 +291,7 @@ export class AttachmentService {
     );
   }
 
-  private audit(action: '新增附件' | '刪除附件', actorUid: string, attachments: AttachmentMetadata[]): DocumentData {
+  private audit(action: '新增附件' | '刪除附件', actorUid: string, attachments: readonly AttachmentMetadata[]): DocumentData {
     return {
       action, actionBy: actorUid, actionDateTime: serverTimestamp(),
       content: JSON.stringify({ attachments: attachments.map(({ id, originalName, size, contentType }) => ({ id, originalName, size, contentType })) }),
