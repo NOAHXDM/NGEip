@@ -171,7 +171,10 @@ export class AttachmentService {
 
       // Transaction 已正式接管新附件；後續治理失敗不得再回滾已提交的檔案。
       prepared = null;
-      await Promise.all(removed.map((attachment) => this.processCleanup(attachment)));
+      const cleanupResults = await Promise.all(removed.map((attachment) => this.processCleanup(attachment)));
+      if (cleanupResults.some((cleaned) => !cleaned)) {
+        console.warn('申請已更新，但部分附件清理失敗，已保留清理佇列供稍後重試。');
+      }
     } catch (error) {
       if (prepared && prepared.sessionId !== null) await this.rollbackPrepared(prepared);
       throw this.friendlyError(
@@ -266,8 +269,11 @@ export class AttachmentService {
     return processAttachmentCleanup(attachment, {
       deleteAttachment: () => firstValueFrom(this.storage.deleteAttachment(attachment.storagePath)),
       deleteQueue: () => deleteDoc(queueRef),
-      // 保留 request 既有寫入行為：storage 刪除失敗時更新 queue 文件；
-      // queue 刪除失敗時僅記錄 log，不寫回文件（與 journey 的 recordFailure 在此刻意分歧，避免變更既有持久化）。
+      // 刻意保留 request domain 既有寫入語意，與 journey 的 recordFailure 在此分歧：
+      // - storage-delete-failed：更新 queue 文件（attemptCount++ / lastErrorCode），維持原有重試治理。
+      // - queue-delete-failed：僅記錄 log，不寫回文件。此為既有行為；request domain 的 cleanup queue
+      //   不依賴 queue 文件本身的 attemptCount/lastErrorCode 來判斷 queue 刪除重試，且該文件本就刪除失敗，
+      //   再對其 updateDoc 並無治理價值。統一兩 domain 的寫入語意留待後續 adapter 增量處理。
       recordFailure: (lastErrorCode, context) => {
         if (lastErrorCode === 'storage-delete-failed') {
           return this.bestEffort(

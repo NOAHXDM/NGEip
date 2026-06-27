@@ -58,7 +58,7 @@ describe('rollbackPreparedAttachments', () => {
 });
 
 describe('processAttachmentCleanup', () => {
-  const attachment = (id: string) => ({ id, storagePath: `path/${id}` } as AttachmentMetadata);
+  const attachment = (id: string) => ({ id, storagePath: `path/${id}` });
 
   function operations(overrides: Partial<Parameters<typeof processAttachmentCleanup>[1]> = {}) {
     return {

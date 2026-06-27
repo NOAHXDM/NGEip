@@ -74,7 +74,7 @@ export interface AttachmentCleanupOperations {
  * 回傳是否完成清理（true 表示 Storage 與 queue 皆已處理）。
  */
 export async function processAttachmentCleanup(
-  attachment: AttachmentMetadata,
+  attachment: Pick<AttachmentMetadata, 'id' | 'storagePath'>,
   operations: AttachmentCleanupOperations
 ): Promise<boolean> {
   try {
