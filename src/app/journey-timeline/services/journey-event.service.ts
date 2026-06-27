@@ -17,6 +17,7 @@ import { firstValueFrom } from 'rxjs';
 import {
   AttachmentContentType,
   AttachmentMetadata,
+  EMPTY_ATTACHMENT_BATCH,
   MAX_ATTACHMENT_COUNT,
   PreparedAttachmentBatch,
 } from '../../attachments/attachment.models';
@@ -412,7 +413,7 @@ export class JourneyEventService {
     actorUid: string,
     files: readonly File[]
   ): Promise<PreparedAttachmentBatch> {
-    if (!files.length) return { sessionId: null, attachments: [] };
+    if (!files.length) return EMPTY_ATTACHMENT_BATCH;
     if (files.length > MAX_ATTACHMENT_COUNT) throw new Error('too-many-files');
     for (const file of files) {
       const validationError = await validateAttachmentFile(file);

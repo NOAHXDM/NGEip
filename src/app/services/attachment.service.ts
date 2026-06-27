@@ -20,9 +20,11 @@ import {
   AttachmentChanges,
   AttachmentContentType,
   AttachmentMetadata,
+  EMPTY_ATTACHMENT_BATCH,
   MAX_ATTACHMENT_COUNT,
   PreparedAttachmentBatch,
   RequestKind,
+  UploadedAttachmentBatch,
 } from '../attachments/attachment.models';
 import { StorageService } from './storage.service';
 import { validateAttachmentFile } from '../utils/attachment-validation';
@@ -182,7 +184,7 @@ export class AttachmentService {
     actorUid: string,
     files: readonly File[]
   ): Promise<PreparedAttachmentBatch> {
-    if (!files.length) return { sessionId: null, attachments: [] };
+    if (!files.length) return EMPTY_ATTACHMENT_BATCH;
     if (files.length > MAX_ATTACHMENT_COUNT) throw new Error('too-many-files');
     for (const file of files) {
       const validationError = await validateAttachmentFile(file);
@@ -217,7 +219,7 @@ export class AttachmentService {
   }
 
   private async uploadPreparedFiles(
-    batch: PreparedAttachmentBatch,
+    batch: UploadedAttachmentBatch,
     files: readonly File[],
     metadata: { requestKind: RequestKind; requestId: string; ownerUid: string }
   ): Promise<void> {
@@ -290,7 +292,7 @@ export class AttachmentService {
     );
   }
 
-  private audit(action: '新增附件' | '刪除附件', actorUid: string, attachments: AttachmentMetadata[]): DocumentData {
+  private audit(action: '新增附件' | '刪除附件', actorUid: string, attachments: readonly AttachmentMetadata[]): DocumentData {
     return {
       action, actionBy: actorUid, actionDateTime: serverTimestamp(),
       content: JSON.stringify({ attachments: attachments.map(({ id, originalName, size, contentType }) => ({ id, originalName, size, contentType })) }),
