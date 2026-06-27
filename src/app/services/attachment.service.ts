@@ -26,6 +26,10 @@ import {
   RequestKind,
   UploadedAttachmentBatch,
 } from '../attachments/attachment.models';
+import {
+  processAttachmentCleanup,
+  rollbackPreparedAttachments,
+} from '../attachments/attachment-session';
 import { StorageService } from './storage.service';
 import { validateAttachmentFile } from '../utils/attachment-validation';
 
@@ -236,59 +240,47 @@ export class AttachmentService {
   }
 
   private async rollbackPrepared(batch: UploadedAttachmentBatch): Promise<void> {
-    let failed = false;
-    for (const attachment of batch.attachments) {
-      try { await firstValueFrom(this.storage.deleteAttachment(attachment.storagePath)); }
-      catch (error) {
-        failed = true;
-        console.error('附件回復清理失敗', {
-          sessionId: batch.sessionId,
-          attachmentId: attachment.id,
-          errorCode: this.errorCode(error),
-        });
-      }
-    }
     const sessionRef = doc(this.firestore, 'requestAttachmentUploadSessions', batch.sessionId);
-    if (failed) {
-      await this.bestEffort(
+    await rollbackPreparedAttachments(batch.attachments, {
+      deleteAttachment: (storagePath) => firstValueFrom(this.storage.deleteAttachment(storagePath)),
+      onDeleteError: (attachment, error) => console.error('附件回復清理失敗', {
+        sessionId: batch.sessionId,
+        attachmentId: attachment.id,
+        errorCode: this.errorCode(error),
+      }),
+      markSessionCleanupPending: () => this.bestEffort(
         () => updateDoc(sessionRef, { status: 'cleanup-pending', updatedAt: serverTimestamp(), lastErrorCode: 'cleanup-failed' }),
         '附件回復狀態更新失敗',
         { sessionId: batch.sessionId }
-      );
-    } else {
-      await this.bestEffort(
+      ),
+      deleteSession: () => this.bestEffort(
         () => deleteDoc(sessionRef),
         '附件回復 session 移除失敗',
         { sessionId: batch.sessionId }
-      );
-    }
+      ),
+    });
   }
 
-  private async processCleanup(attachment: AttachmentMetadata): Promise<void> {
+  private processCleanup(attachment: AttachmentMetadata): Promise<boolean> {
     const queueRef = doc(this.firestore, 'requestAttachmentCleanupQueue', attachment.id);
-    try {
-      await firstValueFrom(this.storage.deleteAttachment(attachment.storagePath));
-    } catch (storageError) {
-      await this.bestEffort(
-        () => updateDoc(queueRef, {
-          attemptCount: increment(1),
-          lastAttemptAt: serverTimestamp(),
-          lastErrorCode: 'storage-delete-failed',
-        }),
-        '附件清理佇列更新失敗',
-        {
-          attachmentId: attachment.id,
-          storageErrorCode: this.errorCode(storageError),
+    return processAttachmentCleanup(attachment, {
+      deleteAttachment: () => firstValueFrom(this.storage.deleteAttachment(attachment.storagePath)),
+      deleteQueue: () => deleteDoc(queueRef),
+      // 保留 request 既有寫入行為：storage 刪除失敗時更新 queue 文件；
+      // queue 刪除失敗時僅記錄 log，不寫回文件（與 journey 的 recordFailure 在此刻意分歧，避免變更既有持久化）。
+      recordFailure: (lastErrorCode, context) => {
+        if (lastErrorCode === 'storage-delete-failed') {
+          return this.bestEffort(
+            () => updateDoc(queueRef, { attemptCount: increment(1), lastAttemptAt: serverTimestamp(), lastErrorCode }),
+            '附件清理佇列更新失敗',
+            context
+          );
         }
-      );
-      return;
-    }
-
-    await this.bestEffort(
-      () => deleteDoc(queueRef),
-      '附件已清理但佇列移除失敗',
-      { attachmentId: attachment.id }
-    );
+        console.error('附件已清理但佇列移除失敗', context);
+        return Promise.resolve();
+      },
+      errorCode: (error) => this.errorCode(error),
+    });
   }
 
   private audit(action: '新增附件' | '刪除附件', actorUid: string, attachments: readonly AttachmentMetadata[]): DocumentData {
