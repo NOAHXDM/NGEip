@@ -52,9 +52,10 @@ export function subsidyApplicationDoc(
   userId: string,
   day: number,
   type = SubsidyType.Training,
-  status: SubsidyStatus = 'approved'
+  status: SubsidyStatus = 'approved',
+  hour = 12
 ) {
-  const timestamp = testTimestamp(day, 12);
+  const timestamp = testTimestamp(day, hour);
   return {
     userId,
     type,

@@ -72,8 +72,12 @@ describeIfIntegration('US1 Angular + Firestore Emulator integration', () => {
     const session = service.createSession(JOURNEY_TARGET_UID);
     const allIds: string[] = [];
     let hasMore = true;
+    let iterations = 0;
 
     while (hasMore) {
+      if (++iterations > 100) {
+        throw new Error('Journey timeline pagination did not terminate within 100 iterations.');
+      }
       const page = await service.loadNext(session);
       allIds.push(...page.items.map((item) => `${item.source}:${item.sourceId}`));
       hasMore = page.hasMore;
@@ -112,10 +116,7 @@ async function seedTimelineData(testEnv: RulesTestEnvironment): Promise<void> {
       setDoc(doc(db, 'userJourneyEvents/target-event-same-time'), journeyEventDoc('target-event-same-time', JOURNEY_TARGET_UID, 8)),
       setDoc(doc(db, 'userJourneyEvents/other-event-new'), journeyEventDoc('other-event-new', JOURNEY_OTHER_UID, 12)),
       setDoc(doc(db, 'subsidyApplications/target-subsidy-new'), subsidyApplicationDoc(JOURNEY_TARGET_UID, 9)),
-      setDoc(doc(db, 'subsidyApplications/target-subsidy-same-time'), {
-        ...subsidyApplicationDoc(JOURNEY_TARGET_UID, 8),
-        applicationDate: testTimestamp(8),
-      }),
+      setDoc(doc(db, 'subsidyApplications/target-subsidy-same-time'), subsidyApplicationDoc(JOURNEY_TARGET_UID, 8, SubsidyType.Training, 'approved', 9)),
       setDoc(doc(db, 'subsidyApplications/target-subsidy-training'), subsidyApplicationDoc(JOURNEY_TARGET_UID, 7, SubsidyType.Training)),
       setDoc(doc(db, 'subsidyApplications/other-subsidy-new'), subsidyApplicationDoc(JOURNEY_OTHER_UID, 13)),
     ]);

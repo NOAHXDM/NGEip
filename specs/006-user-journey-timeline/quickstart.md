@@ -34,10 +34,12 @@
 
 - `npx tsc -p tsconfig.spec.json --noEmit`：通過。
 - `git diff --check`：通過。
-- `npm run test:journey-integration`：通過；4 個 Angular＋Firestore Emulator 測試成功，覆蓋 authenticated target/other/admin 讀取指定目標時間軸、跨使用者資料隔離、雙來源分頁無重複遺漏，以及兩個職場屬性報告嵌入點的 UID／權限回歸。
+- `npm run test:journey-integration`：通過；4 個 Angular＋Firestore Emulator 測試成功，覆蓋 authenticated target/other/admin 讀取指定目標時間軸、跨使用者資料隔離、雙來源分頁無重複遺漏，以及兩個職場屬性報告嵌入點的 UID／權限回歸；本指令改為由 `firebase emulators:exec` 直接執行 `npx ng test`。
 - `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：51 個 journey 測試通過、2 個 Firestore Emulator-only 測試於預設流程略過；報告嵌入回歸測試已回到一般流程執行。
 - `npm run test:journey-rules`：通過；維持既有 Firestore／Storage Rules emulator 覆蓋。
 - `npm run build`：通過；使用 nvm Node 22 的 arm64 PATH 執行，避開 `/usr/local/bin/node` x64 與既有 esbuild arm64 binary 的平台不符問題。
+
+本輪依 Claude Bot 複審再修正：移除 report embedding spec 的手動 `ngOnInit()` 呼叫；integration teardown 改為先清空 `testEnv` 再 cleanup；分頁整合測試加入 100 次迭代上限；same-time 補助測試資料改由工廠直接產生一致的 `applicationDate`／`createdAt`／`updatedAt`；`karma.journey-integration.conf.cjs` 改為繼承 `karma.conf.js`，避免 timeout、reporter 與 plugin 設定重複維護。
 
 ## 2026-06-23 需求修正驗證結果
 

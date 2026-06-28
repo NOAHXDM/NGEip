@@ -54,8 +54,6 @@ describe('report timeline embedding regression', () => {
     const fixture = TestBed.createComponent(AttributeReportComponent);
 
     fixture.detectChanges();
-    fixture.componentInstance.ngOnInit();
-    fixture.detectChanges();
 
     const timeline = findTimeline(fixture);
     expect(timeline.userId).toBe('current-user');
@@ -82,8 +80,6 @@ describe('report timeline embedding regression', () => {
     const fixture = TestBed.createComponent(UserAttributeReportEmbedComponent);
     fixture.componentRef.setInput('userId', 'edited-user');
 
-    fixture.detectChanges();
-    fixture.componentInstance.ngOnInit();
     fixture.detectChanges();
 
     const timeline = findTimeline(fixture);

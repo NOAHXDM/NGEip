@@ -44,8 +44,9 @@ export async function initJourneyTimelineTestEnv(): Promise<RulesTestEnvironment
 
 export async function teardownJourneyTimelineTestEnv(): Promise<void> {
   if (!testEnv) return;
-  await testEnv.cleanup();
+  const env = testEnv;
   testEnv = null;
+  await env.cleanup();
 }
 
 export function getJourneyTimelineTestEnv(): RulesTestEnvironment {
