@@ -29,6 +29,10 @@ export interface PreparedAttachmentRollbackOperations {
  * 即將 session 標記為 cleanup-pending 供後續重試，否則移除 session 文件。
  *
  * 與兩個 service 原本各自內嵌的回滾流程行為等價，差異僅在注入的 IO／collection／log。
+ *
+ * 刻意採循序（for...of + await）而非平行刪除：回滾屬錯誤處理路徑，串行可確保每個失敗都被
+ * onDeleteError 依序、完整記錄，且回滾批次至多 MAX_ATTACHMENT_COUNT（5）個附件，串行延遲可忽略。
+ * 若未來批次上限放寬且回滾延遲成為瓶頸，才需評估平行化。
  */
 export async function rollbackPreparedAttachments(
   attachments: readonly Pick<AttachmentMetadata, 'id' | 'storagePath'>[],

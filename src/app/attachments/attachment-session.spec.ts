@@ -31,8 +31,12 @@ describe('rollbackPreparedAttachments', () => {
   });
 
   it('任一附件刪除失敗時改標記 session 為 cleanup-pending 並仍嘗試其餘附件', async () => {
+    // 以 callFake 延遲建立 rejected Promise，避免在 setup 階段就產生 unhandled rejection。
+    let call = 0;
     const deleteAttachment = jasmine.createSpy('deleteAttachment')
-      .and.returnValues(Promise.reject(new Error('storage/retry-limit-exceeded')), Promise.resolve());
+      .and.callFake(() => call++ === 0
+        ? Promise.reject(new Error('storage/retry-limit-exceeded'))
+        : Promise.resolve());
     const ops = operations({ deleteAttachment });
 
     await rollbackPreparedAttachments([attachment('a'), attachment('b')], ops);
