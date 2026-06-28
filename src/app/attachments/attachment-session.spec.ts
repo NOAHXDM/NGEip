@@ -1,8 +1,35 @@
 import {
+  attachmentErrorCode,
   processAttachmentCleanup,
   rollbackPreparedAttachments,
 } from './attachment-session';
 import { AttachmentMetadata } from './attachment.models';
+
+describe('attachmentErrorCode', () => {
+  it('優先回傳 Firebase 錯誤物件的 .code（不經 regex）', () => {
+    expect(attachmentErrorCode({ code: 'storage/object-not-found', message: 'private/path' }))
+      .toBe('storage/object-not-found');
+    expect(attachmentErrorCode({ code: 'permission-denied' })).toBe('permission-denied');
+  });
+
+  it('無 .code 時，message 形如 Firebase 錯誤碼（含斜線）仍可解析', () => {
+    // 修正先前 request domain regex 不含斜線、導致包裝錯誤下 object-not-found 冪等判斷失效的問題。
+    expect(attachmentErrorCode(new Error('storage/object-not-found'))).toBe('storage/object-not-found');
+    expect(attachmentErrorCode(new Error('storage-delete-failed'))).toBe('storage-delete-failed');
+  });
+
+  it('真實 Storage 路徑（含 ID／數字）不被當成 code 回傳，避免洩漏至 log', () => {
+    expect(attachmentErrorCode(new Error('request-attachments/attendance/req-1/sess-1/att-1')))
+      .toBe('Error');
+    expect(attachmentErrorCode(new Error('journey-event-attachments/u/e/s/a.pdf')))
+      .toBe('Error');
+  });
+
+  it('非 Error 物件回傳 unknown', () => {
+    expect(attachmentErrorCode(null)).toBe('unknown');
+    expect(attachmentErrorCode('boom')).toBe('unknown');
+  });
+});
 
 describe('rollbackPreparedAttachments', () => {
   const attachment = (id: string) => ({ id, storagePath: `path/${id}` } as Pick<AttachmentMetadata, 'id' | 'storagePath'>);

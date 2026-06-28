@@ -158,7 +158,12 @@ describe('AttachmentService', () => {
       .toBe('storage/unauthorized');
     expect((service as any).errorCode(new Error('storage-delete-failed')))
       .toBe('storage-delete-failed');
-    expect((service as any).errorCode(new Error('private/path'))).toBe('Error');
+    // 含斜線的 Firebase 錯誤碼可被解析（與 journey domain 一致，修正共用 cleanup helper 的冪等判斷）。
+    expect((service as any).errorCode(new Error('storage/object-not-found')))
+      .toBe('storage/object-not-found');
+    // 真實 Storage 路徑含 Firestore ID／數字，不符純小寫 regex，仍回傳 name 不洩漏路徑。
+    expect((service as any).errorCode(new Error('request-attachments/attendance/req-1/sess-1/att-1')))
+      .toBe('Error');
     expect((service as any).errorCode(null)).toBe('unknown');
   });
 

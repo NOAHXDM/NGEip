@@ -27,6 +27,7 @@ import {
   UploadedAttachmentBatch,
 } from '../attachments/attachment.models';
 import {
+  attachmentErrorCode,
   processAttachmentCleanup,
   rollbackPreparedAttachments,
 } from '../attachments/attachment-session';
@@ -267,7 +268,7 @@ export class AttachmentService {
   private processCleanup(attachment: AttachmentMetadata): Promise<boolean> {
     const queueRef = doc(this.firestore, 'requestAttachmentCleanupQueue', attachment.id);
     return processAttachmentCleanup(attachment, {
-      deleteAttachment: () => firstValueFrom(this.storage.deleteAttachment(attachment.storagePath)),
+      deleteAttachment: (storagePath) => firstValueFrom(this.storage.deleteAttachment(storagePath)),
       deleteQueue: () => deleteDoc(queueRef),
       // 刻意保留 request domain 既有寫入語意，與 journey 的 recordFailure 在此分歧：
       // - storage-delete-failed：更新 queue 文件（attemptCount++ / lastErrorCode），維持原有重試治理。
@@ -302,13 +303,7 @@ export class AttachmentService {
   }
 
   private errorCode(error: unknown): string {
-    if (typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string') {
-      return error.code;
-    }
-    if (error instanceof Error && /^[a-z]+(?:-[a-z]+)+$/.test(error.message)) {
-      return error.message;
-    }
-    return error instanceof Error ? error.name : 'unknown';
+    return attachmentErrorCode(error);
   }
 
   private async bestEffort(

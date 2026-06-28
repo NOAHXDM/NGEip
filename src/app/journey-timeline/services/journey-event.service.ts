@@ -23,7 +23,7 @@ import {
   UploadedAttachmentBatch,
 } from '../../attachments/attachment.models';
 import {
-  AttachmentCleanupFailureCode,
+  attachmentErrorCode,
   processAttachmentCleanup,
   rollbackPreparedAttachments,
 } from '../../attachments/attachment-session';
@@ -218,9 +218,8 @@ export function hasMatchingJourneyEventUpdatedAt(current: unknown, expected: unk
     && current.toMillis() === expected.toMillis();
 }
 
-// journey event 的附件清理已收斂至共用 helper；保留同名 re-export 以維持既有匯入與相容性。
-export type JourneyEventCleanupFailureCode = AttachmentCleanupFailureCode;
-export { processAttachmentCleanup as processJourneyEventAttachmentCleanup } from '../../attachments/attachment-session';
+// journey event 的附件清理已收斂至共用 helper（processAttachmentCleanup）；呼叫端請直接自
+// '../../attachments/attachment-session' 匯入，本檔不再保留 re-export 代理。
 
 @Injectable({ providedIn: 'root' })
 export class JourneyEventService {
@@ -483,7 +482,7 @@ export class JourneyEventService {
   private async processCleanup(attachment: AttachmentMetadata): Promise<boolean> {
     const queueRef = this.firestoreOps.ref('journeyEventAttachmentCleanupQueue', attachment.id);
     return processAttachmentCleanup(attachment, {
-      deleteAttachment: () => firstValueFrom(this.storage.deleteAttachment(attachment.storagePath)),
+      deleteAttachment: (storagePath) => firstValueFrom(this.storage.deleteAttachment(storagePath)),
       deleteQueue: () => this.firestoreOps.deleteDoc(queueRef),
       recordFailure: (lastErrorCode, context) => this.recordCleanupFailure(queueRef, lastErrorCode, context),
       errorCode: (error) => this.errorCode(error),
@@ -533,13 +532,7 @@ export class JourneyEventService {
   }
 
   private errorCode(error: unknown): string {
-    if (typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string') {
-      return error.code;
-    }
-    if (error instanceof Error && /^[a-z]+(?:[/-][a-z]+)+$/.test(error.message)) {
-      return error.message;
-    }
-    return error instanceof Error ? error.name : 'unknown';
+    return attachmentErrorCode(error);
   }
 
   private async bestEffort(
