@@ -5,16 +5,16 @@
 
 **測試要求**：排序、分頁、權限、Firebase 資料存取及附件補償 MUST 先建立失敗測試，再實作至通過。
 
-**本分支實際測試配置**：Angular business logic 以 `src/app/journey-timeline/**/*.spec.ts` 覆蓋 service、component、dialog 與純函式；Firebase 權限與整合流程以 `tools/journey-event-emulator-tests.cjs` 搭配 Firestore／Storage Emulator 驗證。原先列於 `src/app/journey-timeline/testing/*.spec.ts` 的 Rules／整合測試任務，已採現有專案慣用的 emulator script 承接，不另新增平行測試目錄。
+**本分支實際測試配置**：Angular business logic 以 `src/app/journey-timeline/**/*.spec.ts` 覆蓋 service、component、dialog 與純函式；Firebase 權限與整合流程以 `tools/journey-event-emulator-tests.cjs` 搭配 Firestore／Storage Emulator 驗證；Angular＋Firestore Emulator 整合測試以 `npm run test:journey-integration` 執行 `src/app/journey-timeline/testing/**/*.spec.ts`。
 
 ## Phase 1：準備（共享基礎）
 
 **目的**：建立 feature 結構、共用型別與測試骨架。
 
-- [x] T001 建立 `src/app/journey-timeline/components/`、`src/app/journey-timeline/dialogs/`、`src/app/journey-timeline/models/`、`src/app/journey-timeline/services/` 與 `src/app/journey-timeline/testing/` 目錄結構（本分支以現有 `tools/journey-event-emulator-tests.cjs` 承接 integration testing，未另建 `testing/` 目錄）
+- [x] T001 建立 `src/app/journey-timeline/components/`、`src/app/journey-timeline/dialogs/`、`src/app/journey-timeline/models/`、`src/app/journey-timeline/services/` 與 `src/app/journey-timeline/testing/` 目錄結構
 - [x] T002 [P] 依 `specs/006-user-journey-timeline/contracts/angular-interfaces.md` 在 `src/app/journey-timeline/models/journey-timeline.models.ts` 定義 `UserJourneyEvent`、`JourneyTimelineItem`、分頁狀態與 dialog 資料型別
-- [ ] T003 [P] 在 `src/app/journey-timeline/testing/journey-timeline-test-data.ts` 建立事件、補助、附件及跨頁交錯資料工廠
-- [ ] T004 [P] 在 `src/app/journey-timeline/testing/emulator-setup.ts` 建立 Auth／Firestore／Storage Emulator 測試初始化與一般使用者、其他使用者、Admin 測試身份
+- [x] T003 [P] 在 `src/app/journey-timeline/testing/journey-timeline-test-data.ts` 建立事件、補助、附件及跨頁交錯資料工廠
+- [x] T004 [P] 在 `src/app/journey-timeline/testing/emulator-setup.ts` 建立 Auth／Firestore／Storage Emulator 測試初始化與一般使用者、其他使用者、Admin 測試身份
 - [x] T005 盤點 `src/app/evaluation/pages/attribute-report/attribute-report.component.ts` 與 `src/app/evaluation/components/user-attribute-report-embed/user-attribute-report-embed.component.ts` 的 template 條件區塊，記錄時間軸必須位於考核空狀態之外的插入點於 `specs/006-user-journey-timeline/quickstart.md`
 
 ---
@@ -52,8 +52,8 @@
 
 - [x] T015 [P] [US1] 在 `src/app/journey-timeline/services/journey-timeline.service.spec.ts` 建立 event/subsidy 混合排序、相同時間 event 優先、sourceId tie-break、他人資料隔離與不讀餐費集合的單元測試
 - [x] T016 [P] [US1] 在 `src/app/journey-timeline/components/user-journey-timeline.component.spec.ts` 建立 loading、content、empty、error/retry、補助狀態與附件摘要顯示的元件測試
-- [ ] T017 [P] [US1] 在 `src/app/journey-timeline/testing/us1-integration.spec.ts` 建立目標使用者、非目標使用者與 Admin 皆可讀取事件，但時間軸查詢仍只合併指定 `targetUserId` 資料的 Angular＋Firestore 整合測試
-- [ ] T018 [P] [US1] 在 `src/app/journey-timeline/testing/report-embedding.spec.ts` 建立「無考核快照仍顯示時間軸」、兩個嵌入點目標 UID 與個人唯讀／Admin permissions 正確的回歸測試
+- [x] T017 [P] [US1] 在 `src/app/journey-timeline/testing/us1-integration.spec.ts` 建立目標使用者、非目標使用者與 Admin 皆可讀取事件，但時間軸查詢仍只合併指定 `targetUserId` 資料的 Angular＋Firestore 整合測試
+- [x] T018 [P] [US1] 在 `src/app/journey-timeline/testing/report-embedding.spec.ts` 建立「無考核快照仍顯示時間軸」、兩個嵌入點目標 UID 與個人唯讀／Admin permissions 正確的回歸測試
 
 ### 實作
 

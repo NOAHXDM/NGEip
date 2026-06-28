@@ -3,8 +3,9 @@
 ## 自動化驗證
 
 1. 執行 `npm test -- --watch=false`，確認 merge、cursor、component、dialog 與既有測試通過。
-2. 啟動 Firestore／Storage Emulator，執行本功能 Rules 整合測試。
-3. 執行 `npm run build`，確認 production build 無 template 或型別錯誤。
+2. 執行 `npm run test:journey-rules`，啟動 Firestore／Storage Emulator 並驗證本功能 Rules 整合測試。
+3. 執行 `npm run test:journey-integration`，以 Angular TestBed 搭配 Firestore Emulator 驗證 US1 目標使用者查詢隔離、跨來源分頁合併，以及兩個職場屬性報告嵌入點的 UID／權限回歸。
+4. 執行 `npm run build`，確認 production build 無 template 或型別錯誤。
 
 ## 手動 smoke test
 
@@ -28,6 +29,15 @@
 - `npm run test:journey-rules`：以 `demo-user-journey` 啟動 Firestore／Storage Emulator，驗證 authenticated cross-user read、非 Admin update deny、Admin create/update/delete、audit 原子性，以及 Admin-only 附件 session／讀取／禁止覆寫，全部通過。
 
 尚未執行 100 筆／20 次冷啟動 P95 效能量測，以及由未熟悉功能測試者進行的兩分鐘操作驗證；這兩項保留為合併前人工驗收。
+
+## 2026-06-28 Issue #25 整合測試補強驗證結果
+
+- `npx tsc -p tsconfig.spec.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm run test:journey-integration`：通過；4 個 Angular＋Firestore Emulator 測試成功，覆蓋 authenticated target/other/admin 讀取指定目標時間軸、跨使用者資料隔離、雙來源分頁無重複遺漏，以及兩個職場屬性報告嵌入點的 UID／權限回歸。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：49 個 journey 測試通過、4 個 integration-only 測試於預設流程略過。
+- `npm run test:journey-rules`：通過；維持既有 Firestore／Storage Rules emulator 覆蓋。
+- `npm run build`：未通過；本機 `node_modules` 的 esbuild 安裝為 `@esbuild/darwin-arm64`，但目前 Node 執行環境需要 `@esbuild/darwin-x64`，需重新安裝相符平台依賴後再驗證 production build。
 
 ## 2026-06-23 需求修正驗證結果
 
