@@ -25,6 +25,8 @@ export function journeyIntegrationEnabled(): boolean {
 }
 
 export async function initJourneyTimelineTestEnv(): Promise<RulesTestEnvironment> {
+  if (testEnv) return testEnv;
+
   const browserGlobal = globalThis as any;
   browserGlobal.process ??= { env: {} };
   browserGlobal.process.env ??= {};

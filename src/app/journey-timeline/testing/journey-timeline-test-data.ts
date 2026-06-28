@@ -8,6 +8,9 @@ export const JOURNEY_OTHER_UID = 'journey-other-user';
 export const JOURNEY_ADMIN_UID = 'journey-admin-user';
 
 export function testTimestamp(day: number, hour = 9): Timestamp {
+  if (day < 1) {
+    throw new Error(`testTimestamp: day must be >= 1, got ${day}`);
+  }
   return Timestamp.fromDate(new Date(Date.UTC(2026, 0, day, hour)));
 }
 

@@ -35,9 +35,9 @@
 - `npx tsc -p tsconfig.spec.json --noEmit`：通過。
 - `git diff --check`：通過。
 - `npm run test:journey-integration`：通過；4 個 Angular＋Firestore Emulator 測試成功，覆蓋 authenticated target/other/admin 讀取指定目標時間軸、跨使用者資料隔離、雙來源分頁無重複遺漏，以及兩個職場屬性報告嵌入點的 UID／權限回歸。
-- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：49 個 journey 測試通過、4 個 integration-only 測試於預設流程略過。
+- `npm test -- --watch=false --browsers=ChromeHeadless --include='src/app/journey-timeline/**/*.spec.ts'`：51 個 journey 測試通過、2 個 Firestore Emulator-only 測試於預設流程略過；報告嵌入回歸測試已回到一般流程執行。
 - `npm run test:journey-rules`：通過；維持既有 Firestore／Storage Rules emulator 覆蓋。
-- `npm run build`：未通過；本機 `node_modules` 的 esbuild 安裝為 `@esbuild/darwin-arm64`，但目前 Node 執行環境需要 `@esbuild/darwin-x64`，需重新安裝相符平台依賴後再驗證 production build。
+- `npm run build`：通過；使用 nvm Node 22 的 arm64 PATH 執行，避開 `/usr/local/bin/node` x64 與既有 esbuild arm64 binary 的平台不符問題。
 
 ## 2026-06-23 需求修正驗證結果
 

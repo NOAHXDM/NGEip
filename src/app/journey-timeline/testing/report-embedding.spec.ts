@@ -10,7 +10,6 @@ import { UserAttributeSnapshotService } from '../../evaluation/services/user-att
 import { User } from '../../services/user.service';
 import { UserService } from '../../services/user.service';
 import { JourneyEventPermissions } from '../models/journey-timeline.models';
-import { journeyIntegrationEnabled } from './emulator-setup';
 
 @Component({
   selector: 'app-user-journey-timeline',
@@ -22,9 +21,7 @@ class FakeUserJourneyTimelineComponent {
   @Input({ required: true }) eventPermissions!: JourneyEventPermissions;
 }
 
-const describeIfIntegration = journeyIntegrationEnabled() ? describe : xdescribe;
-
-describeIfIntegration('report timeline embedding regression', () => {
+describe('report timeline embedding regression', () => {
   const snapshotService = jasmine.createSpyObj<UserAttributeSnapshotService>(
     'UserAttributeSnapshotService',
     ['getMySnapshots', 'getSnapshotsByUserId']

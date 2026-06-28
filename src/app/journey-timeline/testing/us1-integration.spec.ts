@@ -134,7 +134,7 @@ async function seedLargeTimelinePage(testEnv: RulesTestEnvironment): Promise<voi
         ),
         setDoc(
           doc(db, `subsidyApplications/page-subsidy-${index.toString().padStart(2, '0')}`),
-          subsidyApplicationDoc(JOURNEY_TARGET_UID, 18 - index)
+          subsidyApplicationDoc(JOURNEY_TARGET_UID, 50 - index)
         )
       );
     }
