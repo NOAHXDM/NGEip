@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Firestore } from '@angular/fire/firestore';
 import { RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, writeBatch } from 'firebase/firestore';
 
 import { SubsidyType } from '../../services/subsidy.service';
 import { JourneyTimelineService } from '../services/journey-timeline.service';
@@ -24,7 +24,8 @@ import {
 const describeIfIntegration = journeyIntegrationEnabled() ? describe : xdescribe;
 const BASE_TARGET_TIMELINE_ITEM_COUNT = 5;
 const LARGE_PAGE_DOCUMENT_COUNT_PER_SOURCE = 22;
-const LARGE_PAGE_TIMELINE_ITEM_COUNT = LARGE_PAGE_DOCUMENT_COUNT_PER_SOURCE * 2;
+const TIMELINE_SOURCE_COUNT = 2;
+const LARGE_PAGE_TIMELINE_ITEM_COUNT = LARGE_PAGE_DOCUMENT_COUNT_PER_SOURCE * TIMELINE_SOURCE_COUNT;
 const EXPECTED_LARGE_PAGE_TOTAL =
   BASE_TARGET_TIMELINE_ITEM_COUNT + LARGE_PAGE_TIMELINE_ITEM_COUNT;
 const VIEWER_CASES = [
@@ -49,6 +50,7 @@ describeIfIntegration('US1 Angular 與 Firestore Emulator 整合測試', () => {
   });
 
   beforeEach(async () => {
+    TestBed.resetTestingModule();
     await clearJourneyTimelineData();
     await seedTimelineData(testEnv);
   });
@@ -141,19 +143,17 @@ async function seedTimelineData(testEnv: RulesTestEnvironment): Promise<void> {
 async function seedLargeTimelinePage(testEnv: RulesTestEnvironment): Promise<void> {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
-    const writes: Promise<void>[] = [];
+    const batch = writeBatch(db);
     for (let index = 0; index < LARGE_PAGE_DOCUMENT_COUNT_PER_SOURCE; index++) {
-      writes.push(
-        setDoc(
-          doc(db, `userJourneyEvents/page-event-${index.toString().padStart(2, '0')}`),
-          journeyEventDoc(`page-event-${index.toString().padStart(2, '0')}`, JOURNEY_TARGET_UID, 31 - index)
-        ),
-        setDoc(
-          doc(db, `subsidyApplications/page-subsidy-${index.toString().padStart(2, '0')}`),
-          subsidyApplicationDoc(JOURNEY_TARGET_UID, 31 - index)
-        )
+      batch.set(
+        doc(db, `userJourneyEvents/page-event-${index.toString().padStart(2, '0')}`),
+        journeyEventDoc(`page-event-${index.toString().padStart(2, '0')}`, JOURNEY_TARGET_UID, 31 - index)
+      );
+      batch.set(
+        doc(db, `subsidyApplications/page-subsidy-${index.toString().padStart(2, '0')}`),
+        subsidyApplicationDoc(JOURNEY_TARGET_UID, 31 - index)
       );
     }
-    await Promise.all(writes);
+    await batch.commit();
   });
 }

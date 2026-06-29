@@ -69,6 +69,9 @@ describe('report timeline embedding regression', () => {
   };
 
   beforeEach(() => {
+    snapshotService.getMySnapshots.calls.reset();
+    snapshotService.getSnapshotsByUserId.calls.reset();
+    cycleService.getCycles.calls.reset();
     snapshotService.getMySnapshots.and.returnValue(of([]));
     snapshotService.getSnapshotsByUserId.and.returnValue(of([]));
     cycleService.getCycles.and.returnValue(of([]));
