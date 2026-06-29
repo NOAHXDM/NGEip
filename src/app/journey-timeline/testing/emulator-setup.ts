@@ -77,7 +77,8 @@ export function getJourneyTimelineTestEnv(): RulesTestEnvironment {
 }
 
 export async function clearJourneyTimelineData(): Promise<void> {
-  await getJourneyTimelineTestEnv().clearFirestore();
+  if (!testEnv) return;
+  await testEnv.clearFirestore();
 }
 
 export function authenticatedJourneyContext(uid: string): RulesTestContext {

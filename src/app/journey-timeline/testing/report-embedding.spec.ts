@@ -58,7 +58,7 @@ class FakeCareerArchetypeBadgeComponent {
   @Input() archetypes: unknown;
 }
 
-describe('report timeline embedding regression', () => {
+describe('報告時間軸嵌入回歸', () => {
   const snapshotService = jasmine.createSpyObj<UserAttributeSnapshotService>(
     'UserAttributeSnapshotService',
     ['getMySnapshots', 'getSnapshotsByUserId']
@@ -77,7 +77,7 @@ describe('report timeline embedding regression', () => {
     cycleService.getCycles.and.returnValue(of([]));
   });
 
-  it('shows the personal timeline outside the empty snapshot state with read-only permissions', async () => {
+  it('個人報告空狀態外仍顯示唯讀時間軸', async () => {
     await configureTestingModule(AttributeReportComponent);
     const fixture = TestBed.createComponent(AttributeReportComponent);
 
@@ -93,7 +93,7 @@ describe('report timeline embedding regression', () => {
     expect(fixture.nativeElement.textContent).toContain('尚無考核歷史資料');
   });
 
-  it('passes the edited user id and admin permissions in the embedded admin report tab', async () => {
+  it('Admin 嵌入報告會傳入編輯目標 UID 與完整權限', async () => {
     await configureTestingModule(UserAttributeReportEmbedComponent);
     const fixture = TestBed.createComponent(UserAttributeReportEmbedComponent);
     fixture.componentRef.setInput('userId', 'edited-user');
@@ -144,7 +144,10 @@ describe('report timeline embedding regression', () => {
 
   function findTimeline<T>(fixture: ComponentFixture<T>): FakeUserJourneyTimelineComponent {
     const debugElement = fixture.debugElement.query(By.directive(FakeUserJourneyTimelineComponent));
-    expect(debugElement).withContext('timeline component should be rendered').not.toBeNull();
+    if (!debugElement) {
+      fail('時間軸元件應該被渲染');
+      throw new Error('找不到時間軸元件');
+    }
     return debugElement.componentInstance as FakeUserJourneyTimelineComponent;
   }
 });
