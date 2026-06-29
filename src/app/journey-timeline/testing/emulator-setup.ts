@@ -27,10 +27,11 @@ export function journeyIntegrationEnabled(): boolean {
 export async function initJourneyTimelineTestEnv(): Promise<RulesTestEnvironment> {
   if (testEnv) return testEnv;
 
-  const browserGlobal = globalThis as any;
-  browserGlobal.process ??= { env: {} };
+  const browserGlobal = globalThis as unknown as {
+    process?: { env?: Record<string, string> };
+  };
+  browserGlobal.process ??= {};
   browserGlobal.process.env ??= {};
-  browserGlobal.process.env['FIRESTORE_EMULATOR_HOST'] = `${FIRESTORE_HOST}:${FIRESTORE_PORT}`;
 
   testEnv = await initializeTestEnvironment({
     projectId: PROJECT_ID,

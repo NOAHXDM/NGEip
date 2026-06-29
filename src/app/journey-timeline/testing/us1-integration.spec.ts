@@ -11,7 +11,6 @@ import {
   JOURNEY_TARGET_UID,
   journeyEventDoc,
   subsidyApplicationDoc,
-  testTimestamp,
   userDoc,
 } from './journey-timeline-test-data';
 import {
