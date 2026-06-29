@@ -1,11 +1,12 @@
 const baseConfig = require('./karma.conf.js');
 
 module.exports = function (config) {
-  baseConfig(config);
-  config.set({
+  baseConfig(config, {
+    browsers: ['ChromeHeadless'],
+    browserNoActivityTimeout: 120000,
+    browserDisconnectTimeout: 10000,
+    browserDisconnectTolerance: 1,
     client: {
-      jasmine: {},
-      clearContext: false,
       args: ['journeyIntegration'],
     },
   });

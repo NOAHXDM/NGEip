@@ -1,34 +1,47 @@
-module.exports = function (config) {
-  config.set({
-    basePath: '',
-    frameworks: ['jasmine', '@angular-devkit/build-angular'],
-    plugins: [
-      require('karma-jasmine'),
-      require('karma-chrome-launcher'),
-      require('karma-jasmine-html-reporter'),
-      require('karma-coverage'),
-      require('@angular-devkit/build-angular/plugins/karma'),
+const path = require('path');
+
+const baseSettings = {
+  basePath: '',
+  frameworks: ['jasmine', '@angular-devkit/build-angular'],
+  plugins: [
+    require('karma-jasmine'),
+    require('karma-chrome-launcher'),
+    require('karma-jasmine-html-reporter'),
+    require('karma-coverage'),
+    require('@angular-devkit/build-angular/plugins/karma'),
+  ],
+  client: {
+    jasmine: {},
+    clearContext: false,
+  },
+  jasmineHtmlReporter: {
+    suppressAll: true,
+  },
+  coverageReporter: {
+    dir: path.join(__dirname, './coverage/angular-eip'),
+    subdir: '.',
+    reporters: [
+      { type: 'html' },
+      { type: 'text-summary' },
     ],
+  },
+  reporters: ['progress', 'kjhtml'],
+  browserDisconnectTimeout: 10000,
+  browserDisconnectTolerance: 1,
+  restartOnFileChange: true,
+};
+
+module.exports = function configureKarma(config, overrides = {}) {
+  config.set({
+    ...baseSettings,
+    ...overrides,
     client: {
-      jasmine: {},
-      clearContext: false,
+      ...baseSettings.client,
+      ...(overrides.client ?? {}),
+      jasmine: {
+        ...baseSettings.client.jasmine,
+        ...(overrides.client?.jasmine ?? {}),
+      },
     },
-    jasmineHtmlReporter: {
-      suppressAll: true,
-    },
-    coverageReporter: {
-      dir: require('path').join(__dirname, './coverage/angular-eip'),
-      subdir: '.',
-      reporters: [
-        { type: 'html' },
-        { type: 'text-summary' },
-      ],
-    },
-    reporters: ['progress', 'kjhtml'],
-    browsers: ['ChromeHeadless'],
-    browserNoActivityTimeout: 120000,
-    browserDisconnectTimeout: 10000,
-    browserDisconnectTolerance: 1,
-    restartOnFileChange: true,
   });
 };

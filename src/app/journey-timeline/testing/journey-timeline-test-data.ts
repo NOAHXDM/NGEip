@@ -11,6 +11,9 @@ export function testTimestamp(day: number, hour = 9): Timestamp {
   if (day < 1) {
     throw new Error(`testTimestamp: day must be >= 1, got ${day}`);
   }
+  if (day > 31) {
+    throw new Error(`testTimestamp: day must be <= 31, got ${day}`);
+  }
   return Timestamp.fromDate(new Date(Date.UTC(2026, 0, day, hour)));
 }
 

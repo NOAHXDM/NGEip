@@ -131,11 +131,11 @@ async function seedLargeTimelinePage(testEnv: RulesTestEnvironment): Promise<voi
       writes.push(
         setDoc(
           doc(db, `userJourneyEvents/page-event-${index.toString().padStart(2, '0')}`),
-          journeyEventDoc(`page-event-${index.toString().padStart(2, '0')}`, JOURNEY_TARGET_UID, 40 - index)
+          journeyEventDoc(`page-event-${index.toString().padStart(2, '0')}`, JOURNEY_TARGET_UID, 31 - index)
         ),
         setDoc(
           doc(db, `subsidyApplications/page-subsidy-${index.toString().padStart(2, '0')}`),
-          subsidyApplicationDoc(JOURNEY_TARGET_UID, 50 - index)
+          subsidyApplicationDoc(JOURNEY_TARGET_UID, 31 - index)
         )
       );
     }
