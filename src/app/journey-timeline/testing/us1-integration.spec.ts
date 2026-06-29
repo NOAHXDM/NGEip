@@ -23,6 +23,11 @@ import {
 } from './emulator-setup';
 
 const describeIfIntegration = journeyIntegrationEnabled() ? describe : xdescribe;
+const BASE_TARGET_TIMELINE_ITEM_COUNT = 5;
+const LARGE_PAGE_DOCUMENT_COUNT_PER_SOURCE = 22;
+const LARGE_PAGE_TIMELINE_ITEM_COUNT = LARGE_PAGE_DOCUMENT_COUNT_PER_SOURCE * 2;
+const EXPECTED_LARGE_PAGE_TOTAL =
+  BASE_TARGET_TIMELINE_ITEM_COUNT + LARGE_PAGE_TIMELINE_ITEM_COUNT;
 
 describeIfIntegration('US1 Angular + Firestore Emulator integration', () => {
   let testEnv: RulesTestEnvironment;
@@ -42,7 +47,6 @@ describeIfIntegration('US1 Angular + Firestore Emulator integration', () => {
   beforeEach(async () => {
     await clearJourneyTimelineData();
     await seedTimelineData(testEnv);
-    TestBed.resetTestingModule();
   });
 
   it('authenticated users and admins load only the requested target timeline', async () => {
@@ -52,17 +56,25 @@ describeIfIntegration('US1 Angular + Firestore Emulator integration', () => {
 
       const page = await service.loadNext(session);
 
-      expect(page.items.length).toBe(5);
-      expect(page.items.map((item) => `${item.source}:${item.sourceId}`)).toEqual([
-        'event:target-event-new',
-        'subsidy:target-subsidy-new',
-        'event:target-event-same-time',
-        'subsidy:target-subsidy-same-time',
-        'subsidy:target-subsidy-training',
-      ]);
-      expect(page.items.every((item) => item.sourceId.startsWith('target-'))).toBeTrue();
-      expect(page.items.some((item) => item.sourceId.includes('other'))).toBeFalse();
-      expect(page.hasMore).toBeFalse();
+      expect(page.items.length)
+        .withContext(`viewer: ${viewerUid}`)
+        .toBe(BASE_TARGET_TIMELINE_ITEM_COUNT);
+      expect(page.items.map((item) => `${item.source}:${item.sourceId}`))
+        .withContext(`viewer: ${viewerUid}`)
+        .toEqual([
+          'event:target-event-new',
+          'subsidy:target-subsidy-new',
+          'event:target-event-same-time',
+          'subsidy:target-subsidy-same-time',
+          'subsidy:target-subsidy-training',
+        ]);
+      expect(page.items.every((item) => item.sourceId.startsWith('target-')))
+        .withContext(`viewer: ${viewerUid}`)
+        .toBeTrue();
+      expect(page.items.some((item) => item.sourceId.includes('other')))
+        .withContext(`viewer: ${viewerUid}`)
+        .toBeFalse();
+      expect(page.hasMore).withContext(`viewer: ${viewerUid}`).toBeFalse();
     }
   });
 
@@ -83,7 +95,7 @@ describeIfIntegration('US1 Angular + Firestore Emulator integration', () => {
       hasMore = page.hasMore;
     }
 
-    expect(allIds.length).toBe(49);
+    expect(allIds.length).toBe(EXPECTED_LARGE_PAGE_TOTAL);
     expect(new Set(allIds).size).toBe(allIds.length);
     expect(allIds).toContain('event:page-event-00');
     expect(allIds).toContain('event:page-event-21');
@@ -127,7 +139,7 @@ async function seedLargeTimelinePage(testEnv: RulesTestEnvironment): Promise<voi
   await testEnv.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
     const writes: Promise<void>[] = [];
-    for (let index = 0; index < 22; index++) {
+    for (let index = 0; index < LARGE_PAGE_DOCUMENT_COUNT_PER_SOURCE; index++) {
       writes.push(
         setDoc(
           doc(db, `userJourneyEvents/page-event-${index.toString().padStart(2, '0')}`),
