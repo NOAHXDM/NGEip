@@ -6,6 +6,9 @@ module.exports = function (config) {
     browserNoActivityTimeout: 120000,
     browserDisconnectTimeout: 10000,
     browserDisconnectTolerance: 1,
+    files: [
+      { pattern: 'firestore.rules', watched: false, served: true, included: false },
+    ],
     client: {
       args: ['journeyIntegration'],
     },
