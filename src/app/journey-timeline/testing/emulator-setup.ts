@@ -32,6 +32,8 @@ export function initJourneyTimelineTestEnv(): Promise<RulesTestEnvironment> {
   const browserGlobal = globalThis as unknown as {
     process?: { env?: Record<string, string> };
   };
+  // @firebase/rules-unit-testing reads process.env in the browser bundle.
+  // Keep this as an empty shim; do not set FIRESTORE_EMULATOR_HOST globally.
   browserGlobal.process ??= {};
   browserGlobal.process.env ??= {};
 
@@ -59,14 +61,14 @@ export function initJourneyTimelineTestEnv(): Promise<RulesTestEnvironment> {
 }
 
 export async function teardownJourneyTimelineTestEnv(): Promise<void> {
-  const env = testEnv ?? (await initPromise);
-  if (!env) return;
-  try {
-    await env.cleanup();
-  } finally {
-    testEnv = null;
-    initPromise = null;
+  let env = testEnv;
+  if (!env && initPromise) {
+    env = await initPromise.catch(() => null);
   }
+  testEnv = null;
+  initPromise = null;
+  if (!env) return;
+  await env.cleanup();
 }
 
 export function getJourneyTimelineTestEnv(): RulesTestEnvironment {

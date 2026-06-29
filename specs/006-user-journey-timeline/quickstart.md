@@ -240,6 +240,17 @@ T017／T018／T047 仍維持為後續技術債：目前本分支以 journey serv
 
 補充限制：journey event Storage 物件仍維持「不可由 Admin 直接 emergency delete」的治理方向，必須透過 upload session 或 cleanup queue 關聯刪除，以保持與 attendance/subsidy 附件治理一致。若未來要處理真正 orphan / broken reference，仍由 T050 的 dry-run orphan audit 與治理流程另行收斂，避免在 Storage Rules 加入可繞過 Firestore 關聯的直通刪除權限。
 
+## 2026-06-30 Issue #25 Claude Bot 複審修正驗證結果
+
+- `npx tsc -p tsconfig.spec.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --include='src/app/journey-timeline/testing/report-embedding.spec.ts'`：2 個報告嵌入回歸測試通過，確認職場屬性報告入口仍實際渲染 `app-user-journey-timeline` selector。
+- `npm run test:journey-integration`：通過；6 個 Angular + Firestore Emulator 測試成功，並透過 `karma.journey-integration.conf.cjs` 載入真實 `firestore.rules`。
+
+本輪依 Claude Bot 複審修正：`teardownJourneyTimelineTestEnv()` 會先消化初始化 promise 的拒絕結果並清空 singleton 狀態，避免初始化失敗時 `afterAll` 再次丟出同一錯誤造成測試輸出混淆；VS Code `ng test` launch 改走 `npm: test:debug`，讓 `npm test` 保持 headless 預設、互動除錯則由 `npm run test:debug` 明確啟動 Chrome；`@firebase/rules-unit-testing` 需要的瀏覽器端 `process.env` 空 shim 補上註解，避免後續誤刪導致 browser bundle 內 `process is not defined`；`karma.conf.js` 除了合併額外 plugins，也同步合併 integration 設定提供的 `files`，確保 `firestore.rules` 會被 Karma served 給整合測試讀取。
+
+補充限制：attachments、evaluation 與 journey timeline 的 Emulator setup 仍有可抽共用 factory 的重複樣板；此項牽涉跨 feature 測試基礎建設，保留為後續維護議題，避免本輪 Issue #25 整合測試補強擴大為測試架構重構。
+
 ## 部署順序
 
 1. 先部署 `firestore.rules`、`storage.rules` 與 `firestore.indexes.json`。
