@@ -7,6 +7,8 @@
 3. 執行 `npm run test:journey-integration`，以 Angular TestBed 搭配 Firestore Emulator 驗證 US1 目標使用者查詢隔離、跨來源分頁合併，以及兩個職場屬性報告嵌入點的 UID／權限回歸。
 4. 執行 `npm run build`，確認 production build 無 template 或型別錯誤。
 
+PR CI 會自動執行 `npx tsc -p tsconfig.spec.json --noEmit`、`npm test -- --watch=false` 與 `npm run test:journey-integration`；本機合併前仍可依上列指令手動重跑完整驗證。
+
 ## 手動 smoke test
 
 1. 以 Admin 開啟一位使用者的編輯 dialog，進入「職場屬性報告」Tab。
@@ -250,6 +252,15 @@ T017／T018／T047 仍維持為後續技術債：目前本分支以 journey serv
 本輪依 Claude Bot 複審修正：`teardownJourneyTimelineTestEnv()` 會先消化初始化 promise 的拒絕結果並清空 singleton 狀態，避免初始化失敗時 `afterAll` 再次丟出同一錯誤造成測試輸出混淆；VS Code `ng test` launch 改走 `npm: test:debug`，讓 `npm test` 保持 headless 預設、互動除錯則由 `npm run test:debug` 明確啟動 Chrome；`@firebase/rules-unit-testing` 需要的瀏覽器端 `process.env` 空 shim 補上註解，避免後續誤刪導致 browser bundle 內 `process is not defined`；`karma.conf.js` 除了合併額外 plugins，也同步合併 integration 設定提供的 `files`，確保 `firestore.rules` 會被 Karma served 給整合測試讀取。
 
 補充限制：attachments、evaluation 與 journey timeline 的 Emulator setup 仍有可抽共用 factory 的重複樣板；此項牽涉跨 feature 測試基礎建設，保留為後續維護議題，避免本輪 Issue #25 整合測試補強擴大為測試架構重構。
+
+## 2026-06-30 Issue #25 Claude Bot CI 門禁補強驗證結果
+
+- `npx tsc -p tsconfig.spec.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --include='src/app/journey-timeline/testing/report-embedding.spec.ts'`：2 個報告嵌入回歸測試通過。
+- `npm run test:journey-integration`：通過；6 個 Angular + Firestore Emulator 測試成功。
+
+本輪依 Claude Bot 複審修正：新增 PR CI workflow，於 pull request 與 main push 自動執行 spec typecheck、headless Karma 測試與 journey timeline integration 測試，避免整合測試只停留在手動驗證；`karma.conf.js` 同步合併 `reporters` override，維持與 `plugins`、`files` 一致的陣列合併策略；report embedding spec 的 spy 物件改由每個 `beforeEach` 重新建立，消除 describe scope spy strategy 污染風險；`testTimestamp()` 補上固定 2026 年 1 月 fixture 的 JSDoc，明確標示此 helper 的使用範圍。
 
 ## 部署順序
 

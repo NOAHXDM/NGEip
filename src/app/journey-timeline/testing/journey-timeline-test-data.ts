@@ -7,6 +7,9 @@ export const JOURNEY_TARGET_UID = 'journey-target-user';
 export const JOURNEY_OTHER_UID = 'journey-other-user';
 export const JOURNEY_ADMIN_UID = 'journey-admin-user';
 
+/**
+ * Builds fixed January 2026 timestamps for deterministic same-month sorting fixtures.
+ */
 export function testTimestamp(day: number, hour = 9): Timestamp {
   if (day < 1) {
     throw new Error(`testTimestamp: day must be >= 1, got ${day}`);

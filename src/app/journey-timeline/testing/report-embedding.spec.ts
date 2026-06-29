@@ -59,19 +59,19 @@ class FakeCareerArchetypeBadgeComponent {
 }
 
 describe('報告時間軸嵌入回歸', () => {
-  const snapshotService = jasmine.createSpyObj<UserAttributeSnapshotService>(
-    'UserAttributeSnapshotService',
-    ['getMySnapshots', 'getSnapshotsByUserId']
-  );
-  const cycleService = jasmine.createSpyObj<EvaluationCycleService>('EvaluationCycleService', ['getCycles']);
-  const userService = {
-    currentUser$: of({ uid: 'current-user', role: 'user' } as User),
-  };
+  let snapshotService: jasmine.SpyObj<UserAttributeSnapshotService>;
+  let cycleService: jasmine.SpyObj<EvaluationCycleService>;
+  let userService: Pick<UserService, 'currentUser$'>;
 
   beforeEach(() => {
-    snapshotService.getMySnapshots.calls.reset();
-    snapshotService.getSnapshotsByUserId.calls.reset();
-    cycleService.getCycles.calls.reset();
+    snapshotService = jasmine.createSpyObj<UserAttributeSnapshotService>(
+      'UserAttributeSnapshotService',
+      ['getMySnapshots', 'getSnapshotsByUserId']
+    );
+    cycleService = jasmine.createSpyObj<EvaluationCycleService>('EvaluationCycleService', ['getCycles']);
+    userService = {
+      currentUser$: of({ uid: 'current-user', role: 'user' } as User),
+    };
     snapshotService.getMySnapshots.and.returnValue(of([]));
     snapshotService.getSnapshotsByUserId.and.returnValue(of([]));
     cycleService.getCycles.and.returnValue(of([]));
