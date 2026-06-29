@@ -61,11 +61,12 @@ export function initJourneyTimelineTestEnv(): Promise<RulesTestEnvironment> {
 export async function teardownJourneyTimelineTestEnv(): Promise<void> {
   const env = testEnv ?? (await initPromise);
   if (!env) return;
-  await env.cleanup();
-  if (testEnv === env) {
+  try {
+    await env.cleanup();
+  } finally {
     testEnv = null;
+    initPromise = null;
   }
-  initPromise = null;
 }
 
 export function getJourneyTimelineTestEnv(): RulesTestEnvironment {
@@ -88,7 +89,10 @@ export function authenticatedJourneyContext(uid: string): RulesTestContext {
 async function loadFirestoreRules(): Promise<string> {
   const response = await fetch('/base/firestore.rules');
   if (!response.ok) {
-    throw new Error(`Unable to load firestore.rules for journey integration tests: ${response.status}`);
+    throw new Error(
+      `Unable to load firestore.rules for journey integration tests (HTTP ${response.status}). ` +
+      'Run with --karma-config=karma.journey-integration.conf.cjs to serve this file.'
+    );
   }
   return response.text();
 }
