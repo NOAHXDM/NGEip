@@ -10,6 +10,7 @@ const FIRESTORE_PORT = 8080;
 
 let testEnv: RulesTestEnvironment | null = null;
 let initPromise: Promise<RulesTestEnvironment> | null = null;
+let teardownPromise: Promise<void> | null = null;
 
 declare global {
   interface Window {
@@ -26,6 +27,9 @@ export function journeyIntegrationEnabled(): boolean {
 }
 
 export function initJourneyTimelineTestEnv(): Promise<RulesTestEnvironment> {
+  if (teardownPromise) {
+    return teardownPromise.then(() => initJourneyTimelineTestEnv());
+  }
   if (testEnv) return Promise.resolve(testEnv);
   if (initPromise) return initPromise;
 
@@ -61,14 +65,22 @@ export function initJourneyTimelineTestEnv(): Promise<RulesTestEnvironment> {
 }
 
 export async function teardownJourneyTimelineTestEnv(): Promise<void> {
+  if (teardownPromise) return teardownPromise;
   let env = testEnv;
   if (!env && initPromise) {
     env = await initPromise.catch(() => null);
   }
-  testEnv = null;
-  initPromise = null;
-  if (!env) return;
-  await env.cleanup();
+  if (!env) {
+    testEnv = null;
+    initPromise = null;
+    return;
+  }
+  teardownPromise = env.cleanup().finally(() => {
+    if (testEnv === env) testEnv = null;
+    initPromise = null;
+    teardownPromise = null;
+  });
+  return teardownPromise;
 }
 
 export function getJourneyTimelineTestEnv(): RulesTestEnvironment {
@@ -79,6 +91,7 @@ export function getJourneyTimelineTestEnv(): RulesTestEnvironment {
 }
 
 export async function clearJourneyTimelineData(): Promise<void> {
+  if (teardownPromise) return;
   if (!testEnv) return;
   await testEnv.clearFirestore();
 }

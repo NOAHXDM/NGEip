@@ -4,6 +4,7 @@ module.exports = function (config) {
   baseConfig(config, {
     browsers: ['ChromeHeadless'],
     browserNoActivityTimeout: 120000,
+    failOnEmptyTestSuite: true,
     files: [
       { pattern: 'firestore.rules', watched: false, served: true, included: false },
     ],

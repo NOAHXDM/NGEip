@@ -258,9 +258,12 @@ T017／T018／T047 仍維持為後續技術債：目前本分支以 journey serv
 - `npx tsc -p tsconfig.spec.json --noEmit`：通過。
 - `git diff --check`：通過。
 - `npm test -- --watch=false --include='src/app/journey-timeline/testing/report-embedding.spec.ts'`：2 個報告嵌入回歸測試通過。
+- `npm test -- --watch=false`：通過；299 個測試成功，既有 integration opt-in specs 在一般 Karma 流程中略過。
+- `npm run build`：通過；沙盒內曾因 process/cache 資源限制以 134 中止，已用外層權限重跑通過。
+- `npm run test:journey-rules`：通過；emulator 輸出中的 `PERMISSION_DENIED` 屬 `assertFails(...)` 預期拒絕案例。
 - `npm run test:journey-integration`：通過；6 個 Angular + Firestore Emulator 測試成功。
 
-本輪依 Claude Bot 複審修正：新增 PR CI workflow，於 pull request 與 main push 自動執行 spec typecheck、headless Karma 測試與 journey timeline integration 測試，避免整合測試只停留在手動驗證；`karma.conf.js` 同步合併 `reporters` override，維持與 `plugins`、`files` 一致的陣列合併策略；report embedding spec 的 spy 物件改由每個 `beforeEach` 重新建立，消除 describe scope spy strategy 污染風險；`testTimestamp()` 補上固定 2026 年 1 月 fixture 的 JSDoc，明確標示此 helper 的使用範圍。
+本輪依 Claude Bot 複審修正：新增 PR CI workflow，於 pull request 與 main push 自動執行 spec typecheck、headless Karma、production build、journey rules 與 journey timeline integration 測試，避免整合測試與 rules regression 只停留在手動驗證；CI 安裝使用 `npm ci --legacy-peer-deps`，並鎖定 `firebase-tools` devDependency，讓乾淨 runner 可透過 npm scripts 找到 Firebase CLI；CI 同步快取 Firebase Emulator binary，且因 `firebase.local.json` 含 Hosting web framework 設定，job 層設定 `FIREBASE_CLI_EXPERIMENTS=webframeworks` 以符合 Firebase CLI 14 的執行需求。`karma.conf.js` 同步合併 `reporters` override，維持與 `plugins`、`files` 一致的陣列合併策略；`karma.journey-integration.conf.cjs` 啟用 `failOnEmptyTestSuite`，避免 integration flag 失效時 0 spec 靜默通過；report embedding spec 的 spy 物件改由每個 `beforeEach` 重新建立，消除 describe scope spy strategy 污染風險；journey timeline emulator teardown 以 `teardownPromise` 序列化 cleanup 與後續 init，避免 cleanup 尚未完成時重建環境；`testTimestamp()` 補上固定 2026 年 1 月 fixture 的 JSDoc 與錯誤訊息。
 
 ## 部署順序
 

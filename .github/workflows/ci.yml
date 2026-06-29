@@ -9,6 +9,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      FIREBASE_CLI_EXPERIMENTS: webframeworks
 
     steps:
       - name: Checkout repository
@@ -26,6 +28,12 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      - name: Cache Firebase emulators
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}-v1
+
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
@@ -35,7 +43,11 @@ jobs:
       - name: Run headless Karma tests
         run: npm test -- --watch=false
 
+      - name: Run production build
+        run: npm run build
+
+      - name: Run journey rules tests
+        run: npm run test:journey-rules
+
       - name: Run journey timeline integration tests
-        env:
-          FIREBASE_CLI_EXPERIMENTS: webframeworks
         run: npm run test:journey-integration

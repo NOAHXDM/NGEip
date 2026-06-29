@@ -12,10 +12,10 @@ export const JOURNEY_ADMIN_UID = 'journey-admin-user';
  */
 export function testTimestamp(day: number, hour = 9): Timestamp {
   if (day < 1) {
-    throw new Error(`testTimestamp: day must be >= 1, got ${day}`);
+    throw new Error(`testTimestamp: day must be >= 1 for January 2026 fixtures, got ${day}`);
   }
   if (day > 31) {
-    throw new Error(`testTimestamp: day must be <= 31, got ${day}`);
+    throw new Error(`testTimestamp: day must be <= 31 for January 2026 fixtures, got ${day}`);
   }
   return Timestamp.fromDate(new Date(Date.UTC(2026, 0, day, hour)));
 }
