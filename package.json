@@ -6,7 +6,7 @@
     "build": "ng build",
     "deploy": "npm run build && firebase deploy --config firebase.prod.json",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test",
+    "test": "ng test --browsers=ChromeHeadless",
     "test:attachment-audit": "node --test tools/request-attachment-orphan-audit.test.js",
     "test:attachment-rules": "firebase emulators:exec --config firebase.local.json --project demo-request-attachments --only firestore,storage \"node tools/request-attachment-emulator-tests.cjs\"",
     "test:attendance-rules": "firebase emulators:exec --config firebase.local.json --project demo-attendance-permission --only firestore \"node tools/attendance-permission-emulator-tests.cjs\"",
