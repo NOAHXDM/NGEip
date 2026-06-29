@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Firestore } from '@angular/fire/firestore';
 import { RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { doc, setDoc, writeBatch } from 'firebase/firestore';
+import { doc, writeBatch } from 'firebase/firestore';
 
 import { SubsidyType } from '../../services/subsidy.service';
 import { JourneyTimelineService } from '../services/journey-timeline.service';
@@ -50,7 +50,6 @@ describeIfIntegration('US1 Angular 與 Firestore Emulator 整合測試', () => {
   });
 
   beforeEach(async () => {
-    TestBed.resetTestingModule();
     await clearJourneyTimelineData();
     await seedTimelineData(testEnv);
   });
@@ -112,6 +111,7 @@ describeIfIntegration('US1 Angular 與 Firestore Emulator 整合測試', () => {
 
   function createServiceFor(uid: string): JourneyTimelineService {
     const firestore = authenticatedJourneyContext(uid).firestore();
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
         JourneyTimelineService,
@@ -125,18 +125,24 @@ describeIfIntegration('US1 Angular 與 Firestore Emulator 整合測試', () => {
 async function seedTimelineData(testEnv: RulesTestEnvironment): Promise<void> {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
-    await Promise.all([
-      setDoc(doc(db, `users/${JOURNEY_TARGET_UID}`), userDoc(JOURNEY_TARGET_UID)),
-      setDoc(doc(db, `users/${JOURNEY_OTHER_UID}`), userDoc(JOURNEY_OTHER_UID)),
-      setDoc(doc(db, `users/${JOURNEY_ADMIN_UID}`), userDoc(JOURNEY_ADMIN_UID, 'admin')),
-      setDoc(doc(db, 'userJourneyEvents/target-event-new'), journeyEventDoc('target-event-new', JOURNEY_TARGET_UID, 10)),
-      setDoc(doc(db, 'userJourneyEvents/target-event-same-time'), journeyEventDoc('target-event-same-time', JOURNEY_TARGET_UID, 8)),
-      setDoc(doc(db, 'userJourneyEvents/other-event-new'), journeyEventDoc('other-event-new', JOURNEY_OTHER_UID, 12)),
-      setDoc(doc(db, 'subsidyApplications/target-subsidy-new'), subsidyApplicationDoc(JOURNEY_TARGET_UID, 9)),
-      setDoc(doc(db, 'subsidyApplications/target-subsidy-same-time'), subsidyApplicationDoc(JOURNEY_TARGET_UID, 8, SubsidyType.Training, 'approved', 9)),
-      setDoc(doc(db, 'subsidyApplications/target-subsidy-training'), subsidyApplicationDoc(JOURNEY_TARGET_UID, 7, SubsidyType.Training)),
-      setDoc(doc(db, 'subsidyApplications/other-subsidy-new'), subsidyApplicationDoc(JOURNEY_OTHER_UID, 13)),
-    ]);
+    const batch = writeBatch(db);
+    batch.set(doc(db, `users/${JOURNEY_TARGET_UID}`), userDoc(JOURNEY_TARGET_UID));
+    batch.set(doc(db, `users/${JOURNEY_OTHER_UID}`), userDoc(JOURNEY_OTHER_UID));
+    batch.set(doc(db, `users/${JOURNEY_ADMIN_UID}`), userDoc(JOURNEY_ADMIN_UID, 'admin'));
+    batch.set(doc(db, 'userJourneyEvents/target-event-new'), journeyEventDoc('target-event-new', JOURNEY_TARGET_UID, 10));
+    batch.set(doc(db, 'userJourneyEvents/target-event-same-time'), journeyEventDoc('target-event-same-time', JOURNEY_TARGET_UID, 8));
+    batch.set(doc(db, 'userJourneyEvents/other-event-new'), journeyEventDoc('other-event-new', JOURNEY_OTHER_UID, 12));
+    batch.set(doc(db, 'subsidyApplications/target-subsidy-new'), subsidyApplicationDoc(JOURNEY_TARGET_UID, 9));
+    batch.set(
+      doc(db, 'subsidyApplications/target-subsidy-same-time'),
+      subsidyApplicationDoc(JOURNEY_TARGET_UID, 8, SubsidyType.Training, 'approved', 9)
+    );
+    batch.set(
+      doc(db, 'subsidyApplications/target-subsidy-training'),
+      subsidyApplicationDoc(JOURNEY_TARGET_UID, 7, SubsidyType.Training)
+    );
+    batch.set(doc(db, 'subsidyApplications/other-subsidy-new'), subsidyApplicationDoc(JOURNEY_OTHER_UID, 13));
+    await batch.commit();
   });
 }
 

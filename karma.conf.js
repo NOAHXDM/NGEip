@@ -35,6 +35,10 @@ module.exports = function configureKarma(config, overrides = {}) {
   config.set({
     ...baseSettings,
     ...overrides,
+    plugins: [
+      ...baseSettings.plugins,
+      ...(overrides.plugins ?? []),
+    ],
     client: {
       ...baseSettings.client,
       ...(overrides.client ?? {}),
