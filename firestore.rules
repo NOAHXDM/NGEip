@@ -26,7 +26,30 @@ service cloud.firestore {
         scores.q10 >= 1 && scores.q10 <= 10;
     }
 
-    // 管理員對所有 users 有完全權限
+    function isAttendanceLeaveAdjustment(userId) {
+      return isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['remainingLeaveHours', 'lastAttendanceLeaveAdjustmentId', 'lastAttendanceLeaveAdjustmentBy'])
+        && request.resource.data.lastAttendanceLeaveAdjustmentId is string
+        && request.resource.data.lastAttendanceLeaveAdjustmentBy == request.auth.uid
+        && exists(/databases/$(database)/documents/attendanceLogs/$(request.resource.data.lastAttendanceLeaveAdjustmentId))
+        && existsAfter(/databases/$(database)/documents/attendanceLogs/$(request.resource.data.lastAttendanceLeaveAdjustmentId))
+        && get(/databases/$(database)/documents/attendanceLogs/$(request.resource.data.lastAttendanceLeaveAdjustmentId)).data.userId == userId
+        && getAfter(/databases/$(database)/documents/attendanceLogs/$(request.resource.data.lastAttendanceLeaveAdjustmentId)).data.userId == userId
+        && get(/databases/$(database)/documents/attendanceLogs/$(request.resource.data.lastAttendanceLeaveAdjustmentId)).data.type == 4
+        && (
+          (get(/databases/$(database)/documents/attendanceLogs/$(request.resource.data.lastAttendanceLeaveAdjustmentId)).data.status == 'pending'
+            && getAfter(/databases/$(database)/documents/attendanceLogs/$(request.resource.data.lastAttendanceLeaveAdjustmentId)).data.status == 'approved'
+            && request.resource.data.remainingLeaveHours == resource.data.remainingLeaveHours
+              - get(/databases/$(database)/documents/attendanceLogs/$(request.resource.data.lastAttendanceLeaveAdjustmentId)).data.hours)
+          || (get(/databases/$(database)/documents/attendanceLogs/$(request.resource.data.lastAttendanceLeaveAdjustmentId)).data.status == 'approved'
+            && getAfter(/databases/$(database)/documents/attendanceLogs/$(request.resource.data.lastAttendanceLeaveAdjustmentId)).data.status == 'pending'
+            && request.resource.data.remainingLeaveHours == resource.data.remainingLeaveHours
+              + get(/databases/$(database)/documents/attendanceLogs/$(request.resource.data.lastAttendanceLeaveAdjustmentId)).data.hours)
+        );
+    }
+
+    // 管理員對所有 users 有完全權限；attendance 特休審核可由任一已登入者原子調整對方餘額。
     match /users/{userId}/{document=**} {
       allow read, create: if true
 
@@ -37,7 +60,8 @@ service cloud.firestore {
           // 管理員可以更新任何欄位
           isAdmin() ||
           // 一般用戶只能更新自己的非敏感資料
-          (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'email']))
+          (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'email'])) ||
+          isAttendanceLeaveAdjustment(userId)
         );
       
       allow delete: if isAdmin();
@@ -55,12 +79,19 @@ service cloud.firestore {
     }
 
     // 申請人僅能在自己仍為 pending 的 attendance 申請上編輯內容與附件，
-    // 且不得變更 userId 與 status；status 轉換（核准／拒絕／退回待審）一律收斂為 admin。
+    // 且不得變更 userId 與 status；status 轉換則允許任一已登入者執行。
     function attendanceOwnerEditable(existing, incoming, uid) {
       return existing.userId == uid
         && existing.status == 'pending'
         && incoming.userId == existing.userId
         && incoming.status == existing.status;
+    }
+
+    function attendanceStatusEditable(existing, incoming) {
+      return incoming.userId == existing.userId
+        && incoming.status in ['pending', 'approved', 'rejected']
+        && incoming.status != existing.status
+        && incoming.diff(existing).affectedKeys().hasOnly(['status']);
     }
 
     function validAttendanceAuditAction(action) {
@@ -103,12 +134,12 @@ service cloud.firestore {
       allow create: if isSignedIn() && validAttachmentCount(request.resource.data)
         && (!('attachments' in request.resource.data) || request.resource.data.attachments.size() == 0
           || request.resource.data.userId == request.auth.uid || isAdmin());
-      // 權限收斂（GitHub issue #22）：attendance 文件僅允許 admin 或「pending 狀態下的申請人本人」更新；
-      // 其他已登入使用者不得修改他人申請的任何欄位（含 status、reason、type 等非附件欄位）。
-      // status 轉換一律保留給 admin，避免申請人自我核准或非授權者越權審核。
+      // GitHub issue #34：任一已登入者可變更 attendance status；內容與附件仍只允許 admin
+      // 或「pending 狀態下的申請人本人」更新，避免 status 審核入口順手改動申請內容。
       allow update: if isSignedIn() && validAttachmentCount(request.resource.data)
         && (isAdmin()
-          || attendanceOwnerEditable(resource.data, request.resource.data, request.auth.uid));
+          || attendanceOwnerEditable(resource.data, request.resource.data, request.auth.uid)
+          || attendanceStatusEditable(resource.data, request.resource.data));
       allow delete: if isAdmin();
 
       match /auditTrail/{auditId} {

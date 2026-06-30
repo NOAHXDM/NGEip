@@ -18,7 +18,7 @@ import {
   where,
 } from '@angular/fire/firestore';
 import { startOfWeek, addDays, startOfDay } from 'date-fns';
-import { from, Observable, of, shareReplay, switchMap } from 'rxjs';
+import { from, map, Observable, of, shareReplay, switchMap } from 'rxjs';
 
 import { User } from './user.service';
 import { TimezoneService } from './timezone.service';
@@ -91,7 +91,7 @@ export class AttendanceService {
         newFiles: files,
         removedAttachmentIds,
       },
-    });
+    }).pipe(map(() => true));
   }
 
   updateStatus(
@@ -131,6 +131,8 @@ export class AttendanceService {
             .update(userRef, {
               remainingLeaveHours:
                 remainingLeaveHours + leaveTransactionHistory.hours,
+              lastAttendanceLeaveAdjustmentId: data.id,
+              lastAttendanceLeaveAdjustmentBy: actionBy,
             })
             .set(newleaveTransactionHistoryDocRef, leaveTransactionHistory);
         }
@@ -160,9 +162,11 @@ export class AttendanceService {
     if (data.type == AttendanceType.AnnualLeave && (add || deduct)) {
       return {
         actionBy: actionBy,
+        attendanceId: data.id,
         date: serverTimestamp(),
         hours: deduct ? 0 - data.hours : data.hours,
         reason: `來自出勤申請#${data.id}`,
+        statusChange: `${data.status}->${status}`,
       };
     }
 

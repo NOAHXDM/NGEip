@@ -37,7 +37,7 @@
 
 ### 安全
 - 新增 `userJourneyEvents`、`userJourneyEventAudits`、journey event 附件 session／cleanup 規則與索引：事件與附件可由所有已登入者讀取，但新增、更新、刪除與附件寫入 session 僅允許 `users/{uid}.role == admin`；audit 文件 create-only、不可更新或刪除，create／update 與 delete 各自綁定不可重用的 audit ID。
-- **Breaking security change**：收斂 `attendanceLogs` 的更新權限（GitHub issue #22）。原本任意已登入使用者皆可修改他人申請的非附件欄位（`status`、`reason`、`type` 等），現收斂為僅 admin 或「pending 狀態下的申請人本人」可更新，且 status 轉換（核准／拒絕／退回待審）一律保留給 admin。若有 kiosk 或外部整合曾以非 owner／非 admin 身分修改他人 attendance 欄位，部署前必須改用 admin 或申請人本人帳號。詳見 `specs/007-attendance-permission-hardening/`。
+- **Breaking security change**：收斂 `attendanceLogs` 的更新權限（GitHub issue #22／#34）。任意已登入使用者可變更任意 attendance 的 `status`（核准／拒絕／退回待審），且 AnnualLeave 審核可在同一 transaction 連動調整申請人的剩餘特休時數；但跨使用者內容欄位（`reason`、`type`、時間、時數等）、`userId` 與附件更新仍只允許 admin 或「pending 狀態下的申請人本人」。若有 kiosk 或外部整合曾以非 owner／非 admin 身分修改他人 attendance 內容欄位，部署前必須改用 admin 或申請人本人帳號。詳見 `specs/007-attendance-permission-hardening/`。
 - **Breaking security change**：`attendanceLogs` 的讀取、建立與更新由匿名可存取收斂為至少需要 Firebase Authentication 登入；若有 kiosk 或外部整合曾依賴匿名寫入，部署前必須改用已登入流程。
 - 新增 Firestore／Storage Rules 附件權限矩陣：登入者可預覽、owner 僅能修改自己的 pending 申請、admin 可代辦；未登入、Storage list、同路徑 overwrite、缺少 actor 的 cleanup queue 刪除授權及未搭配 parent removal 的 queue create 均拒絕。
 - Storage attachment path 採 create-only，正式 bucket CORS 僅允許 Firebase Hosting origins 與本機 `http://localhost:4200` 的 `GET`／`HEAD`。

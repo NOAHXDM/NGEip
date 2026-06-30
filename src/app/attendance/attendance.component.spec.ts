@@ -86,6 +86,33 @@ describe('AttendanceComponent attachments', () => {
     );
   });
 
+  it('closes with the updated message after a successful edit', () => {
+    const service = {
+      typeList: [], reasonPriorityList: [],
+      update: jasmine.createSpy().and.returnValue(of(true)),
+    };
+    const dialogRef = { close: jasmine.createSpy(), disableClose: false };
+    const attendance = {
+      id: 'request-1', userId: 'owner', status: 'pending', attachments: [],
+      type: 1, reason: 'reason', hours: 1, auditTrail: [],
+      startDateTime: new Date(), endDateTime: new Date(),
+    } as any;
+    const component = new AttendanceComponent(
+      dialogRef as any, service as any,
+      { list$: of([]), getUsersWithinExitWindow: () => of([]), currentUser$: of(null) } as any,
+      {} as any,
+      { title: 'edit', attendance }
+    );
+    component.currentUser = { uid: 'owner', role: 'user' } as any;
+    component.attendanceForm.patchValue({
+      type: 1, reason: 'new reason', userId: 'owner', startDateTime: new Date() as any, endDateTime: new Date() as any,
+    });
+
+    component.save();
+
+    expect(dialogRef.close).toHaveBeenCalledWith('申請已成功更新');
+  });
+
   it('blocks save when the login session no longer has an actor uid', () => {
     const service = { typeList: [], reasonPriorityList: [], create: jasmine.createSpy() };
     const component = create(undefined, service);

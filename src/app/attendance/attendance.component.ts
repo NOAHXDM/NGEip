@@ -252,7 +252,7 @@ export class AttendanceComponent implements OnInit {
             this.saving = false;
             this.dialogRef.disableClose = false;
             this.dialogRef.close(
-              result ? 'Request updated successfully' : 'No changes'
+              result ? '申請已成功更新' : '沒有異動'
             );
           },
           error: (error) => {
