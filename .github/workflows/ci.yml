@@ -47,7 +47,7 @@ jobs:
         run: npx tsc -p tsconfig.spec.json --noEmit
 
       - name: Run headless Karma tests
-        run: npm test -- --watch=false
+        run: npm test -- --watch=false --browsers=ChromeHeadlessNoSandbox
 
       - name: Run production build
         run: npm run build

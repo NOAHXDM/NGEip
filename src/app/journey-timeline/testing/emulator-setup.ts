@@ -98,9 +98,12 @@ export function getJourneyTimelineTestEnv(): RulesTestEnvironment {
 export async function clearJourneyTimelineData(): Promise<void> {
   if (teardownPromise) {
     await teardownPromise;
+    if (!testEnv) {
+      throw new Error('clearJourneyTimelineData called after journey timeline emulator teardown completed.');
+    }
   }
   if (!testEnv) {
-    throw new Error('Journey timeline emulator test environment is not available for data cleanup.');
+    throw new Error('clearJourneyTimelineData called before journey timeline emulator initialization.');
   }
   await testEnv.clearFirestore();
 }

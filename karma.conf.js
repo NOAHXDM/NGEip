@@ -14,6 +14,13 @@ const baseSettings = {
     jasmine: {},
     clearContext: false,
   },
+  files: [],
+  customLaunchers: {
+    ChromeHeadlessNoSandbox: {
+      base: 'ChromeHeadless',
+      flags: ['--no-sandbox', '--disable-setuid-sandbox'],
+    },
+  },
   jasmineHtmlReporter: {
     suppressAll: true,
   },

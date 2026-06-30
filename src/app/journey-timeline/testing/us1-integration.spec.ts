@@ -111,6 +111,7 @@ describeIfIntegration('US1 Angular 與 Firestore Emulator 整合測試', () => {
 
   function createServiceFor(uid: string): JourneyTimelineService {
     const firestore = authenticatedJourneyContext(uid).firestore();
+    // Each viewer needs a fresh Firestore provider bound to a different auth context.
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [

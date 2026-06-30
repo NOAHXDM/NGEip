@@ -2,7 +2,7 @@ const baseConfig = require('./karma.conf.js');
 
 module.exports = function (config) {
   baseConfig(config, {
-    browsers: ['ChromeHeadless'],
+    browsers: ['ChromeHeadlessNoSandbox'],
     browserNoActivityTimeout: 120000,
     failOnEmptyTestSuite: true,
     files: [
