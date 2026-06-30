@@ -56,6 +56,12 @@ Firebase Authentication、Cloud Firestore、Firebase Storage 與 Firebase Hostin
 - 替換附件時先上傳新檔再標記移除舊檔；最終仍須不超過 5 個。新檔上傳或 transaction 失敗時，舊檔與原 metadata 保持不變。
 - 每次新增／刪除都記錄實際操作者。實體檔必須由 parent request、upload session 或 cleanup queue 持有，並可用 `npm run audit:request-attachments` 進行 dry-run 稽核。
 
+### Attendance 審核權限
+
+- 任一已登入使用者可變更所有 attendance 申請的 `status`（`pending`／`approved`／`rejected`），但該操作只能單獨更新狀態，不可混入原因、類型、時間、時數、`userId` 或附件異動。
+- Attendance 內容與附件仍維持較嚴格邊界：申請人只能編輯自己的 pending 申請；管理員可代辦任意狀態。
+- AnnualLeave 從 pending 核准時會扣除申請人的剩餘特休時數，從 approved 退回 pending 時會補回；這項餘額異動必須與同一筆 attendance status transition 原子提交，並由 Firestore Rules 驗證。
+
 ### 使用者歷程時間軸
 
 - 將非餐費補助申請與 Admin 建立的 `userJourneyEvents` 合併為單一時間軸，依業務日期由近到遠分頁呈現，支援載入更多、空狀態與錯誤狀態。
@@ -124,6 +130,7 @@ npm start
 npm run build      # 正式環境建置至 dist/angular-eip
 npm run watch      # 開發模式建置並監聽變更
 npm test           # 執行單元測試
+npm run test:attendance-rules       # 執行 attendance 審核／特休 Firestore Rules 矩陣
 npm run test:attachment-rules       # 執行附件 Firestore／Storage Rules 矩陣
 npm run test:attachment-audit       # 執行附件孤兒分類測試
 npm run audit:request-attachments   # 正式資料 dry-run（需 Admin SDK 憑證）

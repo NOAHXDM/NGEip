@@ -5,6 +5,21 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [4.0.1] - 2026-06-30
+
+### 修復
+- 修正 GitHub issue #34：attendance 編輯非附件欄位成功後，前端不再因服務回傳 `void` 誤顯示「No changes」，改為顯示繁中成功訊息。
+
+### 安全
+- 調整 attendance 審核權限以符合 issue #34：任一已登入使用者可變更所有 attendance 申請的 `status`，且 AnnualLeave 審核可原子連動調整申請人的剩餘特休時數。
+- 維持內容與附件防線：跨使用者審核只能單獨更新 `status`，不可混入 `reason`、`type`、時間、時數、`userId` 或 `attachments`；內容與附件編輯仍限 admin 或 pending owner。
+
+### 文件
+- 更新 README、attendance 權限規格與實作計畫，補充一般 user 審核所有 attendance、AnnualLeave 特休連動與 `npm run test:attendance-rules` 驗證方式。
+
+### 測試
+- 擴充 attendance Firestore Rules emulator matrix，覆蓋一般 user 審核他人申請、禁止混合欄位更新、AnnualLeave 餘額連動與非法餘額調整拒絕。
+
 ## [4.0.0] - 2026-06-26
 
 本版為主版本升級（major），整合「使用者歷程時間軸」新模組與既有附件治理、補助共用池調整，
@@ -604,6 +619,7 @@
 - Cloudinary
 - Karma/Jasmine
 
+[4.0.1]: https://github.com/NOAHXDM/NGEip/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/NOAHXDM/NGEip/compare/v3.1.0...v4.0.0
 [3.1.0]: https://github.com/NOAHXDM/NGEip/compare/v3.0.20...v3.1.0
 [3.0.20]: https://github.com/NOAHXDM/NGEip/compare/v3.0.19...v3.0.20
