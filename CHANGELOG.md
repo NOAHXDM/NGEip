@@ -5,6 +5,15 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [4.0.2] - 2026-07-01
+
+### 修復
+- 修正 GitHub issue #35：使用者歷程時間軸的補助卡片改顯示「發票金額」，避免將補助申請表單的 `invoiceAmount` 誤標為「申請金額」而造成語意混淆。
+
+### 文件
+- 更新 README 的使用者歷程時間軸說明，補充補助卡片顯示發票金額與核准金額的語意。
+- 同步更新 user journey timeline 的介面契約與實作計畫，將時間軸補助金額欄位命名對齊 `invoiceAmount`。
+
 ## [4.0.1] - 2026-06-30
 
 ### 修復
@@ -632,6 +641,7 @@
 - Cloudinary
 - Karma/Jasmine
 
+[4.0.2]: https://github.com/NOAHXDM/NGEip/compare/v4.0.1...v4.0.2
 [4.0.1]: https://github.com/NOAHXDM/NGEip/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/NOAHXDM/NGEip/compare/v3.1.0...v4.0.0
 [3.1.0]: https://github.com/NOAHXDM/NGEip/compare/v3.0.20...v3.1.0
