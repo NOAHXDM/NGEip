@@ -11,14 +11,27 @@
 - 修正 GitHub issue #34：attendance 編輯非附件欄位成功後，前端不再因服務回傳 `void` 誤顯示「No changes」，改為顯示繁中成功訊息。
 
 ### 安全
+- 薪酬匯入腳本不再內嵌員工薪資／獎金個資，改讀取本機 ignored 的 `tools/data/salary-summary.json` 與 `tools/data/salary-adjustments.json`；repository 僅保留 example schema，降低敏感資料誤提交風險。
 - 調整 attendance 審核權限以符合 issue #34：任一已登入使用者可變更所有 attendance 申請的 `status`，且 AnnualLeave 審核可原子連動調整申請人的剩餘特休時數。
 - 維持內容與附件防線：跨使用者審核只能單獨更新 `status`，不可混入 `reason`、`type`、時間、時數、`userId` 或 `attachments`；內容與附件編輯仍限 admin 或 pending owner。
 
+### 重構
+- 將 request 與 journey event 附件上傳 session 的回滾、cleanup 與 error code 判斷收斂至共用 helper，並強化個別附件失敗時的 sessionId、attachmentId 與 errorCode 可觀測性。
+- 以 discriminated union 表達附件批次的 `sessionId` 契約，避免空批次與已上傳批次在執行期被污染或誤用。
+- 縮小 journey event service 內重複的附件清理流程，保留 request／journey domain 差異於 adapter 邊界。
+
 ### 文件
-- 更新 README、attendance 權限規格與實作計畫，補充一般 user 審核所有 attendance、AnnualLeave 特休連動與 `npm run test:attendance-rules` 驗證方式。
+- 更新 README、attendance 權限規格與實作計畫，補充一般 user 審核所有 attendance、AnnualLeave 特休連動、薪酬資料檔位置，以及 `npm run test:attendance-rules`／`npm run test:journey-integration` 驗證方式。
+- 補充 user journey quickstart 的整合測試、CI 門禁與最新複審修正紀錄，對齊實際 `karma.journey-integration.conf.cjs` 與 Firestore Rules 載入方式。
 
 ### 測試
 - 擴充 attendance Firestore Rules emulator matrix，覆蓋一般 user 審核他人申請、禁止混合欄位更新、AnnualLeave 餘額連動與非法餘額調整拒絕。
+- 新增 user journey Angular + Firestore Emulator 整合測試，驗證目標使用者查詢隔離、跨來源分頁合併、同時間排序與報告嵌入入口。
+- 補強 journey timeline 與 attachment session 單元測試，涵蓋循序回滾、cleanup 補償、error code 共用邏輯、空批次 frozen singleton 與報告嵌入回歸。
+
+### CI
+- 新增 GitHub Actions CI workflow，於 pull request 與 main push 執行 spec typecheck、headless Karma、production build、journey rules 與 journey integration 測試。
+- 鎖定 Firebase CLI／啟用 `FIREBASE_CLI_EXPERIMENTS=webframeworks`，並調整 Karma launcher、reporters/files/plugins 合併與 integration `failOnEmptyTestSuite`，避免測試門禁靜默略過。
 
 ## [4.0.0] - 2026-06-26
 

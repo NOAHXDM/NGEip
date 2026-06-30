@@ -73,6 +73,11 @@ Firebase Authentication、Cloud Firestore、Firebase Storage 與 Firebase Hostin
 
 兩支位於 `tools/` 的一次性腳本，可將歷史薪酬資料寫入使用者歷程時間軸（與前端 `JourneyEventService.create` 相同的文件＋稽核結構）。皆預設 dry-run、採確定性 doc id 冪等可重跑，並以 `--actor=<adminUid>`（須為 admin）作為事件建立者與稽核 actor；姓名以 `users.name` 對應 UID，查無或同名多筆者略過並警示。
 
+薪酬原始資料屬敏感資訊，不提交至 Git。執行前請依 repository 內的 example schema 建立本機資料檔：
+
+- `tools/data/salary-summary.json`（參考 `tools/data/salary-summary.example.json`）
+- `tools/data/salary-adjustments.json`（參考 `tools/data/salary-adjustments.example.json`）
+
 ```bash
 # 年度總薪酬統計（N = 12 + 該年度獎金發放比例總和）
 node tools/seed-salary-summary-events.js --actor=<adminUid>            # dry-run 預覽
@@ -132,10 +137,14 @@ npm run watch      # 開發模式建置並監聽變更
 npm test           # 執行單元測試
 npm run test:attendance-rules       # 執行 attendance 審核／特休 Firestore Rules 矩陣
 npm run test:attachment-rules       # 執行附件 Firestore／Storage Rules 矩陣
+npm run test:journey-rules          # 執行使用者歷程 Firestore／Storage Rules 矩陣
+npm run test:journey-integration    # 執行使用者歷程 Angular + Firestore Emulator 整合測試
 npm run test:attachment-audit       # 執行附件孤兒分類測試
 npm run audit:request-attachments   # 正式資料 dry-run（需 Admin SDK 憑證）
 npm run deploy     # 建置並部署至 Firebase（使用 firebase.prod.json）
 ```
+
+PR CI 會執行 TypeScript spec typecheck、headless Karma、production build、journey rules 與 journey integration 測試；若本機 Firebase CLI 遇到 Hosting web framework 設定，需使用支援 `FIREBASE_CLI_EXPERIMENTS=webframeworks` 的 Firebase CLI 版本。
 
 ## 架構約束
 
