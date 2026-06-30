@@ -102,6 +102,9 @@ export async function clearJourneyTimelineData(): Promise<void> {
       throw new Error('clearJourneyTimelineData called after journey timeline emulator teardown completed.');
     }
   }
+  if (!testEnv && initPromise) {
+    await initPromise;
+  }
   if (!testEnv) {
     throw new Error('clearJourneyTimelineData called before journey timeline emulator initialization.');
   }

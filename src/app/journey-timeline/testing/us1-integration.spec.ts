@@ -152,6 +152,8 @@ async function seedLargeTimelinePage(testEnv: RulesTestEnvironment): Promise<voi
     const db = context.firestore();
     const batch = writeBatch(db);
     for (let index = 0; index < LARGE_PAGE_DOCUMENT_COUNT_PER_SOURCE; index++) {
+      // The last page event intentionally shares a timestamp with target-event-new
+      // to keep cursor ordering covered when timestamps collide.
       batch.set(
         doc(db, `userJourneyEvents/page-event-${index.toString().padStart(2, '0')}`),
         journeyEventDoc(`page-event-${index.toString().padStart(2, '0')}`, JOURNEY_TARGET_UID, 31 - index)

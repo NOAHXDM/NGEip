@@ -9,6 +9,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       FIREBASE_CLI_EXPERIMENTS: webframeworks
       FIREBASE_TOOLS_VERSION: 14.27.0
@@ -47,7 +49,7 @@ jobs:
         run: npx tsc -p tsconfig.spec.json --noEmit
 
       - name: Run headless Karma tests
-        run: npm test -- --watch=false --browsers=ChromeHeadlessNoSandbox
+        run: npm test -- --watch=false
 
       - name: Run production build
         run: npm run build
