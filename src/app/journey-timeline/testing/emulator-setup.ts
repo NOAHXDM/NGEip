@@ -64,8 +64,15 @@ export function initJourneyTimelineTestEnv(): Promise<RulesTestEnvironment> {
   return initPromise;
 }
 
-export async function teardownJourneyTimelineTestEnv(): Promise<void> {
+export function teardownJourneyTimelineTestEnv(): Promise<void> {
   if (teardownPromise) return teardownPromise;
+  teardownPromise = teardownJourneyTimelineTestEnvOnce().finally(() => {
+    teardownPromise = null;
+  });
+  return teardownPromise;
+}
+
+async function teardownJourneyTimelineTestEnvOnce(): Promise<void> {
   let env = testEnv;
   if (!env && initPromise) {
     env = await initPromise.catch(() => null);
@@ -75,12 +82,10 @@ export async function teardownJourneyTimelineTestEnv(): Promise<void> {
     initPromise = null;
     return;
   }
-  teardownPromise = env.cleanup().finally(() => {
+  await env.cleanup().finally(() => {
     if (testEnv === env) testEnv = null;
     initPromise = null;
-    teardownPromise = null;
   });
-  return teardownPromise;
 }
 
 export function getJourneyTimelineTestEnv(): RulesTestEnvironment {
@@ -94,7 +99,9 @@ export async function clearJourneyTimelineData(): Promise<void> {
   if (teardownPromise) {
     await teardownPromise;
   }
-  if (!testEnv) return;
+  if (!testEnv) {
+    throw new Error('Journey timeline emulator test environment is not available for data cleanup.');
+  }
   await testEnv.clearFirestore();
 }
 

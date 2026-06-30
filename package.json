@@ -46,7 +46,6 @@
     "@firebase/rules-unit-testing": "^5.0.0",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^25.5.0",
-    "firebase-tools": "^14.27.0",
     "jasmine-core": "~5.2.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
