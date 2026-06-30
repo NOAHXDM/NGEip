@@ -57,8 +57,8 @@
                 @if (item.status) {
                   <mat-chip-set><mat-chip>{{ statusLabel(item.status) }}</mat-chip></mat-chip-set>
                 }
-                @if (item.requestedAmount != null) {
-                  <p class="amount">申請金額：NT$ {{ item.requestedAmount | number }}</p>
+                @if (item.invoiceAmount != null) {
+                  <p class="amount">發票金額：NT$ {{ item.invoiceAmount | number }}</p>
                 }
                 @if (item.approvedAmount != null) {
                   <p class="amount">核准金額：NT$ {{ item.approvedAmount | number }}</p>

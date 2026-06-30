@@ -168,7 +168,7 @@ export class JourneyTimelineService {
         content: subsidy.content,
         subsidyType: subsidy.type,
         status: subsidy.status,
-        requestedAmount: subsidy.invoiceAmount,
+        invoiceAmount: subsidy.invoiceAmount,
         approvedAmount: subsidy.approvedAmount,
         attachments: subsidy.attachments ?? [],
       };

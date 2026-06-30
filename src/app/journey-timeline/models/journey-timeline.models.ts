@@ -44,7 +44,7 @@ export type JourneyTimelineItem =
       source: 'subsidy';
       subsidyType?: SubsidyType;
       status?: SubsidyStatus;
-      requestedAmount?: number;
+      invoiceAmount?: number;
       approvedAmount?: number;
     });
 

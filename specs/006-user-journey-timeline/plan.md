@@ -95,7 +95,7 @@ storage.rules
 
 ### 狀態與畫面
 
-- 項目 header：日期、事件／補助 icon、標題、狀態 chip；body 顯示內容摘要與附件，補助顯示申請金額／核准金額（存在時）。
+- 項目 header：日期、事件／補助 icon、標題、狀態 chip；body 顯示內容摘要與附件，補助顯示發票金額／核准金額（存在時）。
 - event title 直接使用事件標題；subsidy title 使用既有 `SubsidyTypePipe` 對應名稱。
 - 具備 loading、partial-page loading、error、empty、end-of-list 五種狀態。「載入更早歷程」期間保留既有項目。
 - event dialog 使用 reactive form；`eventDate`、`title`、`content` 必填，trim 後再次驗證；關閉未儲存 dialog 不產生遠端資料。
