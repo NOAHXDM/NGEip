@@ -3,8 +3,11 @@
 ## 自動化驗證
 
 1. 執行 `npm test -- --watch=false`，確認 merge、cursor、component、dialog 與既有測試通過。
-2. 啟動 Firestore／Storage Emulator，執行本功能 Rules 整合測試。
-3. 執行 `npm run build`，確認 production build 無 template 或型別錯誤。
+2. 執行 `npm run test:journey-rules`，啟動 Firestore／Storage Emulator 並驗證本功能 Rules 整合測試。
+3. 執行 `npm run test:journey-integration`，以 Angular TestBed 搭配 Firestore Emulator 驗證 US1 目標使用者查詢隔離與跨來源分頁合併；報告嵌入點 UID／權限回歸由一般 Karma 測試覆蓋。
+4. 執行 `npm run build`，確認 production build 無 template 或型別錯誤。
+
+PR CI 會自動執行 `npx tsc -p tsconfig.spec.json --noEmit`、`npm test -- --watch=false`、`npm run build`、`npm run test:journey-rules` 與 `npm run test:journey-integration`；本機互動除錯可使用 `npm run test:debug`。
 
 ## 手動 smoke test
 
@@ -28,6 +31,19 @@
 - `npm run test:journey-rules`：以 `demo-user-journey` 啟動 Firestore／Storage Emulator，驗證 authenticated cross-user read、非 Admin update deny、Admin create/update/delete、audit 原子性，以及 Admin-only 附件 session／讀取／禁止覆寫，全部通過。
 
 尚未執行 100 筆／20 次冷啟動 P95 效能量測，以及由未熟悉功能測試者進行的兩分鐘操作驗證；這兩項保留為合併前人工驗收。
+
+## 2026-06-28 Issue #25 整合測試補強驗證結果
+
+- `npx tsc -p tsconfig.spec.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm run test:journey-integration`：通過；4 個 Angular＋Firestore Emulator 測試成功，並載入真實 `firestore.rules` 驗證 authenticated target/other/admin 讀取指定目標時間軸、跨使用者資料隔離，以及雙來源分頁無重複遺漏；本指令改為由 `firebase emulators:exec` 直接執行 `npx ng test`，且 include 範圍收斂至 `us1-integration.spec.ts`。
+- `npm test -- --watch=false --include='src/app/journey-timeline/testing/report-embedding.spec.ts'`：2 個報告嵌入回歸測試通過；測試保留真實報告 component template，只替換時間軸與圖表等非目標 child component，確認空狀態外仍實際渲染 `app-user-journey-timeline` selector。
+- `npm test -- --watch=false --include='src/app/journey-timeline/services/*.spec.ts'`：29 個 journey service 測試通過。
+- `npm test -- --watch=false --include='src/app/journey-timeline/components/*.spec.ts' --include='src/app/journey-timeline/dialogs/*.spec.ts'`：20 個 journey component/dialog 測試通過。
+- `npm run test:journey-rules`：通過；維持既有 Firestore／Storage Rules emulator 覆蓋。
+- `npm run build`：通過；使用 nvm Node 22 的 arm64 PATH 執行，避開 `/usr/local/bin/node` x64 與既有 esbuild arm64 binary 的平台不符問題。
+
+本輪依 Claude Bot 複審再修正：移除 report embedding spec 的手動 `ngOnInit()` 呼叫，並改用真實 template 搭配輕量 child replacement 驗證時間軸 selector；report embedding helper 在找不到時間軸時會以明確錯誤失敗，不再落入 null 解參照；`npm test` 預設帶入 `ChromeHeadlessNoSandbox`，避免未指定 browser 時 Karma 等待手動連線，並新增 `npm run test:debug` 供本機 Chrome 互動除錯；integration setup 透過 Karma 供應並載入 `firestore.rules`，初始化流程以 pending promise 防止並行重複建立 test environment，teardown 則以 `try/finally` 確保 cleanup 失敗時仍會釋放 singleton；viewer 情境拆為獨立繁中 `it()`，讓 target/other/admin 任一情境失敗時可直接定位；分頁整合測試加入 100 次迭代上限，base seed 與大量 fixture seed 皆改為 `writeBatch` 降低 Emulator round-trip；same-time 補助測試資料改由工廠直接產生一致的 `applicationDate`／`createdAt`／`updatedAt`；`karma.journey-integration.conf.cjs` 改為繼承 `karma.conf.js`，且 integration 設定使用 `ChromeHeadlessNoSandbox`、精準 include `us1-integration.spec.ts` 並保留較長的 `browserNoActivityTimeout`；`karma.conf.js` 會合併額外 plugins 而非覆蓋基礎 plugins；`testTimestamp()` 補上 1 至 31 日範圍防呆，分頁 fixture 也固定在 2026 年 1 月內，避免日期 overflow 讓排序案例失真。
 
 ## 2026-06-23 需求修正驗證結果
 
@@ -225,6 +241,29 @@ T017／T018／T047 仍維持為後續技術債：目前本分支以 journey serv
 中低優先建議同步收斂：`pairedJourneyAudit()` 改為先確認 `existsAfter(auditPath)` 再讀取 audit；audit create/update/delete effect 也拆為 helper，先檢查交易前後事件文件存在狀態後再讀 `getAfter()` / `get()`，降低缺少 paired 文件時的 rules evaluation 噪音。個人職場屬性報告頁的時間軸入口在 `currentUser()` 尚未初始化時改顯示載入卡片，避免 auth signal 初始 `undefined` 時直接隱藏時間軸。
 
 補充限制：journey event Storage 物件仍維持「不可由 Admin 直接 emergency delete」的治理方向，必須透過 upload session 或 cleanup queue 關聯刪除，以保持與 attendance/subsidy 附件治理一致。若未來要處理真正 orphan / broken reference，仍由 T050 的 dry-run orphan audit 與治理流程另行收斂，避免在 Storage Rules 加入可繞過 Firestore 關聯的直通刪除權限。
+
+## 2026-06-30 Issue #25 Claude Bot 複審修正驗證結果
+
+- `npx tsc -p tsconfig.spec.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --include='src/app/journey-timeline/testing/report-embedding.spec.ts'`：2 個報告嵌入回歸測試通過，確認職場屬性報告入口仍實際渲染 `app-user-journey-timeline` selector。
+- `npm run test:journey-integration`：通過；6 個 Angular + Firestore Emulator 測試成功，並透過 `karma.journey-integration.conf.cjs` 載入真實 `firestore.rules`。
+
+本輪依 Claude Bot 複審修正：`teardownJourneyTimelineTestEnv()` 會先消化初始化 promise 的拒絕結果並清空 singleton 狀態，避免初始化失敗時 `afterAll` 再次丟出同一錯誤造成測試輸出混淆；VS Code `ng test` launch 改走 `npm: test:debug`，讓 `npm test` 保持 headless 預設、互動除錯則由 `npm run test:debug` 明確啟動 Chrome；`@firebase/rules-unit-testing` 需要的瀏覽器端 `process.env` 空 shim 補上註解，避免後續誤刪導致 browser bundle 內 `process is not defined`；`karma.conf.js` 除了合併額外 plugins，也同步合併 integration 設定提供的 `files`，確保 `firestore.rules` 會被 Karma served 給整合測試讀取。
+
+補充限制：attachments、evaluation 與 journey timeline 的 Emulator setup 仍有可抽共用 factory 的重複樣板；此項牽涉跨 feature 測試基礎建設，保留為後續維護議題，避免本輪 Issue #25 整合測試補強擴大為測試架構重構。
+
+## 2026-06-30 Issue #25 Claude Bot CI 門禁補強驗證結果
+
+- `npx tsc -p tsconfig.spec.json --noEmit`：通過。
+- `git diff --check`：通過。
+- `npm test -- --watch=false --include='src/app/journey-timeline/testing/report-embedding.spec.ts'`：2 個報告嵌入回歸測試通過。
+- `npm test -- --watch=false`：通過；299 個測試成功，既有 integration opt-in specs 在一般 Karma 流程中略過。
+- `npm run build`：通過；沙盒內曾因 process/cache 資源限制以 134 中止，已用外層權限重跑通過。
+- `npm run test:journey-rules`：通過；emulator 輸出中的 `PERMISSION_DENIED` 屬 `assertFails(...)` 預期拒絕案例。
+- `npm run test:journey-integration`：通過；6 個 Angular + Firestore Emulator 測試成功。
+
+本輪依 Claude Bot 複審修正：新增 PR CI workflow，於 pull request 與 main push 自動執行 spec typecheck、headless Karma、production build、journey rules 與 journey timeline integration 測試，避免整合測試與 rules regression 只停留在手動驗證；CI 安裝使用 `npm ci --legacy-peer-deps`，並鎖定 `firebase-tools` devDependency，讓乾淨 runner 可透過 npm scripts 找到 Firebase CLI；CI 同步快取 Firebase Emulator binary，且因 `firebase.local.json` 含 Hosting web framework 設定，job 層設定 `FIREBASE_CLI_EXPERIMENTS=webframeworks` 以符合 Firebase CLI 14 的執行需求。`karma.conf.js` 同步合併 `reporters` override，維持與 `plugins`、`files` 一致的陣列合併策略；`karma.journey-integration.conf.cjs` 啟用 `failOnEmptyTestSuite`，避免 integration flag 失效時 0 spec 靜默通過；report embedding spec 的 spy 物件改由每個 `beforeEach` 重新建立，消除 describe scope spy strategy 污染風險；journey timeline emulator teardown 以 `teardownPromise` 序列化 cleanup 與後續 init，避免 cleanup 尚未完成時重建環境；`testTimestamp()` 補上固定 2026 年 1 月 fixture 的 JSDoc 與錯誤訊息。
 
 ## 部署順序
 
