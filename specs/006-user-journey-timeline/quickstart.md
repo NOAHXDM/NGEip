@@ -7,7 +7,7 @@
 3. 執行 `npm run test:journey-integration`，以 Angular TestBed 搭配 Firestore Emulator 驗證 US1 目標使用者查詢隔離、跨來源分頁合併，以及兩個職場屬性報告嵌入點的 UID／權限回歸。
 4. 執行 `npm run build`，確認 production build 無 template 或型別錯誤。
 
-PR CI 會自動執行 `npx tsc -p tsconfig.spec.json --noEmit`、`npm test -- --watch=false` 與 `npm run test:journey-integration`；本機合併前仍可依上列指令手動重跑完整驗證。
+PR CI 會自動執行 `npx tsc -p tsconfig.spec.json --noEmit`、`npm test -- --watch=false`、`npm run build`、`npm run test:journey-rules` 與 `npm run test:journey-integration`；本機互動除錯可使用 `npm run test:debug`。
 
 ## 手動 smoke test
 

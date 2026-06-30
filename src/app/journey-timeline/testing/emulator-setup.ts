@@ -91,7 +91,9 @@ export function getJourneyTimelineTestEnv(): RulesTestEnvironment {
 }
 
 export async function clearJourneyTimelineData(): Promise<void> {
-  if (teardownPromise) return;
+  if (teardownPromise) {
+    await teardownPromise;
+  }
   if (!testEnv) return;
   await testEnv.clearFirestore();
 }

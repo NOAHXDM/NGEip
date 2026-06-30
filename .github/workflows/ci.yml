@@ -32,7 +32,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/firebase/emulators
-          key: firebase-emulators-${{ runner.os }}-v1
+          key: firebase-emulators-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            firebase-emulators-${{ runner.os }}-
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
