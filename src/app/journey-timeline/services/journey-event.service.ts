@@ -100,13 +100,17 @@ export function toUtcDayStartTimestamp(value: Date | Timestamp): Timestamp {
 }
 
 export function normalizeJourneyEventInput(input: JourneyEventInput): JourneyEventInput & { eventDate: Timestamp } {
+  const targetUserId = input.targetUserId.trim();
   const title = input.title.trim();
   const content = input.content.trim();
+  if (!targetUserId || targetUserId.includes('/')) {
+    throw new Error('invalid-event-target');
+  }
   if (!title || title.length > 100 || !content || content.length > 5000) {
     throw new Error('invalid-event-fields');
   }
   return {
-    targetUserId: input.targetUserId,
+    targetUserId,
     eventDate: toUtcDayStartTimestamp(input.eventDate),
     title,
     content,
@@ -139,6 +143,7 @@ export function mapJourneyEventAttachmentValidationError(error: unknown): Error 
     'empty-file': '不可上傳空白附件。',
     'file-too-large': '附件超過 3 MiB 上限。',
     'too-many-files': '每筆事件最多五個附件，請刪除部分附件後再試。',
+    'invalid-event-target': '目標使用者資料不完整，請重新開啟使用者視窗後再試。',
     'invalid-event-fields': '事件標題或內容格式不正確，請確認必填、字數與空白內容。',
   };
   return error.message in messages

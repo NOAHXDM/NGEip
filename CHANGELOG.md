@@ -5,6 +5,20 @@
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，
 並且本專案遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
+## [4.0.3] - 2026-07-01
+
+### 修復
+- 修正 GitHub issue #36：正式環境中新 `role=user` 且尚無補助紀錄的使用者，可由 Admin 在使用者歷程時間軸建立第一筆無附件事件，不再因 Firestore Rules 附件驗證路徑被誤判為權限不足。
+- 強化 `JourneyEventService` 的目標使用者 ID 驗證，於前端阻擋空白或含路徑分隔符的 target user id，並回傳可理解的繁體中文錯誤。
+
+### 文件
+- 更新 README 的使用者歷程時間軸說明，補充 issue #36 的新使用者首筆事件建立修正。
+- 同步更新 user journey timeline 實作計畫，記錄無附件事件 Rules 短路驗證與 regression test。
+
+### 測試
+- 新增 journey event Emulator regression test，覆蓋「新 user、role=user、尚無補助紀錄」時由 Admin 建立第一筆歷程事件的合法寫入。
+- 補強 journey event service 單元測試，涵蓋 target user id trim、非法 target id 拒絕與錯誤訊息映射。
+
 ## [4.0.2] - 2026-07-01
 
 ### 修復
@@ -641,6 +655,7 @@
 - Cloudinary
 - Karma/Jasmine
 
+[4.0.3]: https://github.com/NOAHXDM/NGEip/compare/v4.0.2...v4.0.3
 [4.0.2]: https://github.com/NOAHXDM/NGEip/compare/v4.0.1...v4.0.2
 [4.0.1]: https://github.com/NOAHXDM/NGEip/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/NOAHXDM/NGEip/compare/v3.1.0...v4.0.0

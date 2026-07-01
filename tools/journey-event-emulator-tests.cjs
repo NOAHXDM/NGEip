@@ -95,6 +95,30 @@ async function main() {
     );
     await assertSucceeds(create.commit());
 
+    // GitHub issue #36：正式環境曾發生「新 user、尚無任何補助紀錄」時，
+    // Admin 在使用者歷程建立第一筆無附件事件被 rules 誤拒。
+    const freshUserUid = 'journey-fresh-user';
+    const freshEventId = 'fresh-user-first-event';
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', freshUserUid), { role: 'user' });
+    });
+    const freshCreate = writeBatch(admin.firestore());
+    freshCreate.set(doc(admin.firestore(), 'userJourneyEvents', freshEventId), eventData('audit-fresh-create', {
+      targetUserId: freshUserUid,
+      title: '新人到職',
+      content: '建立第一筆使用者歷程',
+      deleteAuditId: 'audit-fresh-delete',
+    }));
+    freshCreate.set(
+      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-fresh-create'),
+      auditData('audit-fresh-create', 'create', adminUid, '新人到職', {
+        eventId: freshEventId,
+        targetUserId: freshUserUid,
+        changedFields: ['eventDate', 'title', 'content'],
+      })
+    );
+    await assertSucceeds(freshCreate.commit());
+
     // 已登入使用者皆可跨使用者讀取；未登入不可讀取。
     await assertSucceeds(getDoc(doc(owner.firestore(), 'userJourneyEvents', eventId)));
     await assertSucceeds(getDoc(doc(other.firestore(), 'userJourneyEvents', eventId)));

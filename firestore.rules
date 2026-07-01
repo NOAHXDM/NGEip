@@ -294,14 +294,30 @@ service cloud.firestore {
     }
 
     function validJourneyEventAttachments(attachments, targetUserId, eventId) {
-      return validJourneyEventAttachmentAt(attachments, 0, targetUserId, eventId)
-        && validJourneyEventAttachmentAt(attachments, 1, targetUserId, eventId)
-        && validJourneyEventAttachmentAt(attachments, 2, targetUserId, eventId)
-        && validJourneyEventAttachmentAt(attachments, 3, targetUserId, eventId)
-        && validJourneyEventAttachmentAt(attachments, 4, targetUserId, eventId);
+      return attachments.size() == 0
+        || (attachments.size() == 1
+          && validJourneyEventAttachmentAt(attachments, 0, targetUserId, eventId))
+        || (attachments.size() == 2
+          && validJourneyEventAttachmentAt(attachments, 0, targetUserId, eventId)
+          && validJourneyEventAttachmentAt(attachments, 1, targetUserId, eventId))
+        || (attachments.size() == 3
+          && validJourneyEventAttachmentAt(attachments, 0, targetUserId, eventId)
+          && validJourneyEventAttachmentAt(attachments, 1, targetUserId, eventId)
+          && validJourneyEventAttachmentAt(attachments, 2, targetUserId, eventId))
+        || (attachments.size() == 4
+          && validJourneyEventAttachmentAt(attachments, 0, targetUserId, eventId)
+          && validJourneyEventAttachmentAt(attachments, 1, targetUserId, eventId)
+          && validJourneyEventAttachmentAt(attachments, 2, targetUserId, eventId)
+          && validJourneyEventAttachmentAt(attachments, 3, targetUserId, eventId))
+        || (attachments.size() == 5
+          && validJourneyEventAttachmentAt(attachments, 0, targetUserId, eventId)
+          && validJourneyEventAttachmentAt(attachments, 1, targetUserId, eventId)
+          && validJourneyEventAttachmentAt(attachments, 2, targetUserId, eventId)
+          && validJourneyEventAttachmentAt(attachments, 3, targetUserId, eventId)
+          && validJourneyEventAttachmentAt(attachments, 4, targetUserId, eventId));
     }
 
-    function validJourneyAudit(data, auditId) {
+    function validJourneyAudit(data) {
       return data.keys().hasOnly([
           'eventId', 'targetUserId', 'action', 'actorUid', 'actionAt',
           'title', 'changedFields', 'attachmentSummary'
@@ -317,18 +333,7 @@ service cloud.firestore {
         && data.actionAt == request.time
         && data.title is string
         && data.changedFields is list
-        && data.attachmentSummary is list
-        && validJourneyAuditEventPair(data, auditId);
-    }
-
-    function validJourneyAuditEventPair(data, auditId) {
-      let path = journeyEventPath(data.eventId);
-      return ((data.action in ['create', 'update']
-          && existsAfter(path)
-          && auditId == getAfter(path).data.lastAuditId)
-        || (data.action == 'delete'
-          && exists(path)
-          && auditId == get(path).data.deleteAuditId));
+        && data.attachmentSummary is list;
     }
 
     function pairedJourneyAuditData(audit, eventId, targetUserId, action, title) {
@@ -346,29 +351,32 @@ service cloud.firestore {
         && pairedJourneyAuditData(getAfter(path).data, eventId, targetUserId, action, title);
     }
 
-    function validJourneyAuditCreateEffect(data) {
+    function validJourneyAuditCreateEffect(data, auditId) {
       let path = journeyEventPath(data.eventId);
       return data.action == 'create'
         && isAdmin()
         && !exists(path)
         && existsAfter(path)
+        && auditId == getAfter(path).data.lastAuditId
         && getAfter(path).data.createdBy == request.auth.uid;
     }
 
-    function validJourneyAuditUpdateEffect(data) {
+    function validJourneyAuditUpdateEffect(data, auditId) {
       let path = journeyEventPath(data.eventId);
       return data.action == 'update'
         && isAdmin()
         && exists(path)
         && existsAfter(path)
+        && auditId == getAfter(path).data.lastAuditId
         && getAfter(path).data.updatedBy == request.auth.uid;
     }
 
-    function validJourneyAuditDeleteEffect(data) {
+    function validJourneyAuditDeleteEffect(data, auditId) {
       let path = journeyEventPath(data.eventId);
       return data.action == 'delete'
         && isAdmin()
         && exists(path)
+        && auditId == get(path).data.deleteAuditId
         && !existsAfter(path);
     }
 
@@ -416,11 +424,11 @@ service cloud.firestore {
     match /userJourneyEventAudits/{auditId} {
       allow read: if isAdmin();
       allow create: if isSignedIn()
-        && validJourneyAudit(request.resource.data, auditId)
+        && validJourneyAudit(request.resource.data)
         && (
-          validJourneyAuditCreateEffect(request.resource.data)
-          || validJourneyAuditUpdateEffect(request.resource.data)
-          || validJourneyAuditDeleteEffect(request.resource.data)
+          validJourneyAuditCreateEffect(request.resource.data, auditId)
+          || validJourneyAuditUpdateEffect(request.resource.data, auditId)
+          || validJourneyAuditDeleteEffect(request.resource.data, auditId)
         );
       allow update, delete: if false;
     }

@@ -105,6 +105,7 @@ storage.rules
 - `userJourneyEvents/{eventId}`：所有 authenticated 可 get/list；create/update/delete 僅 `users/{request.auth.uid}.role == "admin"`，且 `targetUserId`、`createdBy`、`createdAt`、`deleteAuditId` 不可修改。
 - client 在儲存前 trim title/content；Rules 驗證欄位 allowlist、Timestamp 型別、title 1–100 字、content 1–5,000 字且各至少包含一個非空白字元、attachments 0–5 筆，以及 `createdBy/updatedBy == request.auth.uid`。對應 Emulator 測試覆蓋每個邊界。
 - create/update Rules 要求 `lastAuditId` 每次改變，並以它精確 `getAfter()` 對應 `userJourneyEventAudits/{lastAuditId}`；delete Rules 以刪除前不可變的 `deleteAuditId` 精確 `getAfter()`。event `createdAt/updatedAt` 與 audit `actionAt` 必須等於 `request.time`；audit Rules 同時驗證 action、eventId、targetUserId、actorUid、title 與 parent before/after 狀態，拒絕孤立、重用或偽造 audit。audit 僅 Admin 可讀，禁止 update/delete。
+- GitHub issue #36 補強：Rules 對無附件事件採空清單短路驗證，並以 Emulator regression test 覆蓋「新 user、role=user、尚無補助紀錄」建立第一筆事件，避免正式環境將合法首筆歷程誤判為權限不足。
 - 附件 Storage get：任何 authenticated 均可讀取確切路徑，未登入拒絕，且禁止 list。create/delete 必須匹配 Admin 建立的 session／cleanup queue；Rules 驗證每檔 ≤3 MiB、PDF/JPEG/PNG/WebP MIME allowlist，Firestore Rules 驗證最終最多五檔及 metadata schema。
 - 新增複合索引 `userJourneyEvents(targetUserId ASC, eventDate DESC, __name__ DESC)`；既有 subsidy 查詢若加入 `__name__` tie-breaker，需確認／新增 `subsidyApplications(userId ASC, applicationDate DESC, __name__ DESC)`。
 - 首批通常為兩次 Firestore query，各最多 20 documents；事件管理每次另有 event + audit 寫入，附件依檔數增加 session、Storage 與 cleanup 寫入。無全集合 scan、無重複常駐監聽。

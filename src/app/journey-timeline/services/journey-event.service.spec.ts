@@ -151,12 +151,13 @@ describe('JourneyEvent attachment rules', () => {
 describe('JourneyEventService business rules', () => {
   it('正規化事件輸入時會 trim 文字並轉成 Timestamp', () => {
     const result = normalizeJourneyEventInput({
-      targetUserId: 'u1',
+      targetUserId: ' u1 ',
       eventDate: new Date('2026-06-23T00:00:00Z'),
       title: '  完成訓練  ',
       content: '  通過課程  ',
     });
 
+    expect(result.targetUserId).toBe('u1');
     expect(result.title).toBe('完成訓練');
     expect(result.content).toBe('通過課程');
     expect(result.eventDate).toEqual(jasmine.any(Timestamp));
@@ -185,6 +186,22 @@ describe('JourneyEventService business rules', () => {
     })).toThrowError('invalid-event-fields');
   });
 
+  it('拒絕空白或含路徑分隔符的目標使用者 id', () => {
+    expect(() => normalizeJourneyEventInput({
+      targetUserId: '   ',
+      eventDate: new Date('2026-06-23T00:00:00Z'),
+      title: '標題',
+      content: '內容',
+    })).toThrowError('invalid-event-target');
+
+    expect(() => normalizeJourneyEventInput({
+      targetUserId: 'users/u1',
+      eventDate: new Date('2026-06-23T00:00:00Z'),
+      title: '標題',
+      content: '內容',
+    })).toThrowError('invalid-event-target');
+  });
+
   it('將更新衝突轉成可理解的繁體中文訊息', () => {
     expect(mapJourneyEventUpdateError(new Error('event-conflict'))?.message)
       .toBe('事件已被其他人更新，請重新載入後再試。');
@@ -204,6 +221,8 @@ describe('JourneyEventService business rules', () => {
       .toBe('附件格式不支援，僅接受 PDF、JPEG、PNG、WebP。');
     expect(mapJourneyEventAttachmentValidationError(new Error('signature-mismatch'))?.message)
       .toBe('附件內容與宣告格式不符，請重新選擇檔案。');
+    expect(mapJourneyEventAttachmentValidationError(new Error('invalid-event-target'))?.message)
+      .toBe('目標使用者資料不完整，請重新開啟使用者視窗後再試。');
     expect(mapJourneyEventAttachmentValidationError(new Error('invalid-event-fields'))?.message)
       .toBe('事件標題或內容格式不正確，請確認必填、字數與空白內容。');
     expect(mapJourneyEventAttachmentValidationError(new Error('other'))).toBeNull();
