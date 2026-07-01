@@ -49,7 +49,10 @@ function missingSnapshot(id = 'event-1') {
   };
 }
 
-function createFakeFirestoreOps(snapshot = eventSnapshot({})): JourneyEventFirestoreOps & {
+function createFakeFirestoreOps(
+  snapshot = eventSnapshot({}),
+  options: { setDocErrors?: unknown[] } = {}
+): JourneyEventFirestoreOps & {
   batches: Array<{ sets: any[]; updates: any[]; deletes: any[]; commit: jasmine.Spy }>;
   transactions: Array<{ sets: any[]; updates: any[]; deletes: any[] }>;
   setDoc: jasmine.Spy;
@@ -59,13 +62,17 @@ function createFakeFirestoreOps(snapshot = eventSnapshot({})): JourneyEventFires
   const batches: Array<{ sets: any[]; updates: any[]; deletes: any[]; commit: jasmine.Spy }> = [];
   const transactions: Array<{ sets: any[]; updates: any[]; deletes: any[] }> = [];
   const ref = (collectionName: string, id: string) => ({ id, path: `${collectionName}/${id}` });
+  const setDocErrors = [...(options.setDocErrors ?? [])];
+  const setDocSpy = jasmine.createSpy('setDoc').and.callFake(async () => {
+    if (setDocErrors.length) throw setDocErrors.shift();
+  });
   return {
     batches,
     transactions,
     eventRef: () => ref('userJourneyEvents', 'event-new'),
     uploadSessionRef: () => ref('journeyEventAttachmentUploadSessions', 'session-new'),
     ref,
-    setDoc: jasmine.createSpy('setDoc').and.resolveTo(),
+    setDoc: setDocSpy,
     updateDoc: jasmine.createSpy('updateDoc').and.resolveTo(),
     deleteDoc: jasmine.createSpy('deleteDoc').and.resolveTo(),
     writeBatch: () => {
@@ -336,7 +343,7 @@ describe('JourneyEventService public methods', () => {
     deleteAuditId: 'audit-delete',
   };
 
-  it('create 會以 batch 建立事件與 create audit', async () => {
+  it('create 會先建立事件本體並 best-effort 補 create audit', async () => {
     const ops = createFakeFirestoreOps();
     const { service } = createService(ops);
 
@@ -348,10 +355,11 @@ describe('JourneyEventService public methods', () => {
     }, 'admin', []);
 
     expect(eventId).toBe('event-new');
-    expect(ops.batches.length).toBe(1);
-    expect(ops.batches[0].sets[0]).toEqual(jasmine.objectContaining({
-      ref: jasmine.objectContaining({ path: 'userJourneyEvents/event-new' }),
-      data: jasmine.objectContaining({
+    expect(ops.batches.length).toBe(0);
+    expect(ops.setDoc.calls.count()).toBe(2);
+    expect(ops.setDoc.calls.argsFor(0)).toEqual([
+      jasmine.objectContaining({ path: 'userJourneyEvents/event-new' }),
+      jasmine.objectContaining({
         targetUserId: 'u1',
         title: '新事件',
         content: '內容',
@@ -359,21 +367,20 @@ describe('JourneyEventService public methods', () => {
         createdBy: 'admin',
         updatedBy: 'admin',
       }),
-    }));
-    expect(ops.batches[0].sets[0].data.eventDate.toDate().toISOString()).toBe('2026-06-23T00:00:00.000Z');
-    expect(ops.batches[0].sets[1]).toEqual(jasmine.objectContaining({
-      ref: jasmine.objectContaining({ path: jasmine.stringMatching(/^userJourneyEventAudits\//) }),
-      data: jasmine.objectContaining({
+    ]);
+    expect(ops.setDoc.calls.argsFor(0)[1].eventDate.toDate().toISOString()).toBe('2026-06-23T00:00:00.000Z');
+    expect(ops.setDoc.calls.argsFor(1)).toEqual([
+      jasmine.objectContaining({ path: jasmine.stringMatching(/^userJourneyEventAudits\//) }),
+      jasmine.objectContaining({
         eventId: 'event-new',
         action: 'create',
         actorUid: 'admin',
         changedFields: ['eventDate', 'title', 'content'],
       }),
-    }));
-    expect(ops.batches[0].commit).toHaveBeenCalled();
+    ]);
   });
 
-  it('create 空批次不建立 upload session，故 batch 不含 session 刪除', async () => {
+  it('create 空附件不建立 upload session，也不刪除 session', async () => {
     const ops = createFakeFirestoreOps();
     const { service, storage } = createService(ops);
 
@@ -385,7 +392,30 @@ describe('JourneyEventService public methods', () => {
     }, 'admin', []);
 
     expect(storage.uploadJourneyEventAttachment).not.toHaveBeenCalled();
-    expect(ops.batches[0].deletes).toEqual([]);
+    expect(ops.deleteDoc).not.toHaveBeenCalled();
+  });
+
+  it('create event-first 若被權限拒絕，會改用 legacy batch 相容舊版 Rules', async () => {
+    const ops = createFakeFirestoreOps(eventSnapshot({}), {
+      setDocErrors: [{ code: 'permission-denied', message: 'Missing or insufficient permissions.' }],
+    });
+    const { service } = createService(ops);
+
+    const eventId = await service.create({
+      targetUserId: 'u1',
+      eventDate: new Date('2026-06-23T00:00:00Z'),
+      title: '事件',
+      content: '內容',
+    }, 'admin', []);
+
+    expect(eventId).toBe('event-new');
+    expect(ops.setDoc.calls.count()).toBe(1);
+    expect(ops.batches.length).toBe(1);
+    expect(ops.batches[0].sets).toEqual([
+      jasmine.objectContaining({ ref: jasmine.objectContaining({ path: 'userJourneyEvents/event-new' }) }),
+      jasmine.objectContaining({ ref: jasmine.objectContaining({ path: jasmine.stringMatching(/^userJourneyEventAudits\//) }) }),
+    ]);
+    expect(ops.batches[0].commit).toHaveBeenCalled();
   });
 
   it('update 會檢查樂觀鎖、寫入 update audit、建立 cleanup queue 並清理移除附件', async () => {

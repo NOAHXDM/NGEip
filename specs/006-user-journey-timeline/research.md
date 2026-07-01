@@ -36,5 +36,5 @@
 ## 決策 7：以事件內 audit ID 建立 Rules 可驗證關聯
 
 **決策**：create/update 將唯一 `lastAuditId` 寫入 event；delete 使用建立事件時預先產生且不可變的 `deleteAuditId`。  
-**理由**：Firestore Rules 無法查詢未知 audit ID；保存確切 ID 後可使用 `getAfter()` 驗證同一 batch／transaction 的 audit，阻擋未附 audit 的事件異動。  
-**未採用**：隨機建立 audit 但不在 event 保存 ID，會讓 event Rules 無法定位與強制對應 audit。
+**理由**：Firestore Rules 無法查詢未知 audit ID；保存確切 ID 後，update/delete audit Rules 可使用 `getAfter()` / `get()` 驗證同一 batch／transaction 的 parent event 狀態。GitHub issue #36 後，event create 與 create audit Rules 都不再跨文件反查同批次新 event，以避免正式環境對 create batch 的 `getAfter()` 驗證誤判權限不足；create audit 改由 `JourneyEventService` 在事件建立後 best-effort 補寫。  
+**未採用**：隨機建立 audit 但不在 event 保存 ID，會讓 Rules 與稽核工具無法以確定性 ID 對應事件異動。

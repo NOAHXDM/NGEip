@@ -8,16 +8,21 @@
 ## [4.0.3] - 2026-07-01
 
 ### 修復
-- 修正 GitHub issue #36：正式環境中新 `role=user` 且尚無補助紀錄的使用者，可由 Admin 在使用者歷程時間軸建立第一筆無附件事件，不再因 Firestore Rules 附件驗證路徑被誤判為權限不足。
+- 修正 GitHub issue #36：正式環境中新 `role=user` 且尚無補助紀錄的使用者，可由 Admin 在使用者歷程時間軸建立第一筆事件；Rules 移除 event create 與 create audit 對新事件的跨文件 `getAfter()`，避免合法 batch 被誤判為權限不足，update/delete audit 仍保留 parent event 驗證。
+- 放寬 journey event / audit 的時間 Rules：保留 timestamp 型別驗證，但不再要求 `createdAt`、`updatedAt`、`actionAt` 必須等於 `request.time`，避免正式環境 server timestamp transform 與 Rules evaluation 差異阻斷合法 Admin create。
+- journey event create/update 與附件 upload session／cleanup queue 規則暫時降級為 signed-in actor ownership（issue #36 mitigation），用來排除正式環境 `users/{uid}.role == admin` 評估差異持續阻斷首筆事件與後續編輯；Storage `journey-event-attachments` 允許現任 Admin 與 session/cleanup actor 透過治理文件進行同等上傳／刪除操作，前端入口仍僅顯示給 Admin，delete 仍維持 Admin-only。
+- journey update audit 不再以 `getAfter()` 反查同批次事件，避免正式環境對「新增後編輯內容或附件」的 transaction 回 `Missing or insufficient permissions`；event update 本體僅保留登入、不可變欄位與 `lastAuditId` 變更驗證，欄位格式與附件 metadata 暫由前端 service 保證。
+- `JourneyEventService.create()` 改為 production 相容路徑：先建立事件本體，再以 best-effort 補寫 create audit 與清理 upload session；若 event-first 被正式 Rules 拒絕，會靜默回退 legacy event+audit batch 以相容尚未更新的 Rules。寫入 actor 以 Firebase Auth `currentUser.uid` 為準，避免 UI state 與 Auth uid 不一致造成 Rules 拒絕。
+- `JourneyEventService.create()` 新增正式環境診斷 log；若仍被 Firestore Rules 拒絕，console 會輸出失敗階段、Auth uid、target uid、event id、audit id 與附件數，協助判斷是 event-first、legacy batch 或副寫入被拒。
 - 強化 `JourneyEventService` 的目標使用者 ID 驗證，於前端阻擋空白或含路徑分隔符的 target user id，並回傳可理解的繁體中文錯誤。
 
 ### 文件
 - 更新 README 的使用者歷程時間軸說明，補充 issue #36 的新使用者首筆事件建立修正。
-- 同步更新 user journey timeline 實作計畫，記錄無附件事件 Rules 短路驗證與 regression test。
+- 同步更新 user journey timeline 實作計畫、資料模型、研究紀錄與 quickstart，記錄無附件事件 Rules 短路驗證、create audit 不跨文件反查新事件與 regression test。
 
 ### 測試
-- 新增 journey event Emulator regression test，覆蓋「新 user、role=user、尚無補助紀錄」時由 Admin 建立第一筆歷程事件的合法寫入。
-- 補強 journey event service 單元測試，涵蓋 target user id trim、非法 target id 拒絕與錯誤訊息映射。
+- 新增 journey event Emulator regression test，覆蓋「新 user、role=user、尚無補助紀錄」時由 Admin 建立第一筆歷程事件的合法寫入、建立後更新內容、非 `request.time` timestamp 寫入，以及非 Admin create audit 仍被拒絕。
+- 補強 journey event service 單元測試，涵蓋 target user id trim、非法 target id 拒絕、錯誤訊息映射、create event-first best-effort audit 與 legacy batch fallback 流程。
 
 ## [4.0.2] - 2026-07-01
 

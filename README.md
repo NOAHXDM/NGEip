@@ -68,8 +68,8 @@ Firebase Authentication、Cloud Firestore、Firebase Storage 與 Firebase Hostin
 - 補助卡片顯示申請日期、狀態、發票金額與核准金額，發票金額沿用補助申請表單的欄位語意，避免與實際核准補助金額混淆。
 - 嵌入「我的職場屬性報告」與 Admin「編輯使用者」的職場屬性報告 Tab：個人頁為唯讀；Admin 入口可新增、更新與刪除事件。
 - 事件可附 0–5 個附件並於畫面內預覽，沿用既有附件 metadata 契約與 upload session／cleanup queue 治理。
-- 事件與附件可由所有已登入者讀取，但寫入（新增／更新／刪除與附件 session）僅限 `users/{uid}.role == admin`；所有異動寫入 create-only 的 `userJourneyEventAudits`。可用 `npm run test:journey-rules` 驗證 Rules。
-- 已針對新 `role=user` 且尚無補助紀錄的使用者補強首筆事件建立流程（GitHub issue #36）：無附件事件會直接通過附件 metadata 驗證，並以 Emulator regression test 鎖定 Admin 建立第一筆歷程的權限行為。
+- 事件與附件可由所有已登入者讀取；事件新增、更新與附件 session／cleanup 目前為 issue #36 mitigation，Rules 暫時允許 signed-in ownership 以排除正式環境 schema/admin 評估差異，前端入口仍僅顯示給 Admin；Storage `journey-event-attachments` 上傳與刪除可由 session/cleanup actor 或現任 Admin 操作，但 Admin 仍必須透過 Firestore 治理文件，不可直接繞過附件關聯；刪除事件仍限 `users/{uid}.role == admin`。所有異動寫入 create-only 的 `userJourneyEventAudits`，update audit 不反查同批次 event；event update 本體僅保留登入、不可變欄位與 `lastAuditId` 變更驗證，欄位格式與附件 metadata 暫由前端 service 保證。可用 `npm run test:journey-rules` 驗證 Rules。
+- 已針對新 `role=user` 且尚無補助紀錄的使用者補強首筆事件建立流程（GitHub issue #36）：無附件事件會直接通過附件 metadata 驗證，且 Firestore Rules 不再於 event create、create audit 或 update audit 路徑跨文件 `getAfter()` 新事件／同批次事件，也不再要求 server timestamp 必須等於 `request.time`；create 由 service 先建立事件本體，再 best-effort 補 create audit 與 upload session 清理；若正式 Rules 尚未更新到新路徑，會自動回退 legacy event+audit batch，delete audit 仍驗證 parent event。正式環境若仍回 `Missing or insufficient permissions`，console 會輸出 `使用者歷程事件建立階段失敗`，並帶出 `stage`、Auth uid、target uid、event id 與附件數，以區分事件本體、legacy batch 或副寫入被拒。
 
 #### 一次性資料腳本
 

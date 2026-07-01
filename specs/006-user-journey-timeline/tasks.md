@@ -1,7 +1,7 @@
 # 任務清單：使用者歷程時間軸
 
 **輸入**：來自 `/specs/006-user-journey-timeline/` 的 `spec.md`、`plan.md`、`research.md`、`data-model.md`、`contracts/` 與 `quickstart.md`  
-**範圍**：在兩個職場屬性報告入口顯示非餐費補助與新事件的合併時間軸；所有已登入者可讀事件／附件，只有 Admin 可建立、更新及刪除任意事件。
+**範圍**：在兩個職場屬性報告入口顯示非餐費補助與新事件的合併時間軸；所有已登入者可讀事件／附件，前端僅讓 Admin 建立、更新及刪除任意事件。issue #36 mitigation 期間，Rules 對事件建立／更新與附件 session／cleanup 暫時採 signed-in actor ownership，事件刪除仍維持 Admin-only。
 
 **測試要求**：排序、分頁、權限、Firebase 資料存取及附件補償 MUST 先建立失敗測試，再實作至通過。
 
@@ -25,17 +25,18 @@
 
 ### 測試（先寫並確認失敗）
 
-- [x] T006 [P] 在 `src/app/journey-timeline/testing/firestore-rules.spec.ts` 建立 authenticated 跨使用者讀取、以 `users/{request.auth.uid}.role` 判定 Admin、非 Admin create/update/delete 拒絕、Admin CRUD、欄位 allowlist／型別／非空白 title 1–100／content 1–5,000／attachments 0–5、actor UID、不可變欄位、每次改變且不可重用的 `lastAuditId`、不可變 `deleteAuditId`、event/audit 時間等於 `request.time`、平坦 audit immutable，以及孤立／偽造 audit create 拒絕的 Rules 邊界測試（由 `tools/journey-event-emulator-tests.cjs` 覆蓋）
-- [x] T007 [P] 在 `src/app/journey-timeline/testing/storage-rules.spec.ts` 建立所有 authenticated 可 get、未登入拒絕、禁止 list、Admin session create、非 Admin session create 拒絕、cleanup queue delete、3 MiB 邊界與 PDF/JPEG/PNG/WebP MIME allowlist 的 Rules 測試（由 `tools/journey-event-emulator-tests.cjs` 覆蓋）
+- [x] T006 [P] 在 `src/app/journey-timeline/testing/firestore-rules.spec.ts` 建立 authenticated 跨使用者讀取、issue #36 signed-in actor create/update mitigation、Admin delete、欄位 allowlist／型別／非空白 title 1–100／content 1–5,000／attachments 0–5、actor UID、不可變欄位、每次改變且不可重用的 `lastAuditId`、不可變 `deleteAuditId`、event/audit timestamp 型別、平坦 audit immutable，以及非 Admin create audit 與偽造 delete audit 拒絕的 Rules 邊界測試（由 `tools/journey-event-emulator-tests.cjs` 覆蓋）
+- [x] T007 [P] 在 `src/app/journey-timeline/testing/storage-rules.spec.ts` 建立所有 authenticated 可 get、未登入拒絕、禁止 list、signed-in actor session create、cleanup queue actor delete、3 MiB 邊界與 PDF/JPEG/PNG/WebP MIME allowlist 的 Rules 測試（由 `tools/journey-event-emulator-tests.cjs` 覆蓋）
 - [x] T008 [P] 在 `src/app/journey-timeline/services/journey-timeline.service.spec.ts` 建立 Timestamp 正規化、event/subsidy view model 轉換及 stable comparator 的失敗測試
 
 ### 實作
 
-- [x] T009 在 `firestore.rules` 新增 `userJourneyEvents`、平坦 `userJourneyEventAudits`、`journeyEventAttachmentUploadSessions` 與 `journeyEventAttachmentCleanupQueue` 的完整 schema、actor、`users/{request.auth.uid}.role == "admin"`、Admin-only 寫入及 authenticated cross-user read 規則，並以 event `lastAuditId`／`deleteAuditId`、parent before/after 與 `getAfter()` 限制 audit 必須伴隨合法事件交易建立
+- [x] T009 在 `firestore.rules` 新增 `userJourneyEvents`、平坦 `userJourneyEventAudits`、`journeyEventAttachmentUploadSessions` 與 `journeyEventAttachmentCleanupQueue` 的完整 schema、actor、authenticated cross-user read 規則；create/update 與附件 session／cleanup 暫時允許 signed-in actor ownership 作為 issue #36 mitigation，刪除維持 Admin-only；create/update audit 避免反查同批次 event，delete audit 仍以 event `deleteAuditId` 與 parent before/after 拒絕偽造 audit，降低正式環境 batch evaluation 風險
 - [x] T010 在 `storage.rules` 新增 `journey-event-attachments/{targetUserId}/{eventId}/{sessionId}/{attachmentId}` 的讀取、建立、刪除及禁止覆寫／列舉規則
 - [x] T011 [P] 在 `firestore.indexes.json` 新增 `userJourneyEvents(targetUserId ASC, eventDate DESC, __name__ DESC)` 並確認或補上 `subsidyApplications(userId ASC, applicationDate DESC, __name__ DESC)` 複合索引
 - [x] T012 [P] 在 `src/app/journey-timeline/services/journey-timeline.service.ts` 建立官方 Firebase SDK 注入、來源轉換、stable comparator、cursor/buffer 狀態與統一錯誤型別骨架
 - [x] T013 [P] 在 `src/app/journey-timeline/services/journey-event.service.ts` 建立事件與平坦 audit collection references、Admin-only CRUD／附件協調方法簽章
+- [x] T013a [P] 在 `src/app/journey-timeline/services/journey-event.service.ts` 補上 Auth uid actor 對齊、create event-first best-effort audit 與 legacy batch fallback 流程，避免 production audit/session 副寫入或 Rules 版本差異阻斷事件本體建立
 - [x] T014 執行 `src/app/journey-timeline/testing/firestore-rules.spec.ts` 與 `src/app/journey-timeline/testing/storage-rules.spec.ts`，修正 `firestore.rules`、`storage.rules` 直到 Phase 2 權限測試通過（執行 `npm run test:journey-rules`）
 
 **Checkpoint**：資料模型、索引、Rules 與兩個 service 的共同契約已就緒，三個使用者故事可開始實作。
@@ -87,7 +88,7 @@
 
 - [x] T031 [P] [US2] 建立 `src/app/journey-timeline/dialogs/journey-event-dialog.component.ts` 的 reactive form、建立／編輯模式、字數驗證、submitting 狀態與繁體中文錯誤處理
 - [x] T032 [P] [US2] 建立 `src/app/journey-timeline/dialogs/journey-event-dialog.component.html` 與 `src/app/journey-timeline/dialogs/journey-event-dialog.component.scss` 的日期、標題、內容欄位及 responsive dialog 版面
-- [x] T033 [US2] 在 `src/app/journey-timeline/services/journey-event.service.ts` 實作 Admin create batch、Admin 最新 snapshot update transaction、create/update `lastAuditId`、預建不可變 `deleteAuditId`、同 ID `userJourneyEventAudits` 寫入、actor 欄位與 immutable targetUserId 驗證
+- [x] T033 [US2] 在 `src/app/journey-timeline/services/journey-event.service.ts` 實作 Admin create event-first best-effort audit 與 legacy batch fallback、Admin 最新 snapshot update transaction、create/update `lastAuditId`、預建不可變 `deleteAuditId`、同 ID `userJourneyEventAudits` 寫入、actor 欄位與 immutable targetUserId 驗證
 - [x] T034 [US2] 在 `src/app/journey-timeline/services/journey-event.service.ts` 實作 Admin-only delete transaction，以事件既有 `deleteAuditId` 同步建立平坦 delete audit 後刪除 parent event，不建立 audit 子集合
 - [x] T035 [US2] 在 `src/app/journey-timeline/components/user-journey-timeline.component.ts` 與 `.html` 依 `eventPermissions` 串接 Admin 新增／編輯／刪除 dialog，成功後重抓首批資料；一般使用者不顯示事件寫入 controls
 - [x] T036 [US2] 在 `src/app/journey-timeline/dialogs/journey-event-dialog.component.ts`、`src/app/journey-timeline/components/user-journey-timeline.component.ts` 與對應 HTML 補齊權限改變、transaction 衝突、資料不存在及重試的繁體中文訊息

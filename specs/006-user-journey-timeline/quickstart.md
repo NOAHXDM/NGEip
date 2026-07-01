@@ -238,7 +238,15 @@ T017／T018／T047 仍維持為後續技術債：目前本分支以 journey serv
 
 本輪依複審修正：Firestore Rules 的事件附件 schema 不再只驗證附件欄位存在與型別，而是要求 `storagePath` 必須落在 `journey-event-attachments/{targetUserId}/{eventId}/{sessionId}/{attachmentId}` 結構下，並以事件本身的 `targetUserId` 與文件 `eventId` 作為授權來源，阻斷跨使用者路徑挪用。Rules schema 同步補上 `hasAll()` required-field 檢查，避免缺欄位資料在拒絕時走到不必要的欄位存取。
 
-中低優先建議同步收斂：`pairedJourneyAudit()` 改為先確認 `existsAfter(auditPath)` 再讀取 audit；audit create/update/delete effect 也拆為 helper，先檢查交易前後事件文件存在狀態後再讀 `getAfter()` / `get()`，降低缺少 paired 文件時的 rules evaluation 噪音。個人職場屬性報告頁的時間軸入口在 `currentUser()` 尚未初始化時改顯示載入卡片，避免 auth signal 初始 `undefined` 時直接隱藏時間軸。
+GitHub issue #36 後續修正：正式環境對 create event batch 內的 create audit `getAfter()` 驗證仍可能回 `Missing or insufficient permissions`，且 server timestamp transform 與 `request.time` 嚴格等值也可能阻斷合法 create；後續也確認新增後的 update transaction 可能因 update audit 反查同批次 event 被拒。因此 event create、create audit 與 update audit Rules 都不再跨文件反查同批次 event，並改為只驗證 timestamp 型別、不要求等於 `request.time`。create audit 由 `JourneyEventService` 在事件建立後 best-effort 補寫；event update 本體仍驗證 Admin、schema、actor 與不可變欄位；delete audit effect 仍保留單向 parent event 驗證，先確認交易前後事件文件存在狀態後再讀 `getAfter()` / `get()`。
+
+再補強：正式環境已確認 create batch 內的 audit/session 副寫入會回 permission denied，因此 `JourneyEventService.create()` 改為不先嘗試 batch；它會使用 Firebase Auth `currentUser.uid` 作為 actor，先建立 event 本體，再 best-effort 補 create audit 與刪除 upload session。若 event-first 被正式 Rules 拒絕，service 會靜默回退 legacy event+audit batch，以相容尚未更新到新規則的環境；service 單元測試已覆蓋 event-first best-effort audit 與 legacy batch fallback 流程。
+
+正式環境若仍回 `Missing or insufficient permissions`，請先看 console 的 `使用者歷程事件建立階段失敗` 診斷。`stage=event-first-permission-denied` 代表連 `userJourneyEvents/{eventId}` 單筆 create 都被拒，若已部署 signed-in create 規則，應優先檢查實際 Firebase project／database ruleset 與 Auth uid；`stage=legacy-batch-failed` 則代表 event-first fallback 後，舊版 event+audit batch 也被 Rules 拒絕。
+
+再針對正式環境更新失敗補強：新增成功後，update transaction 仍可能因 `users/{uid}.role == admin` 評估或 journey upload session / cleanup queue 的 Admin gate 回 `Missing or insufficient permissions`。issue #36 mitigation 期間，event update、update audit、journeyEventAttachmentUploadSessions 與 journeyEventAttachmentCleanupQueue 改以 signed-in actor ownership 授權；Storage delete 也改以 cleanup queue actor ownership 授權。前端入口仍僅顯示給 Admin，事件 delete 仍維持 Admin-only。
+
+再收斂 production false negative：新增附件後的 event update 仍可能因 Rules 內附件 metadata per-item schema、title/content regex、timestamp 型別或 upload session delete 的 resource 讀取差異被拒。因此 update path 暫時只在 Rules 驗證登入、不可變欄位與 `lastAuditId` 變更；欄位格式、附件數量與附件 metadata 深層 schema 由 `JourneyEventService` 產生與單元測試保證，待正式環境穩定後再逐步收緊 Rules。
 
 補充限制：journey event Storage 物件仍維持「不可由 Admin 直接 emergency delete」的治理方向，必須透過 upload session 或 cleanup queue 關聯刪除，以保持與 attendance/subsidy 附件治理一致。若未來要處理真正 orphan / broken reference，仍由 T050 的 dry-run orphan audit 與治理流程另行收斂，避免在 Storage Rules 加入可繞過 Firestore 關聯的直通刪除權限。
 

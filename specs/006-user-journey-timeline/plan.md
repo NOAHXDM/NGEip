@@ -15,7 +15,7 @@
 **測試策略**：Karma/Jasmine 單元與元件測試；Firebase Firestore／Storage Emulator Rules 與整合測試  
 **目標平台**：Firebase Hosting 上的 Angular SPA，桌面與行動瀏覽器  
 **效能目標**：每批最多 20 個合併項目；首批最多執行兩個有界查詢；95% 於一般網路三秒內進入內容或明確載入狀態  
-**限制條件**：Firebase-only；Admin 僅由 `users/{request.auth.uid}.role == "admin"` 判定；事件建立／更新／刪除僅 Admin、事件與附件開放所有已登入者跨使用者讀取；無跨 Firestore／Storage 原子交易  
+**限制條件**：Firebase-only；Admin 僅由 `users/{request.auth.uid}.role == "admin"` 判定；前端事件建立／更新／刪除入口僅 Admin；issue #36 mitigation 期間，Rules 對事件建立／更新與附件 session／cleanup 暫時採 signed-in actor ownership，事件刪除仍維持 Admin-only；事件與附件開放所有已登入者跨使用者讀取；無跨 Firestore／Storage 原子交易  
 **規模／範圍**：兩個嵌入點、一個時間軸元件、一個事件 dialog、兩個 service、四個新頂層集合與一組 Storage 路徑
 
 ## 憲章檢查
@@ -79,18 +79,18 @@ storage.rules
 ### 事件寫入與稽核
 
 - 所有 create／update／delete audit 均寫入平坦且 append-only 的 `userJourneyEventAudits/{auditId}`，不建立事件 audit 子集合，避免刪除 parent 後留下無法治理的子集合文件。
-- 建立事件前由 client 預先產生 event ID。無附件時，以 Firestore batch 同時寫入事件與 create audit；create 僅允許 Admin。
+- 建立事件前由 client 預先產生 event ID。create Rules 暫時允許 signed-in create 作為 issue #36 mitigation，前端入口仍僅顯示給 Admin；service 以 Firebase Auth uid 作為 actor 先建立事件本體，再 best-effort 補寫 create audit。若 event-first 被正式 Rules 拒絕，回退 legacy event+audit batch 以相容尚未更新的 Rules，並輸出階段式診斷 log（event-first、legacy batch、Auth uid、target uid、event id、附件數）。有附件 create 的 upload session 暫時採 signed-in actor ownership。
 - 每個事件建立前預先產生不可變的 `deleteAuditId`；每次 create/update 另產生唯一 `lastAuditId`。事件文件保存兩者，使 Rules 不需查詢即可定位同交易的 audit 文件。
-- 編輯時用 transaction 讀取最新事件，驗證 actor 為 Admin，更新業務欄位與 `lastAuditId` 並建立同 ID 的 update audit；以 `updatedAt`／最新 attachment IDs 防止過期畫面覆寫。
+- 編輯時用 transaction 讀取最新事件，驗證 actor 為目前 Firebase Auth uid，更新業務欄位與 `lastAuditId` 並建立同 ID 的 update audit；以 `updatedAt`／最新 attachment IDs 防止過期畫面覆寫。前端入口仍僅提供 Admin 操作。
 - 刪除使用 transaction 在 `userJourneyEventAudits/{deleteAuditId}` 建立 delete audit 後刪除事件；delete 僅允許 Admin。audit 保存 eventId、targetUserId、title、attachmentSummary、actorUid、action 與 actionAt，不保存附件內容。
-- Rules 允許所有 authenticated read 事件；create/update/delete 僅 Admin。audit 只允許合法事件交易中的 actor create，Admin read，禁止 update/delete。
+- Rules 允許所有 authenticated read 事件；issue #36 mitigation 期間 create/update 與附件 session／cleanup 採 signed-in actor ownership，delete 仍僅 Admin。audit 只允許合法 actor create，Admin read，禁止 update/delete。
 
 ### 事件附件
 
 - metadata 使用既有 `AttachmentMetadata`；完整重用 attendance/subsidy 的數量、大小、extension/MIME/magic bytes 驗證、預覽、替換、上傳 session、失敗補償、cleanup queue 與孤兒稽核規章。
 - Storage 路徑：`journey-event-attachments/{targetUserId}/{eventId}/{sessionId}/{attachmentId}`。原始檔名不進路徑。
 - 擴充既有 `AttachmentService` 與附件 models 支援 `journey-event` domain adapter；共用驗證、預覽及協調演算法，不複製另一套政策。事件使用自己的 session／cleanup 集合與 Storage prefix，但狀態轉移及限制必須與 attendance/subsidy 一致。
-- 事件附件只使用 `journeyEventAttachmentUploadSessions` 持有正式寫入前的上傳；僅 Admin 在建立或更新事件時可建立合法 session。正式 transaction 將 metadata 轉入事件。刪除／替換先建立 `journeyEventAttachmentCleanupQueue` 再移除 metadata，Storage 刪除失敗時保留 queue 供重試及稽核。
+- 事件附件只使用 `journeyEventAttachmentUploadSessions` 持有正式寫入前的上傳；issue #36 mitigation 期間由 signed-in actor 建立合法 session。Storage `journey-event-attachments` 允許 session/cleanup actor 或現任 Admin 透過治理文件進行上傳／刪除，但不允許 Admin 直接繞過關聯文件。正式 transaction 將 metadata 轉入事件。刪除／替換先建立 `journeyEventAttachmentCleanupQueue` 再移除 metadata，Storage 刪除失敗時保留 queue 供重試及稽核。
 - 事件刪除會為每個附件建立 cleanup queue，待事件與 delete audit transaction 成功後再刪實體檔。附件治理延遲不回滾已成功的事件刪除，但每個物件始終具有 event、session 或 cleanup queue 關聯。
 
 ### 狀態與畫面
@@ -102,11 +102,11 @@ storage.rules
 
 ## Firestore Rules、索引與成本
 
-- `userJourneyEvents/{eventId}`：所有 authenticated 可 get/list；create/update/delete 僅 `users/{request.auth.uid}.role == "admin"`，且 `targetUserId`、`createdBy`、`createdAt`、`deleteAuditId` 不可修改。
-- client 在儲存前 trim title/content；Rules 驗證欄位 allowlist、Timestamp 型別、title 1–100 字、content 1–5,000 字且各至少包含一個非空白字元、attachments 0–5 筆，以及 `createdBy/updatedBy == request.auth.uid`。對應 Emulator 測試覆蓋每個邊界。
-- create/update Rules 要求 `lastAuditId` 每次改變，並以它精確 `getAfter()` 對應 `userJourneyEventAudits/{lastAuditId}`；delete Rules 以刪除前不可變的 `deleteAuditId` 精確 `getAfter()`。event `createdAt/updatedAt` 與 audit `actionAt` 必須等於 `request.time`；audit Rules 同時驗證 action、eventId、targetUserId、actorUid、title 與 parent before/after 狀態，拒絕孤立、重用或偽造 audit。audit 僅 Admin 可讀，禁止 update/delete。
-- GitHub issue #36 補強：Rules 對無附件事件採空清單短路驗證，並以 Emulator regression test 覆蓋「新 user、role=user、尚無補助紀錄」建立第一筆事件，避免正式環境將合法首筆歷程誤判為權限不足。
-- 附件 Storage get：任何 authenticated 均可讀取確切路徑，未登入拒絕，且禁止 list。create/delete 必須匹配 Admin 建立的 session／cleanup queue；Rules 驗證每檔 ≤3 MiB、PDF/JPEG/PNG/WebP MIME allowlist，Firestore Rules 驗證最終最多五檔及 metadata schema。
+- `userJourneyEvents/{eventId}`：所有 authenticated 可 get/list；issue #36 mitigation 期間 create/update 採 signed-in ownership，delete 僅 `users/{request.auth.uid}.role == "admin"`，且 update 只在 Rules 層保留 `targetUserId`、`createdBy`、`createdAt`、`deleteAuditId` 不可修改與 `lastAuditId` 必須變更。
+- client 在儲存前 trim title/content；issue #36 mitigation 期間，update 的欄位格式、Timestamp 型別、title/content 字數、attachments 數量與附件 metadata per-item schema 暫由前端 service 保證，避免正式環境 Rules 對深層 list/map 或 timestamp transform 驗證誤判權限不足。
+- event create/update Rules 暫時降級為 signed-in actor ownership，用來切分正式環境 schema/admin 評估與部署/Auth 問題；delete 仍維持 Admin-only。create audit Rules 仍驗證 Admin；update audit Rules 驗證 signed-in actor、schema、audit id 與 timestamp 型別，不跨文件反查同批次 event；delete audit Rules 仍以 `deleteAuditId` 精確對應 parent event 的同批次刪除效果。audit 僅 Admin 可讀，禁止 update/delete。
+- GitHub issue #36 補強：Rules 對無附件事件採空清單短路驗證，並移除 event create 與 create audit 對新 event 的跨文件 `getAfter()` 讀取，避免正式環境將合法首筆歷程誤判為權限不足；Emulator regression test 覆蓋「新 user、role=user、尚無補助紀錄」建立第一筆事件。
+- 附件 Storage get：任何 authenticated 均可讀取確切路徑，未登入拒絕，且禁止 list。create/delete 必須匹配 session／cleanup queue，並允許 session/queue actor 或現任 Admin 操作；Rules 驗證每檔 ≤3 MiB、PDF/JPEG/PNG/WebP MIME allowlist，Firestore Rules 驗證最終最多五檔及 metadata schema。
 - 新增複合索引 `userJourneyEvents(targetUserId ASC, eventDate DESC, __name__ DESC)`；既有 subsidy 查詢若加入 `__name__` tie-breaker，需確認／新增 `subsidyApplications(userId ASC, applicationDate DESC, __name__ DESC)`。
 - 首批通常為兩次 Firestore query，各最多 20 documents；事件管理每次另有 event + audit 寫入，附件依檔數增加 session、Storage 與 cleanup 寫入。無全集合 scan、無重複常駐監聽。
 

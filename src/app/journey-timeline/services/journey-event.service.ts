@@ -1,4 +1,5 @@
 import { InjectionToken, Injectable, inject } from '@angular/core';
+import { Auth } from '@angular/fire/auth';
 import {
   Firestore,
   Timestamp,
@@ -57,6 +58,19 @@ interface JourneyEventTransaction {
   set(ref: JourneyEventDocRef, data: unknown): void;
   update(ref: JourneyEventDocRef, data: unknown): void;
   delete(ref: JourneyEventDocRef): void;
+}
+
+interface JourneyEventCreateDiagnostics {
+  eventId: string;
+  auditId: string;
+  requestedActorUid: string;
+  effectiveActorUid: string;
+  authUid: string | null;
+  targetUserId: string;
+  attachmentCount: number;
+  hasUploadSession: boolean;
+  titleLength: number;
+  contentLength: number;
 }
 
 export interface JourneyEventFirestoreOps {
@@ -230,38 +244,54 @@ export function hasMatchingJourneyEventUpdatedAt(current: unknown, expected: unk
 export class JourneyEventService {
   private readonly firestoreOps = inject(JOURNEY_EVENT_FIRESTORE_OPS);
   private readonly storage = inject(StorageService);
+  private readonly auth = inject(Auth, { optional: true });
 
   async create(
     input: JourneyEventInput,
     actorUid: string,
     files: readonly File[]
   ): Promise<string> {
+    const effectiveActorUid = this.effectiveActorUid(actorUid);
     const eventRef = this.firestoreOps.eventRef();
     const lastAuditId = crypto.randomUUID();
     const deleteAuditId = crypto.randomUUID();
     let prepared: PreparedAttachmentBatch | null = null;
     try {
       const normalized = normalizeJourneyEventInput(input);
-      prepared = await this.prepareUploads(eventRef.id, normalized.targetUserId, actorUid, files);
-      const batch = this.firestoreOps.writeBatch();
-      batch.set(eventRef, {
+      prepared = await this.prepareUploads(eventRef.id, normalized.targetUserId, effectiveActorUid, files);
+      const eventData = {
         ...normalized,
         attachments: prepared.attachments,
-        createdBy: actorUid,
+        createdBy: effectiveActorUid,
         createdAt: serverTimestamp(),
-        updatedBy: actorUid,
+        updatedBy: effectiveActorUid,
         updatedAt: serverTimestamp(),
         lastAuditId,
         deleteAuditId,
-      });
-      batch.set(this.firestoreOps.ref('userJourneyEventAudits', lastAuditId), this.audit(
-        eventRef.id, normalized.targetUserId, 'create', actorUid, normalized.title,
+      };
+      const auditData = this.audit(
+        eventRef.id, normalized.targetUserId, 'create', effectiveActorUid, normalized.title,
         journeyCreateChangedFields(prepared.attachments), prepared.attachments
-      ));
-      if (prepared.sessionId !== null) {
-        batch.delete(this.firestoreOps.ref('journeyEventAttachmentUploadSessions', prepared.sessionId));
-      }
-      await batch.commit();
+      );
+      await this.createEventThenBestEffortAudit(
+        eventRef,
+        eventData,
+        lastAuditId,
+        auditData,
+        prepared,
+        {
+          eventId: eventRef.id,
+          auditId: lastAuditId,
+          requestedActorUid: actorUid,
+          effectiveActorUid,
+          authUid: this.authUid(),
+          targetUserId: normalized.targetUserId,
+          attachmentCount: prepared.attachments.length,
+          hasUploadSession: prepared.sessionId !== null,
+          titleLength: normalized.title.length,
+          contentLength: normalized.content.length,
+        }
+      );
       return eventRef.id;
     } catch (error) {
       if (prepared && prepared.sessionId !== null) await this.rollbackPrepared(prepared);
@@ -278,6 +308,7 @@ export class JourneyEventService {
     files: readonly File[],
     removedAttachmentIds: readonly string[]
   ): Promise<void> {
+    actorUid = this.effectiveActorUid(actorUid);
     const eventRef = this.firestoreOps.ref('userJourneyEvents', event.id);
     const lastAuditId = crypto.randomUUID();
     let prepared: PreparedAttachmentBatch | null = null;
@@ -339,6 +370,7 @@ export class JourneyEventService {
   }
 
   async delete(event: UserJourneyEvent, actorUid: string): Promise<void> {
+    actorUid = this.effectiveActorUid(actorUid);
     const eventRef = this.firestoreOps.ref('userJourneyEvents', event.id);
     let removed: AttachmentMetadata[] = [];
     try {
@@ -531,13 +563,113 @@ export class JourneyEventService {
     };
   }
 
+  private async createEventThenBestEffortAudit(
+    eventRef: JourneyEventDocRef,
+    eventData: unknown,
+    auditId: string,
+    auditData: unknown,
+    prepared: PreparedAttachmentBatch,
+    context: JourneyEventCreateDiagnostics
+  ): Promise<void> {
+    try {
+      await this.firestoreOps.setDoc(eventRef, eventData);
+    } catch (error) {
+      if (!this.isPermissionDenied(error)) throw error;
+      this.logCreateFailure('event-first-permission-denied', error, context);
+      try {
+        await this.createEventWithLegacyBatch(eventRef, eventData, auditId, auditData, prepared);
+      } catch (legacyError) {
+        this.logCreateFailure('legacy-batch-failed', legacyError, context);
+        throw legacyError;
+      }
+      return;
+    }
+    await this.bestEffort(
+      () => this.firestoreOps.setDoc(this.firestoreOps.ref('userJourneyEventAudits', auditId), auditData),
+      '事件已建立，但 create audit 補寫失敗',
+      { ...context }
+    );
+    if (prepared.sessionId !== null) {
+      await this.bestEffort(
+        () => this.firestoreOps.deleteDoc(this.firestoreOps.ref('journeyEventAttachmentUploadSessions', prepared.sessionId!)),
+        '事件已建立，但 upload session 移除失敗',
+        { ...context, sessionId: prepared.sessionId }
+      );
+    }
+  }
+
+  private async createEventWithLegacyBatch(
+    eventRef: JourneyEventDocRef,
+    eventData: unknown,
+    auditId: string,
+    auditData: unknown,
+    prepared: PreparedAttachmentBatch
+  ): Promise<void> {
+    const batch = this.firestoreOps.writeBatch();
+    batch.set(eventRef, eventData);
+    batch.set(this.firestoreOps.ref('userJourneyEventAudits', auditId), auditData);
+    if (prepared.sessionId !== null) {
+      batch.delete(this.firestoreOps.ref('journeyEventAttachmentUploadSessions', prepared.sessionId));
+    }
+    await batch.commit();
+  }
+
+  private effectiveActorUid(actorUid: string): string {
+    const authUid = this.authUid();
+    if (authUid && authUid !== actorUid) {
+      console.warn('使用者歷程 actorUid 與 Firebase Auth uid 不一致，改用 Auth uid 寫入', {
+        actorUid,
+        authUid,
+      });
+    }
+    return authUid || actorUid;
+  }
+
+  private authUid(): string | null {
+    return this.auth?.currentUser?.uid ?? null;
+  }
+
   private friendly(message: string, error: unknown): Error {
-    console.error(message, error);
+    console.error(message, {
+      errorCode: this.errorCode(error),
+      errorMessage: this.errorMessage(error),
+      error,
+    });
     return new Error(message);
+  }
+
+  private isPermissionDenied(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+    const code = 'code' in error ? String((error as { code?: unknown }).code) : '';
+    const message = 'message' in error ? String((error as { message?: unknown }).message) : '';
+    return code === 'permission-denied'
+      || code === 'firestore/permission-denied'
+      || message.includes('Missing or insufficient permissions');
   }
 
   private errorCode(error: unknown): string {
     return attachmentErrorCode(error);
+  }
+
+  private errorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (error && typeof error === 'object' && 'message' in error) {
+      return String((error as { message?: unknown }).message);
+    }
+    return String(error);
+  }
+
+  private logCreateFailure(
+    stage: 'event-first-permission-denied' | 'legacy-batch-failed',
+    error: unknown,
+    context: JourneyEventCreateDiagnostics
+  ): void {
+    console.error('使用者歷程事件建立階段失敗', {
+      stage,
+      ...context,
+      errorCode: this.errorCode(error),
+      errorMessage: this.errorMessage(error),
+    });
   }
 
   private async bestEffort(

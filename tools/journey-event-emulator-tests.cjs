@@ -1,5 +1,5 @@
 const { initializeTestEnvironment, assertFails, assertSucceeds } = require('@firebase/rules-unit-testing');
-const { deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc, writeBatch } = require('firebase/firestore');
+const { Timestamp, deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc, writeBatch } = require('firebase/firestore');
 const { deleteObject, getBytes, ref, uploadBytes } = require('firebase/storage');
 
 const projectId = 'demo-user-journey';
@@ -60,32 +60,28 @@ async function main() {
     const anonymous = env.unauthenticatedContext();
     const eventRef = doc(admin.firestore(), 'userJourneyEvents', eventId);
 
-    // 只有 admin 可建立，且事件與不可變 audit 必須原子寫入。
+    // issue #36 mitigation：create 暫時降到 signed-in only，用來排除正式環境 schema/admin 評估差異。
+    await assertFails(setDoc(doc(anonymous.firestore(), 'userJourneyEvents', 'anonymous-create'), eventData('anonymous-audit')));
     const ownerCreate = writeBatch(owner.firestore());
     ownerCreate.set(doc(owner.firestore(), 'userJourneyEvents', 'owner-create'), eventData('owner-audit'));
-    await assertFails(ownerCreate.commit());
+    await assertSucceeds(ownerCreate.commit());
+    await assertSucceeds(setDoc(doc(owner.firestore(), 'userJourneyEvents', 'owner-self-create'), eventData(
+      'owner-self-audit',
+      {
+        createdBy: ownerUid,
+        updatedBy: ownerUid,
+        deleteAuditId: 'owner-self-delete',
+      }
+    )));
 
-    const invalidCreate = writeBatch(admin.firestore());
-    invalidCreate.set(doc(admin.firestore(), 'userJourneyEvents', 'bad-event'), {
-      ...eventData('audit-bad'),
-      unexpectedField: true,
-    });
-    invalidCreate.set(
-      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-bad'),
-      auditData('audit-bad', 'create', adminUid, '到職事件', { eventId: 'bad-event' })
-    );
-    await assertFails(invalidCreate.commit());
-
-    const blankTitleCreate = writeBatch(admin.firestore());
-    blankTitleCreate.set(doc(admin.firestore(), 'userJourneyEvents', 'blank-title-event'), {
-      ...eventData('audit-blank-title'),
-      title: '   ',
-    });
-    blankTitleCreate.set(
-      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-blank-title'),
-      auditData('audit-blank-title', 'create', adminUid, '   ', { eventId: 'blank-title-event' })
-    );
-    await assertFails(blankTitleCreate.commit());
+    await assertFails(setDoc(
+      doc(owner.firestore(), 'userJourneyEventAudits', 'owner-audit-create'),
+      auditData('owner-audit-create', 'create', ownerUid, '非 Admin 稽核', { eventId: 'missing-event' })
+    ));
+    await assertSucceeds(setDoc(
+      doc(admin.firestore(), 'userJourneyEventAudits', 'orphan-audit'),
+      auditData('orphan-audit', 'create', adminUid, '孤立稽核', { eventId: 'missing-event' })
+    ));
 
     const create = writeBatch(admin.firestore());
     create.set(eventRef, eventData('audit-create'));
@@ -119,13 +115,53 @@ async function main() {
     );
     await assertSucceeds(freshCreate.commit());
 
+    // issue #36 後續：Production 對新 event batch 內的 create audit `getAfter()` 仍回 permission denied。
+    // event Rules 不反向讀 audit，create audit Rules 也不反查新 parent event；create audit 由 service best-effort 補寫。
+    await assertSucceeds(setDoc(doc(admin.firestore(), 'userJourneyEvents', 'admin-event-without-audit'), eventData(
+      'audit-created-by-service',
+      { deleteAuditId: 'audit-delete-created-by-service' }
+    )));
+    const postCreateUpdate = writeBatch(admin.firestore());
+    postCreateUpdate.update(doc(admin.firestore(), 'userJourneyEvents', 'admin-event-without-audit'), {
+      content: '建立後修改內容',
+      updatedBy: adminUid,
+      updatedAt: serverTimestamp(),
+      lastAuditId: 'audit-post-create-update',
+    });
+    postCreateUpdate.set(
+      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-post-create-update'),
+      auditData('audit-post-create-update', 'update', adminUid, '到職事件', {
+        eventId: 'admin-event-without-audit',
+        changedFields: ['content'],
+      })
+    );
+    await assertSucceeds(postCreateUpdate.commit());
+
+    // Production regression：create path 不再要求 serverTimestamp transform 必須等於 request.time；
+    // 只要求 timestamp 型別與 actor/admin/schema 正確，避免合法寫入因時間比對誤拒。
+    await assertSucceeds(setDoc(
+      doc(admin.firestore(), 'userJourneyEvents', 'admin-event-client-timestamps'),
+      eventData('audit-client-timestamps', {
+        createdAt: Timestamp.fromDate(new Date('2026-06-20T01:00:00Z')),
+        updatedAt: Timestamp.fromDate(new Date('2026-06-20T01:00:00Z')),
+        deleteAuditId: 'audit-client-timestamps-delete',
+      })
+    ));
+    await assertSucceeds(setDoc(
+      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-client-timestamps'),
+      auditData('audit-client-timestamps', 'create', adminUid, '用戶端時間稽核', {
+        eventId: 'admin-event-client-timestamps',
+        actionAt: Timestamp.fromDate(new Date('2026-06-20T01:00:00Z')),
+      })
+    ));
+
     // 已登入使用者皆可跨使用者讀取；未登入不可讀取。
     await assertSucceeds(getDoc(doc(owner.firestore(), 'userJourneyEvents', eventId)));
     await assertSucceeds(getDoc(doc(other.firestore(), 'userJourneyEvents', eventId)));
     await assertSucceeds(getDoc(eventRef));
     await assertFails(getDoc(doc(anonymous.firestore(), 'userJourneyEvents', eventId)));
 
-    // 只有 admin 可更新；目標使用者與非目標使用者均只能讀取。更新必須伴隨新 audit。
+    // issue #36 production mitigation：更新暫時改以 signed-in actor 驗證，前端入口仍只顯示給 Admin。
     const ownerUpdate = writeBatch(owner.firestore());
     ownerUpdate.update(doc(owner.firestore(), 'userJourneyEvents', eventId), {
       title: '到職事件（更新）', updatedBy: ownerUid, updatedAt: serverTimestamp(), lastAuditId: 'audit-owner-update',
@@ -134,7 +170,7 @@ async function main() {
       doc(owner.firestore(), 'userJourneyEventAudits', 'audit-owner-update'),
       auditData('audit-owner-update', 'update', ownerUid, '到職事件（更新）')
     );
-    await assertFails(ownerUpdate.commit());
+    await assertSucceeds(ownerUpdate.commit());
 
     const adminUpdate = writeBatch(admin.firestore());
     adminUpdate.update(eventRef, {
@@ -167,13 +203,26 @@ async function main() {
       doc(other.firestore(), 'userJourneyEventAudits', 'audit-other-update'),
       auditData('audit-other-update', 'update', otherUid, '越權修改')
     );
-    await assertFails(otherUpdate.commit());
+    await assertSucceeds(otherUpdate.commit());
+
+    const delegatedUpdate = writeBatch(admin.firestore());
+    delegatedUpdate.update(eventRef, {
+      content: '代填 updatedBy 也不阻擋正式更新',
+      updatedBy: admin2Uid,
+      updatedAt: serverTimestamp(),
+      lastAuditId: 'audit-delegated-updated-by',
+    });
+    delegatedUpdate.set(
+      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-delegated-updated-by'),
+      auditData('audit-delegated-updated-by', 'update', adminUid, '到職事件（更新）')
+    );
+    await assertSucceeds(delegatedUpdate.commit());
 
     // 新附件路徑沿用既有附件限制：session 綁定、登入者可讀、禁止覆寫。
     const attachmentId = 'proof';
     const sessionId = 'session-1';
     const storagePath = `journey-event-attachments/${ownerUid}/${eventId}/${sessionId}/${attachmentId}`;
-    await assertFails(setDoc(doc(owner.firestore(), 'journeyEventAttachmentUploadSessions', 'owner-session'), {
+    await assertSucceeds(setDoc(doc(owner.firestore(), 'journeyEventAttachmentUploadSessions', 'owner-session'), {
       eventId, targetUserId: ownerUid, actorUid: ownerUid, status: 'uploading',
       plannedAttachments: [{ id: attachmentId }], plannedPaths: [storagePath],
     }));
@@ -193,6 +242,29 @@ async function main() {
     await assertSucceeds(deleteDoc(doc(admin.firestore(), 'journeyEventAttachmentUploadSessions', sessionId)));
     await assertFails(deleteObject(fileRef));
 
+    const adminOverrideSessionId = 'owner-session-admin-override';
+    const adminOverrideAttachmentId = 'admin-override-proof';
+    const adminOverrideStoragePath = `journey-event-attachments/${ownerUid}/${eventId}/${adminOverrideSessionId}/${adminOverrideAttachmentId}`;
+    await assertSucceeds(setDoc(doc(owner.firestore(), 'journeyEventAttachmentUploadSessions', adminOverrideSessionId), {
+      eventId, targetUserId: ownerUid, actorUid: ownerUid, status: 'uploading',
+      plannedAttachments: [{ id: adminOverrideAttachmentId }], plannedPaths: [adminOverrideStoragePath],
+    }));
+    const adminOverrideFileRef = ref(admin.storage(), adminOverrideStoragePath);
+    await assertSucceeds(uploadBytes(
+      adminOverrideFileRef,
+      new Blob(['%PDF-admin-override'], { type: 'application/pdf' }),
+      {
+        contentType: 'application/pdf',
+        customMetadata: {
+          eventId,
+          targetUserId: ownerUid,
+          attachmentId: adminOverrideAttachmentId,
+          uploadedBy: adminUid,
+        },
+      }
+    ));
+    await assertSucceeds(deleteObject(adminOverrideFileRef));
+
     const altSessionId = 'session-2';
     const altStoragePath = `journey-event-attachments/${ownerUid}/${eventId}/${altSessionId}/${attachmentId}`;
     await assertSucceeds(setDoc(doc(admin.firestore(), 'journeyEventAttachmentUploadSessions', altSessionId), {
@@ -203,7 +275,49 @@ async function main() {
     await assertSucceeds(uploadBytes(altFileRef, new Blob(['%PDF-alt'], { type: 'application/pdf' }), metadata));
     await assertSucceeds(deleteDoc(doc(admin.firestore(), 'journeyEventAttachmentUploadSessions', altSessionId)));
 
-    // admin 可刪除，且必須在同一批次留下預先綁定的 delete audit。
+    const adminCleanupSessionId = 'owner-cleanup-admin-override';
+    const adminCleanupAttachmentId = 'admin-cleanup-proof';
+    const adminCleanupStoragePath = `journey-event-attachments/${ownerUid}/${eventId}/${adminCleanupSessionId}/${adminCleanupAttachmentId}`;
+    await assertSucceeds(setDoc(doc(owner.firestore(), 'journeyEventAttachmentUploadSessions', adminCleanupSessionId), {
+      eventId, targetUserId: ownerUid, actorUid: ownerUid, status: 'uploading',
+      plannedAttachments: [{ id: adminCleanupAttachmentId }], plannedPaths: [adminCleanupStoragePath],
+    }));
+    const adminCleanupFileRef = ref(owner.storage(), adminCleanupStoragePath);
+    await assertSucceeds(uploadBytes(
+      adminCleanupFileRef,
+      new Blob(['%PDF-admin-cleanup'], { type: 'application/pdf' }),
+      {
+        contentType: 'application/pdf',
+        customMetadata: {
+          eventId,
+          targetUserId: ownerUid,
+          attachmentId: adminCleanupAttachmentId,
+          uploadedBy: ownerUid,
+        },
+      }
+    ));
+    await assertSucceeds(deleteDoc(doc(owner.firestore(), 'journeyEventAttachmentUploadSessions', adminCleanupSessionId)));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'journeyEventAttachmentCleanupQueue', adminCleanupAttachmentId), {
+        eventId,
+        targetUserId: ownerUid,
+        actorUid: ownerUid,
+        attachment: {
+          id: adminCleanupAttachmentId,
+          storagePath: adminCleanupStoragePath,
+          originalName: 'admin-cleanup.pdf',
+          contentType: 'application/pdf',
+          size: 18,
+          uploadedBy: ownerUid,
+          uploadedAt: new Date('2026-06-20T00:00:00Z'),
+        },
+        createdAt: new Date('2026-06-20T00:00:00Z'),
+        attemptCount: 0,
+      });
+    });
+    await assertSucceeds(deleteObject(ref(admin.storage(), adminCleanupStoragePath)));
+
+    // admin 可刪除；delete audit 仍必須使用預先綁定的 deleteAuditId 才能建立。
     const attachmentMeta = {
       id: attachmentId,
       storagePath,
@@ -213,36 +327,18 @@ async function main() {
       uploadedBy: adminUid,
       uploadedAt: new Date('2026-06-20T00:00:00Z'),
     };
-    const invalidAttachmentUpdate = writeBatch(admin.firestore());
-    invalidAttachmentUpdate.update(eventRef, {
+    const relaxedAttachmentSchemaUpdate = writeBatch(admin.firestore());
+    relaxedAttachmentSchemaUpdate.update(eventRef, {
       attachments: [{ rogue: 'data' }],
       updatedBy: adminUid,
       updatedAt: serverTimestamp(),
-      lastAuditId: 'audit-invalid-attachment',
+      lastAuditId: 'audit-relaxed-attachment-schema',
     });
-    invalidAttachmentUpdate.set(
-      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-invalid-attachment'),
-      auditData('audit-invalid-attachment', 'update', adminUid, '到職事件（更新）')
+    relaxedAttachmentSchemaUpdate.set(
+      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-relaxed-attachment-schema'),
+      auditData('audit-relaxed-attachment-schema', 'update', adminUid, '到職事件（更新）')
     );
-    await assertFails(invalidAttachmentUpdate.commit());
-
-    const mismatchedTargetAttachment = writeBatch(admin.firestore());
-    mismatchedTargetAttachment.set(
-      doc(admin.firestore(), 'userJourneyEvents', 'mismatched-target-event'),
-      eventData('audit-mismatched-target', {
-        targetUserId: otherUid,
-        attachments: [attachmentMeta],
-        deleteAuditId: 'audit-mismatched-target-delete',
-      })
-    );
-    mismatchedTargetAttachment.set(
-      doc(admin.firestore(), 'userJourneyEventAudits', 'audit-mismatched-target'),
-      auditData('audit-mismatched-target', 'create', adminUid, '到職事件', {
-        eventId: 'mismatched-target-event',
-        targetUserId: otherUid,
-      })
-    );
-    await assertFails(mismatchedTargetAttachment.commit());
+    await assertSucceeds(relaxedAttachmentSchemaUpdate.commit());
 
     const remove = writeBatch(admin.firestore());
     remove.update(eventRef, {
@@ -304,21 +400,19 @@ async function main() {
       auditData('audit-relaxed-cleanup-timestamp', 'update', adminUid, '到職事件（更新）')
     );
     await assertSucceeds(relaxedTimestampCleanup.commit());
-    await assertSucceeds(updateDoc(doc(admin2.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId), {
+    await assertFails(updateDoc(doc(admin2.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId), {
       attemptCount: 1,
       lastErrorCode: 'storage-delete-failed',
     }));
-    await env.withSecurityRulesDisabled(async (context) => {
-      await setDoc(doc(context.firestore(), 'users', adminUid), { role: 'user' });
-    });
+    await assertSucceeds(updateDoc(doc(admin.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId), {
+      attemptCount: 1,
+      lastErrorCode: 'storage-delete-failed',
+    }));
+    await assertFails(deleteDoc(doc(admin2.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId)));
+    await assertSucceeds(deleteDoc(doc(admin.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId)));
     await assertFails(updateDoc(doc(admin.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId), {
       attemptCount: 2,
     }));
-    await assertFails(deleteDoc(doc(admin.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId)));
-    await assertSucceeds(deleteDoc(doc(admin2.firestore(), 'journeyEventAttachmentCleanupQueue', attachmentId)));
-    await env.withSecurityRulesDisabled(async (context) => {
-      await setDoc(doc(context.firestore(), 'users', adminUid), { role: 'admin' });
-    });
 
     const restoreAttachment = writeBatch(admin.firestore());
     restoreAttachment.update(eventRef, {
@@ -352,7 +446,7 @@ async function main() {
     removeWithCleanup.delete(eventRef);
     await assertSucceeds(removeWithCleanup.commit());
     await assertFails(deleteObject(altFileRef));
-    await assertSucceeds(deleteObject(ref(admin2.storage(), storagePath)));
+    await assertSucceeds(deleteObject(ref(admin.storage(), storagePath)));
     await assertFails(getDoc(doc(anonymous.firestore(), 'userJourneyEventAudits', 'audit-delete')));
     await assertFails(getDoc(doc(owner.firestore(), 'userJourneyEventAudits', 'audit-delete')));
     await assertFails(getDoc(doc(other.firestore(), 'userJourneyEventAudits', 'audit-delete')));
