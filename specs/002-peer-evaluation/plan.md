@@ -168,7 +168,7 @@ userAttributeSnapshots/{cycleId}_{userId}
 | 管理者結束並發布（30 份表單，20 受評者） | ~30 | ~52 |
 | 管理者排名視圖（第一頁 20 筆） | ~20 | 0 |
 | 管理者隨機快選預覽（20 位使用者） | users + 該週期 assignments | 0 |
-| 管理者儲存隨機快選（20 位使用者、每人 10 位評核者） | transaction 內既有指派驗證 | 實際新增 pending 指派數 + 每個 transaction chunk 0 或 1 次週期統計更新（每 chunk 最多 498 筆新增，保留 cycle update 與擴充 write slot） |
+| 管理者儲存隨機快選（20 位使用者、依介面設定每人 N 位評核者） | transaction 內既有指派驗證 | 實際新增 pending 指派數 + 每個 transaction chunk 0 或 1 次週期統計更新（每 chunk 最多 498 筆新增，保留 cycle update 與擴充 write slot） |
 
 ---
 
@@ -179,24 +179,33 @@ userAttributeSnapshots/{cycleId}_{userId}
 **輸入資料**：
 - 該週期所有在職使用者，排除 `role === 'admin'`。
 - 該週期既有 `evaluationAssignments`，用於保護已完成指派與避免重複。
+- 管理者介面設定：
+  - `targetEvaluatorCount`：受評採樣人數，預設 10，實際使用時限制在 `1..eligibleUsers.length - 1`。
+  - `sameJobTitleMax`：同職稱最大數；未輸入時採自動模式，依每位受評者同 `jobTitle` 可用候選人數扣除本人計算；缺少 `jobTitle` 時自動值為 0。若有輸入，實際使用時限制在 `0..min(targetEvaluatorCount, sameJobTitleCandidateCount)`。
 
 **輸出資料**：
-- `RandomAssignmentPreview`：以受評者為單位彙整多列預覽資料，包含受評者、系統建議評核者、已完成且不可動的評核者、以及不足或衝突警示。
+- `RandomAssignmentPreview`：以受評者為單位彙整多列預覽資料，包含受評者、系統建議評核者、已完成且不可動的評核者、目標評核者數、同職稱最大數、以及不足或衝突警示。
 - 預覽階段不寫入 Firestore；只有管理者確認儲存後才建立正式指派。
+- 管理者可在預覽階段移除整位受評者 row；移除後該受評者不會在本次確認儲存中新增 pending 指派，且不影響既有 completed 指派。
 
 **規則優先序**：
 1. 不可自評：`evaluateeUid !== evaluatorUid`。
-2. 每位受評者足額：目標評核者數為 `min(10, eligibleUsers.length - 1)`。
-3. 評核者負載平均：每次挑選候選評核者時，優先挑目前預覽總負載較低者。
-4. 同職稱優先：在滿足前 3 條後，優先選擇 `jobTitle` 相同且非空白的候選評核者；缺少 `jobTitle` 者不屬於同職稱群組。
+2. 每位受評者足額：目標評核者數為 `min(targetEvaluatorCount, eligibleUsers.length - 1)`，預設 `targetEvaluatorCount = 10`。
+3. 同職稱最大數限制：同 `jobTitle` 評核者數不得超過該受評者的有效 `sameJobTitleMax`；缺少 `jobTitle` 者同職稱最大數為 0。
+4. 評核者負載平均：每次挑選候選評核者時，優先挑目前預覽總負載較低者。
+5. 同職稱優先：在不超過同職稱最大數且滿足前 4 條後，優先選擇 `jobTitle` 相同且非空白的候選評核者；缺少 `jobTitle` 者不屬於同職稱群組。
 
 **邊界處理**：
 - `eligibleUsers.length < 2`：不產生預覽，顯示「可用使用者不足，無法產生隨機指派」。
 - `eligibleUsers.length === 2`：兩人互相指派，各 1 筆。
+- `targetEvaluatorCount` 小於 1 或非整數：介面阻止產生預覽並顯示驗證提示；服務層仍需保護性限制到有效範圍。
+- `sameJobTitleMax` 小於 0 或非整數：介面阻止產生預覽並顯示驗證提示；服務層仍需保護性限制到有效範圍。
 - 已完成指派：視為不可動且計入該受評者已擁有的評核者；預覽不可移除或替換。
 - 已完成指派超過目標人數：保留並顯示警示，不再補派。
 - 已完成指派包含管理員或已離職者：保留且計入該受評者既有評核者數，並顯示警示。
 - 既有 pending 指派：可在預覽中保留、刪除或替換；正式儲存時需避免重複寫入。
+- 移除受評者 row：正式儲存時完全忽略該 row 原本的非鎖定評核者；若移除前有 locked completed 指派，仍不得刪除或覆寫。
+- 預覽 row 編輯或移除後：需重新計算 `evaluatorLoads`，避免負載統計與後續操作使用舊資料。
 - 重複文件防護：寫入前以 `{evaluatorUid}_{cycleId}_{evaluateeUid}` 檢查既有文件，只對實際新增的指派遞增 `totalAssignments`。
 
 ---

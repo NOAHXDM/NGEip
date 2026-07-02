@@ -32,6 +32,7 @@ import {
 import { Auth, authState } from '@angular/fire/auth';
 import {
   EvaluationAssignment,
+  RandomAssignmentOptions,
   RandomAssignmentPreview,
   RandomAssignmentPreviewRow,
 } from '../models/evaluation.models';
@@ -154,6 +155,7 @@ export class EvaluationAssignmentService {
     cycleId: string,
     users: User[],
     existingAssignments: EvaluationAssignment[],
+    options: RandomAssignmentOptions = { targetEvaluatorCount: 10, sameJobTitleMax: null },
   ): RandomAssignmentPreview {
     const eligibleUsers = users
       .filter((user) => user.uid && !user.exitDate && user.role !== 'admin')
@@ -161,7 +163,7 @@ export class EvaluationAssignmentService {
 
     const targetEvaluatorCount = eligibleUsers.length < 2
       ? 0
-      : Math.min(10, eligibleUsers.length - 1);
+      : this.clampInteger(options.targetEvaluatorCount, 1, eligibleUsers.length - 1, 10);
 
     const userByUid = new Map(users.filter((user) => user.uid).map((user) => [user.uid!, user]));
     const eligibleUidSet = new Set(eligibleUsers.map((user) => user.uid!));
@@ -186,6 +188,7 @@ export class EvaluationAssignmentService {
       const existingForEvaluatee = assignmentsByEvaluatee.get(evaluateeUid) ?? [];
       const completed = existingForEvaluatee.filter((assignment) => assignment.status === 'completed');
       const pending = existingForEvaluatee.filter((assignment) => assignment.status === 'pending');
+      const sameJobTitleMax = this.resolveSameJobTitleMax(evaluatee, eligibleUsers, targetEvaluatorCount, options);
       const warnings: string[] = [];
       const evaluatorUids: string[] = [];
       const lockedEvaluatorUids: string[] = [];
@@ -211,13 +214,27 @@ export class EvaluationAssignmentService {
         if (evaluatorUids.length >= targetEvaluatorCount) break;
         if (assignment.evaluatorUid === evaluateeUid) continue;
         if (!eligibleUidSet.has(assignment.evaluatorUid)) continue;
+        if (!this.canAddEvaluatorWithinSameJobTitleMax(
+          evaluatee,
+          assignment.evaluatorUid,
+          evaluatorUids,
+          userByUid,
+          sameJobTitleMax,
+        )) continue;
         if (this.addUnique(evaluatorUids, assignment.evaluatorUid)) {
           evaluatorLoads[assignment.evaluatorUid] = (evaluatorLoads[assignment.evaluatorUid] ?? 0) + 1;
         }
       }
 
       while (evaluatorUids.length < targetEvaluatorCount) {
-        const candidate = this.pickEvaluator(evaluatee, eligibleUsers, evaluatorUids, evaluatorLoads);
+        const candidate = this.pickEvaluator(
+          evaluatee,
+          eligibleUsers,
+          evaluatorUids,
+          evaluatorLoads,
+          userByUid,
+          sameJobTitleMax,
+        );
         if (!candidate?.uid) break;
         evaluatorUids.push(candidate.uid);
         evaluatorLoads[candidate.uid] = (evaluatorLoads[candidate.uid] ?? 0) + 1;
@@ -228,11 +245,12 @@ export class EvaluationAssignmentService {
         evaluatorUids,
         lockedEvaluatorUids,
         targetEvaluatorCount,
+        sameJobTitleMax,
         warnings: Array.from(new Set(warnings)),
       };
     });
 
-    this.rebalancePreviewLoads(rows, eligibleUsers, evaluatorLoads);
+    this.rebalancePreviewLoads(rows, eligibleUsers, evaluatorLoads, userByUid);
 
     return {
       cycleId,
@@ -417,6 +435,7 @@ export class EvaluationAssignmentService {
     rows: RandomAssignmentPreviewRow[],
     eligibleUsers: User[],
     evaluatorLoads: Record<string, number>,
+    userByUid: Map<string, User>,
   ): void {
     const eligibleUids = eligibleUsers
       .map((user) => user.uid)
@@ -430,7 +449,7 @@ export class EvaluationAssignmentService {
 
       if (max.load - min.load <= 1) return;
 
-      const swapped = this.swapOverloadedEvaluator(rows, evaluatorLoads, max.uid, min.uid);
+      const swapped = this.swapOverloadedEvaluator(rows, evaluatorLoads, max.uid, min.uid, userByUid);
       if (!swapped) return;
     }
   }
@@ -440,11 +459,23 @@ export class EvaluationAssignmentService {
     evaluatorLoads: Record<string, number>,
     overloadedUid: string,
     underloadedUid: string,
+    userByUid: Map<string, User>,
   ): boolean {
     for (const row of rows) {
       if (row.evaluateeUid === underloadedUid) continue;
       if (row.lockedEvaluatorUids.includes(overloadedUid)) continue;
       if (row.evaluatorUids.includes(underloadedUid)) continue;
+      const rowEvaluatee = userByUid.get(row.evaluateeUid);
+      if (
+        rowEvaluatee &&
+        !this.canAddEvaluatorWithinSameJobTitleMax(
+          rowEvaluatee,
+          underloadedUid,
+          row.evaluatorUids.filter((uid) => uid !== overloadedUid),
+          userByUid,
+          row.sameJobTitleMax,
+        )
+      ) continue;
 
       const replaceIndex = row.evaluatorUids.indexOf(overloadedUid);
       if (replaceIndex === -1) continue;
@@ -464,12 +495,25 @@ export class EvaluationAssignmentService {
     candidates: User[],
     selectedEvaluatorUids: string[],
     evaluatorLoads: Record<string, number>,
+    userByUid: Map<string, User>,
+    sameJobTitleMax: number,
   ): User | undefined {
     const selected = new Set(selectedEvaluatorUids);
     const evaluateeJobTitle = evaluatee.jobTitle?.trim();
 
     return candidates
-      .filter((candidate) => candidate.uid && candidate.uid !== evaluatee.uid && !selected.has(candidate.uid))
+      .filter((candidate) =>
+        candidate.uid &&
+        candidate.uid !== evaluatee.uid &&
+        !selected.has(candidate.uid) &&
+        this.canAddEvaluatorWithinSameJobTitleMax(
+          evaluatee,
+          candidate.uid,
+          selectedEvaluatorUids,
+          userByUid,
+          sameJobTitleMax,
+        )
+      )
       .map((candidate) => ({
         user: candidate,
         load: evaluatorLoads[candidate.uid!] ?? 0,
@@ -481,6 +525,59 @@ export class EvaluationAssignmentService {
         Number(b.sameJobTitle) - Number(a.sameJobTitle) ||
         a.random - b.random,
       )[0]?.user;
+  }
+
+  private resolveSameJobTitleMax(
+    evaluatee: User,
+    eligibleUsers: User[],
+    targetEvaluatorCount: number,
+    options: RandomAssignmentOptions,
+  ): number {
+    const evaluateeJobTitle = evaluatee.jobTitle?.trim();
+    if (!evaluateeJobTitle || targetEvaluatorCount <= 0) return 0;
+
+    const sameJobTitleCandidateCount = eligibleUsers.filter((candidate) =>
+      candidate.uid &&
+      candidate.uid !== evaluatee.uid &&
+      candidate.jobTitle?.trim() === evaluateeJobTitle,
+    ).length;
+    const requestedMax = options.sameJobTitleMax ?? sameJobTitleCandidateCount;
+
+    return this.clampInteger(
+      requestedMax,
+      0,
+      Math.min(targetEvaluatorCount, sameJobTitleCandidateCount),
+      sameJobTitleCandidateCount,
+    );
+  }
+
+  private canAddEvaluatorWithinSameJobTitleMax(
+    evaluatee: User,
+    evaluatorUid: string,
+    selectedEvaluatorUids: string[],
+    userByUid: Map<string, User>,
+    sameJobTitleMax: number,
+  ): boolean {
+    const evaluator = userByUid.get(evaluatorUid);
+    if (!this.isSameJobTitle(evaluatee, evaluator)) return true;
+
+    const sameJobTitleCount = selectedEvaluatorUids.filter((uid) =>
+      this.isSameJobTitle(evaluatee, userByUid.get(uid)),
+    ).length;
+    return sameJobTitleCount < sameJobTitleMax;
+  }
+
+  private isSameJobTitle(evaluatee: User, evaluator: User | undefined): boolean {
+    const evaluateeJobTitle = evaluatee.jobTitle?.trim();
+    return Boolean(evaluateeJobTitle && evaluator?.jobTitle?.trim() === evaluateeJobTitle);
+  }
+
+  private clampInteger(value: unknown, min: number, max: number, fallback: number): number {
+    if (max < min) return max;
+
+    const numericValue = typeof value === 'number' ? value : Number(value);
+    const normalized = Number.isInteger(numericValue) ? numericValue : fallback;
+    return Math.max(min, Math.min(max, normalized));
   }
 
   private addUnique(target: string[], value: string): boolean {

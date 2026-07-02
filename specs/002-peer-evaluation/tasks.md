@@ -168,6 +168,20 @@
 
 ---
 
+## Phase 10：隨機快選參數化與預覽移除受評者
+
+**目的**：讓管理者可從介面設定受評採樣人數與同職稱最大數，並可在隨機快選預覽中移除整位受評者 row，確認儲存時只寫入仍保留的非鎖定指派。
+
+- [X] T057 [P] [US1] 更新 `specs/002-peer-evaluation/spec.md`、`plan.md`、`contracts/angular-interfaces.md`、`quickstart.md` 與 `README.md`，定義受評採樣人數、同職稱最大數與移除受評者 row 的規格與驗收。
+- [X] T058 [P] [US1] 更新 `src/app/evaluation/services/evaluation-assignment.service.spec.ts`，新增隨機快選 options 測試：預設受評採樣人數 10、自訂受評採樣人數、同職稱最大數限制、自動同職稱最大數、缺 `jobTitle` 同職稱上限為 0。
+- [X] T059 [P] [US1] 新增 `src/app/evaluation/pages/evaluation-cycles-admin/assignment-management-dialog.component.spec.ts`，先以 contract spec 鎖定預覽 row 移除方法；後續實作時再補齊介面預設值、點擊「隨機快選／重新隨機」傳入 options、移除受評者 row 後 preview rows 與 evaluatorLoads 重新計算的渲染測試。
+- [X] T060 [US1] 更新 `src/app/evaluation/models/evaluation.models.ts`，新增 `RandomAssignmentOptions`，並於 `RandomAssignmentPreviewRow` 補上 `sameJobTitleMax`。
+- [X] T061 [US1] 更新 `src/app/evaluation/services/evaluation-assignment.service.ts`，讓 `generateRandomAssignmentPreview()` 接受 `RandomAssignmentOptions`，套用受評採樣人數與同職稱最大數，並保護 completed 指派與既有 pending 指派。
+- [X] T062 [US1] 更新 `src/app/evaluation/pages/evaluation-cycles-admin/assignment-management-dialog.component.ts`，新增受評採樣人數與同職稱最大數輸入欄位、預設值、驗證、傳入 options，以及預覽 row 的移除受評者按鈕。
+- [ ] T063 [US1] 執行 `npm test -- --watch=false` 與 `npm run build`，確認規格、演算法、預覽操作與 Angular 編譯均通過。
+
+---
+
 ## 相依性圖（使用者故事完成順序）
 
 ```

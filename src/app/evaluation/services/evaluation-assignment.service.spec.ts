@@ -14,6 +14,10 @@ import {
 import { EvaluationAssignment } from '../models/evaluation.models';
 
 const CYCLE_ID = 'cycle-001';
+const DEFAULT_RANDOM_OPTIONS = {
+  targetEvaluatorCount: 10,
+  sameJobTitleMax: null,
+};
 
 function makeUser(uid: string, name: string, jobTitle: string, role: User['role'] = 'user'): User {
   return {
@@ -126,7 +130,7 @@ describe('EvaluationAssignmentService', () => {
         makeUser('admin', '管理員', '工程師', 'admin'),
       ];
 
-      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, []);
+      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, [], DEFAULT_RANDOM_OPTIONS);
 
       expect(preview.rows.length).toBe(3);
       for (const row of preview.rows) {
@@ -141,7 +145,7 @@ describe('EvaluationAssignmentService', () => {
       const preview = service.generateRandomAssignmentPreview(CYCLE_ID, [
         makeUser('u1', '使用者1', '工程師'),
         makeUser('admin', '管理員', '工程師', 'admin'),
-      ], []);
+      ], [], DEFAULT_RANDOM_OPTIONS);
 
       expect(preview.rows).toEqual([]);
       expect(preview.evaluatorLoads['u1']).toBe(0);
@@ -151,7 +155,7 @@ describe('EvaluationAssignmentService', () => {
       const preview = service.generateRandomAssignmentPreview(CYCLE_ID, [
         makeUser('u1', '使用者1', '工程師'),
         makeUser('u2', '使用者2', '工程師'),
-      ], []);
+      ], [], DEFAULT_RANDOM_OPTIONS);
 
       expect(preview.rows.length).toBe(2);
       expect(preview.rows.find((row) => row.evaluateeUid === 'u1')?.evaluatorUids).toEqual(['u2']);
@@ -165,7 +169,7 @@ describe('EvaluationAssignmentService', () => {
         makeUser('u3', '使用者3', '工程師'),
       ];
 
-      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, []);
+      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, [], DEFAULT_RANDOM_OPTIONS);
       const row = preview.rows.find((item) => item.evaluateeUid === 'u1')!;
 
       expect(row.evaluatorUids.length).toBe(2);
@@ -177,7 +181,7 @@ describe('EvaluationAssignmentService', () => {
         makeUser(`u${index + 1}`, `使用者${index + 1}`, '工程師'),
       );
 
-      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, []);
+      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, [], DEFAULT_RANDOM_OPTIONS);
 
       expect(preview.rows.length).toBe(12);
       for (const row of preview.rows) {
@@ -187,12 +191,101 @@ describe('EvaluationAssignmentService', () => {
       }
     });
 
+    it('指定受評採樣人數時，每位受評者應依介面輸入人數產生評核者', () => {
+      const users = Array.from({ length: 12 }, (_, index) =>
+        makeUser(`u${index + 1}`, `使用者${index + 1}`, '工程師'),
+      );
+
+      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, [], {
+        targetEvaluatorCount: 6,
+        sameJobTitleMax: null,
+      });
+
+      expect(preview.rows.length).toBe(12);
+      for (const row of preview.rows) {
+        expect(row.targetEvaluatorCount).toBe(6);
+        expect(row.evaluatorUids.length).toBe(6);
+        expect(row.evaluatorUids).not.toContain(row.evaluateeUid);
+      }
+    });
+
+    it('指定同職稱最大數時，每位受評者同 jobTitle 評核者不得超過上限', () => {
+      const users = [
+        makeUser('eng1', '工程師1', '工程師'),
+        makeUser('eng2', '工程師2', '工程師'),
+        makeUser('eng3', '工程師3', '工程師'),
+        makeUser('eng4', '工程師4', '工程師'),
+        makeUser('des1', '設計師1', '設計師'),
+        makeUser('des2', '設計師2', '設計師'),
+        makeUser('des3', '設計師3', '設計師'),
+        makeUser('des4', '設計師4', '設計師'),
+      ];
+      const userMap = new Map(users.map((user) => [user.uid!, user]));
+
+      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, [], {
+        targetEvaluatorCount: 4,
+        sameJobTitleMax: 1,
+      });
+
+      for (const row of preview.rows) {
+        const evaluateeJobTitle = userMap.get(row.evaluateeUid)?.jobTitle;
+        const sameJobTitleCount = row.evaluatorUids.filter((uid) =>
+          userMap.get(uid)?.jobTitle === evaluateeJobTitle,
+        ).length;
+        expect(row.sameJobTitleMax).toBe(1);
+        expect(sameJobTitleCount).toBeLessThanOrEqual(1);
+        expect(row.evaluatorUids.length).toBe(4);
+      }
+    });
+
+    it('未指定同職稱最大數時，應依每位受評者同 jobTitle 人數扣除本人自動計算', () => {
+      const users = [
+        makeUser('eng1', '工程師1', '工程師'),
+        makeUser('eng2', '工程師2', '工程師'),
+        makeUser('eng3', '工程師3', '工程師'),
+        makeUser('eng4', '工程師4', '工程師'),
+        makeUser('eng5', '工程師5', '工程師'),
+        makeUser('des1', '設計師1', '設計師'),
+        makeUser('des2', '設計師2', '設計師'),
+      ];
+
+      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, [], {
+        targetEvaluatorCount: 4,
+        sameJobTitleMax: null,
+      });
+
+      for (const row of preview.rows.filter((item) => item.evaluateeUid.startsWith('eng'))) {
+        expect(row.sameJobTitleMax).toBe(4);
+      }
+      for (const row of preview.rows.filter((item) => item.evaluateeUid.startsWith('des'))) {
+        expect(row.sameJobTitleMax).toBe(1);
+      }
+    });
+
+    it('缺 jobTitle 的受評者同職稱最大數應為 0，且空白 jobTitle 不互相視為同職稱', () => {
+      const users = [
+        makeUser('u1', '使用者1', ''),
+        makeUser('u2', '使用者2', ''),
+        makeUser('u3', '使用者3', '工程師'),
+        makeUser('u4', '使用者4', '設計師'),
+      ];
+
+      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, [], {
+        targetEvaluatorCount: 2,
+        sameJobTitleMax: null,
+      });
+      const row = preview.rows.find((item) => item.evaluateeUid === 'u1')!;
+
+      expect(row.sameJobTitleMax).toBe(0);
+      expect(row.evaluatorUids.length).toBe(2);
+    });
+
     it('多人隨機快選時評核者負載差距應不超過 1', () => {
       const users = Array.from({ length: 12 }, (_, index) =>
         makeUser(`u${index + 1}`, `使用者${index + 1}`, index % 2 === 0 ? '工程師' : '設計師'),
       );
 
-      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, []);
+      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, [], DEFAULT_RANDOM_OPTIONS);
       const loads = Object.values(preview.evaluatorLoads);
       const minLoad = Math.min(...loads);
       const maxLoad = Math.max(...loads);
@@ -207,7 +300,7 @@ describe('EvaluationAssignmentService', () => {
         makeUser('u3', '使用者3', '設計師'),
       ];
 
-      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, []);
+      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, [], DEFAULT_RANDOM_OPTIONS);
       const row = preview.rows.find((item) => item.evaluateeUid === 'u1')!;
 
       expect(row.evaluatorUids[0]).toBe('u2');
@@ -223,7 +316,7 @@ describe('EvaluationAssignmentService', () => {
         makeAssignment('u3', 'u1', 'pending'),
       ];
 
-      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, existing);
+      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, existing, DEFAULT_RANDOM_OPTIONS);
       const row = preview.rows.find((item) => item.evaluateeUid === 'u1')!;
 
       expect(row.targetEvaluatorCount).toBe(2);
@@ -242,7 +335,7 @@ describe('EvaluationAssignmentService', () => {
         makeAssignment('legacy-admin', 'u1', 'completed'),
       ];
 
-      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, existing);
+      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, existing, DEFAULT_RANDOM_OPTIONS);
       const row = preview.rows.find((item) => item.evaluateeUid === 'u1')!;
 
       expect(row.targetEvaluatorCount).toBe(1);
@@ -266,7 +359,7 @@ describe('EvaluationAssignmentService', () => {
         makeAssignment('u3', 'u1', 'completed'),
       ];
 
-      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, existing);
+      const preview = service.generateRandomAssignmentPreview(CYCLE_ID, users, existing, DEFAULT_RANDOM_OPTIONS);
       const row = preview.rows.find((item) => item.evaluateeUid === 'u1')!;
 
       expect(row.evaluatorUids).toContain('admin');
@@ -350,6 +443,7 @@ describe('EvaluationAssignmentService', () => {
             evaluatorUids: ['locked', 'new-evaluator'],
             lockedEvaluatorUids: ['locked'],
             targetEvaluatorCount: 2,
+            sameJobTitleMax: 1,
             warnings: [],
           },
         ],
@@ -378,6 +472,7 @@ describe('EvaluationAssignmentService', () => {
             evaluatorUids: ['target', 'existing-evaluator'],
             lockedEvaluatorUids: [],
             targetEvaluatorCount: 2,
+            sameJobTitleMax: 1,
             warnings: [],
           },
         ],
@@ -393,6 +488,38 @@ describe('EvaluationAssignmentService', () => {
       expect(mockTransaction.update).not.toHaveBeenCalled();
       expect(mockFns.increment).not.toHaveBeenCalled();
       expect(createdCount).toBe(0);
+    });
+
+    it('預覽中已移除的受評者 row 不應在儲存時建立任何指派', async () => {
+      const createdCount = await service.saveRandomAssignmentPreview({
+        cycleId: CYCLE_ID,
+        generatedAt: new Date(),
+        evaluatorLoads: {},
+        rows: [
+          {
+            evaluateeUid: 'kept-evaluatee',
+            evaluatorUids: ['kept-evaluator'],
+            lockedEvaluatorUids: [],
+            targetEvaluatorCount: 1,
+            sameJobTitleMax: 0,
+            warnings: [],
+          },
+        ],
+      });
+
+      expect(mockTransaction.get).toHaveBeenCalledTimes(1);
+      expect(mockFns.doc as jasmine.Spy).toHaveBeenCalledWith(
+        mockFirestore,
+        'evaluationAssignments',
+        `kept-evaluator_${CYCLE_ID}_kept-evaluatee`,
+      );
+      expect(mockFns.doc as jasmine.Spy).not.toHaveBeenCalledWith(
+        mockFirestore,
+        'evaluationAssignments',
+        `removed-evaluator_${CYCLE_ID}_removed-evaluatee`,
+      );
+      expect(mockTransaction.set).toHaveBeenCalledTimes(1);
+      expect(createdCount).toBe(1);
     });
   });
 });

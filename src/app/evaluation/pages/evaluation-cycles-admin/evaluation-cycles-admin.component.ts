@@ -604,7 +604,8 @@ export class EvaluationCyclesAdminComponent {
   /** 開啟指派管理對話框 */
   openAssignmentDialog(cycle: EvaluationCycle): void {
     this.dialog.open(AssignmentManagementDialogComponent, {
-      width: '720px',
+      width: '860px',
+      maxWidth: 'calc(100vw - 48px)',
       maxHeight: '85vh',
       data: {
         cycleId: cycle.id,
@@ -637,4 +638,3 @@ export class EvaluationCyclesAdminComponent {
     }
   }
 }
-

@@ -60,7 +60,13 @@ export interface RandomAssignmentPreviewRow {
   evaluatorUids: string[];
   lockedEvaluatorUids: string[];
   targetEvaluatorCount: number;
+  sameJobTitleMax: number;
   warnings: string[];
+}
+
+export interface RandomAssignmentOptions {
+  targetEvaluatorCount: number;
+  sameJobTitleMax?: number | null;
 }
 
 export interface RandomAssignmentPreview {

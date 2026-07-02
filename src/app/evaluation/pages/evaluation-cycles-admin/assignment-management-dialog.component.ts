@@ -26,6 +26,7 @@ import {
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
@@ -40,6 +41,7 @@ import { map } from 'rxjs';
 
 import {
   EvaluationAssignment,
+  RandomAssignmentOptions,
   RandomAssignmentPreview,
   RandomAssignmentPreviewRow,
 } from '../../models/evaluation.models';
@@ -111,6 +113,7 @@ const ASSIGNMENT_STATUS_LABEL: Record<EvaluationAssignment['status'], string> = 
     MatDividerModule,
     MatFormFieldModule,
     MatIconModule,
+    MatInputModule,
     MatListModule,
     MatProgressBarModule,
     MatSelectModule,
@@ -185,22 +188,43 @@ const ASSIGNMENT_STATUS_LABEL: Record<EvaluationAssignment['status'], string> = 
               新增
             </button>
           </form>
+        </section>
 
-          <div class="quick-actions">
+        <section class="random-section">
+          <h3 class="section-title">隨機快選</h3>
+
+          <form [formGroup]="randomOptionsForm" class="random-actions-form">
+            <mat-form-field appearance="outline" class="random-option-field">
+              <mat-label>受評採樣人數</mat-label>
+              <input matInput type="number" min="1" step="1" formControlName="targetEvaluatorCount" />
+              @if (randomOptionsForm.controls.targetEvaluatorCount.invalid) {
+                <mat-error>請輸入 1 以上整數</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="random-option-field">
+              <mat-label>同職稱最大數</mat-label>
+              <input matInput type="number" min="0" step="1" formControlName="sameJobTitleMax" placeholder="自動" />
+              @if (randomOptionsForm.controls.sameJobTitleMax.invalid) {
+                <mat-error>請輸入 0 以上整數</mat-error>
+              }
+            </mat-form-field>
+
             <button
               mat-stroked-button
               color="primary"
               type="button"
-              [disabled]="isDeadlinePassed()"
+              [disabled]="isDeadlinePassed() || randomOptionsForm.invalid"
               (click)="generateRandomPreview()"
             >
               <mat-icon>shuffle</mat-icon>
               {{ randomPreview() ? '重新隨機' : '隨機快選' }}
             </button>
-            @if (previewMessage()) {
-              <span class="preview-message">{{ previewMessage() }}</span>
-            }
-          </div>
+          </form>
+
+          @if (previewMessage()) {
+            <div class="preview-message">{{ previewMessage() }}</div>
+          }
         </section>
 
         @if (randomPreview()) {
@@ -226,11 +250,22 @@ const ASSIGNMENT_STATUS_LABEL: Record<EvaluationAssignment['status'], string> = 
                 @for (row of previewRows(); track row.evaluateeUid) {
                   <div class="preview-row">
                     <div class="preview-title">
-                      <span class="role-hint">受評：</span>
-                      <span class="user-name">{{ row.evaluateeName }}</span>
-                      <span class="target-count">
-                        目標 {{ row.targetEvaluatorCount }} 人，目前 {{ row.evaluatorUids.length }} 人
-                      </span>
+                      <div class="preview-title-main">
+                        <span class="role-hint">受評：</span>
+                        <span class="user-name">{{ row.evaluateeName }}</span>
+                        <span class="target-count">
+                          目標 {{ row.targetEvaluatorCount }} 人，目前 {{ row.evaluatorUids.length }} 人，同職稱最多 {{ row.sameJobTitleMax }} 人
+                        </span>
+                      </div>
+                      <button
+                        mat-icon-button
+                        color="warn"
+                        type="button"
+                        title="從本次預覽移除此受評者"
+                        (click)="removePreviewEvaluatee(row)"
+                      >
+                        <mat-icon>delete</mat-icon>
+                      </button>
                     </div>
 
                     @if (row.lockedEvaluatorNames.length > 0) {
@@ -330,7 +365,7 @@ const ASSIGNMENT_STATUS_LABEL: Record<EvaluationAssignment['status'], string> = 
   `,
   styles: [`
     mat-dialog-content {
-      min-width: 560px;
+      min-width: 720px;
     }
 
     /* 截止日警告 */
@@ -364,21 +399,34 @@ const ASSIGNMENT_STATUS_LABEL: Record<EvaluationAssignment['status'], string> = 
     }
     .form-field { flex: 1; min-width: 180px; }
 
-    .quick-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-top: 6px;
-      flex-wrap: wrap;
+    .random-section {
+      margin: 10px 0 12px;
+      padding-top: 2px;
+      border-top: 1px solid #eeeeee;
     }
-    .quick-actions button {
+    .random-actions-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .random-option-field {
+      flex: 0 0 180px;
+      width: 180px;
+      min-width: 180px;
+      max-width: 180px;
+    }
+    .random-actions-form button {
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      min-height: 56px;
+      flex: 0 0 auto;
     }
     .preview-message {
       color: #757575;
       font-size: 0.82rem;
+      margin-top: 4px;
     }
 
     .preview-section {
@@ -412,9 +460,17 @@ const ASSIGNMENT_STATUS_LABEL: Record<EvaluationAssignment['status'], string> = 
     .preview-title {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 6px;
       flex-wrap: wrap;
       margin-bottom: 8px;
+    }
+    .preview-title-main {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      min-width: 0;
     }
     .target-count {
       color: #607d8b;
@@ -517,6 +573,16 @@ const ASSIGNMENT_STATUS_LABEL: Record<EvaluationAssignment['status'], string> = 
       color: #757575;
     }
     .loading-placeholder p { margin-top: 10px; }
+
+    @media (max-width: 760px) {
+      mat-dialog-content {
+        min-width: 0;
+      }
+      .random-option-field {
+        flex: 1 1 180px;
+        max-width: none;
+      }
+    }
   `],
 })
 export class AssignmentManagementDialogComponent {
@@ -639,6 +705,16 @@ export class AssignmentManagementDialogComponent {
     }),
   });
 
+  readonly randomOptionsForm = new FormGroup({
+    targetEvaluatorCount: new FormControl<number>(10, {
+      nonNullable: true,
+      validators: [Validators.required, Validators.min(1), this.integerValidator],
+    }),
+    sameJobTitleMax: new FormControl<number | null>(null, {
+      validators: [Validators.min(0), this.integerValidator],
+    }),
+  });
+
   // ── 公開方法 ──
 
   /** 取得指派狀態的中文顯示文字 */
@@ -653,12 +729,19 @@ export class AssignmentManagementDialogComponent {
       return;
     }
 
+    if (this.randomOptionsForm.invalid) {
+      this.randomOptionsForm.markAllAsTouched();
+      this.previewMessage.set('請確認受評採樣人數與同職稱最大數設定正確。');
+      return;
+    }
+
     this.previewMessage.set('');
     try {
       const preview = this.assignmentService.generateRandomAssignmentPreview(
         this.data.cycleId,
         this.users() as User[],
         this.rawAssignments() ?? [],
+        this.getRandomAssignmentOptions(),
       );
       if (preview.rows.length === 0) {
         this.randomPreview.set(null);
@@ -698,6 +781,20 @@ export class AssignmentManagementDialogComponent {
       rows: nextRows,
       evaluatorLoads: this.calculatePreviewLoads(nextRows, Object.keys(preview.evaluatorLoads)),
     });
+  }
+
+  /** 從本次隨機快選預覽移除整位受評者，不影響既有 completed 指派。 */
+  removePreviewEvaluatee(row: RandomAssignmentPreviewRow): void {
+    const preview = this.randomPreview();
+    if (!preview) return;
+
+    const nextRows = preview.rows.filter((previewRow) => previewRow.evaluateeUid !== row.evaluateeUid);
+    this.randomPreview.set({
+      ...preview,
+      rows: nextRows,
+      evaluatorLoads: this.calculatePreviewLoads(nextRows, Object.keys(preview.evaluatorLoads)),
+    });
+    this.previewMessage.set(`已從本次預覽移除 ${this.getUserName(row.evaluateeUid)}。`);
   }
 
   /** 儲存隨機快選預覽 */
@@ -783,5 +880,24 @@ export class AssignmentManagementDialogComponent {
       }
     }
     return loads;
+  }
+
+  private getRandomAssignmentOptions(): RandomAssignmentOptions {
+    const { targetEvaluatorCount, sameJobTitleMax } = this.randomOptionsForm.getRawValue();
+    return {
+      targetEvaluatorCount,
+      sameJobTitleMax,
+    };
+  }
+
+  private getUserName(uid: string): string {
+    const user = (this.users() as User[]).find((item) => item.uid === uid);
+    return user?.name ?? uid;
+  }
+
+  private integerValidator(control: import('@angular/forms').AbstractControl): { integer: true } | null {
+    const value = control.value;
+    if (value === null || value === undefined || value === '') return null;
+    return Number.isInteger(Number(value)) ? null : { integer: true };
   }
 }

@@ -56,7 +56,13 @@ export interface RandomAssignmentPreviewRow {
   evaluatorUids: string[];
   lockedEvaluatorUids: string[]; // 既有 completed 指派，不可由預覽移除或替換
   targetEvaluatorCount: number;
+  sameJobTitleMax: number; // 本受評者可安排的同 jobTitle 評核者上限
   warnings: string[];
+}
+
+export interface RandomAssignmentOptions {
+  targetEvaluatorCount: number; // 受評採樣人數；UI 預設 10
+  sameJobTitleMax?: number | null; // null/undefined 表示依每位受評者同 jobTitle 候選數自動計算
 }
 
 export interface RandomAssignmentPreview {
@@ -170,6 +176,7 @@ interface EvaluationAssignmentService {
     cycleId: string,
     users: User[],
     existingAssignments: EvaluationAssignment[],
+    options: RandomAssignmentOptions,
   ): RandomAssignmentPreview;
 
   // 管理者：儲存隨機快選預覽，僅寫入新的 pending 指派且不異動 completed 指派
