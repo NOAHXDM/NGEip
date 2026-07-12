@@ -13,6 +13,7 @@ import { FcmPermissionDialogComponent } from '../notifications/fcm-permission-di
 import { ClientPreferencesService } from '../services/client-preferences.service';
 import { NotificationService } from '../services/notification.service';
 import { UserService } from '../services/user.service';
+import { OpsDutyPanelComponent } from '../ops-duty/ops-duty-panel.component';
 
 @Component({
   selector: 'app-layout',
@@ -26,6 +27,7 @@ import { UserService } from '../services/user.service';
     MatIconModule,
     MatMenuModule,
     MatToolbarModule,
+    OpsDutyPanelComponent,
   ],
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.scss',

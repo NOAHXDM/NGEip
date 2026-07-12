@@ -51,6 +51,10 @@
   <router-outlet></router-outlet>
 </div>
 
+@if (currentUser$ | async) {
+  <app-ops-duty-panel />
+}
+
 <!-- System menu (Admin only) -->
 <mat-menu #systemMenu>
   <button mat-menu-item [routerLink]="['/SystemConfig']">

@@ -7,6 +7,24 @@
 
 ## [Unreleased]
 
+## [4.3.0] - 2026-07-13
+
+### 新增
+- 在共用 `LayoutComponent` 新增 Ops Duty 今日維運值班面板，僅於使用者登入後顯示。
+- 依 `Asia/Taipei` 時區自動選取當月 Google Sheet（例如 `2026/7_班表`），解析今日早班、中班與兩位 On-call 人員，並提供原始資料來源連結。
+- 新增 `DutyRosterService`，透過 Google Visualization callback 動態讀取公開班表，不需硬編每月工作表 gid；提供載入中、錯誤狀態與重新載入操作。
+
+### 介面
+- Ops Duty 採半透明、模糊背景與獨立等寬字型，縮小面板寬度、字級、圖示、間距及班別列高度，降低對主要內容的遮擋。
+- 面板支援在畫面範圍內自由拖曳；標題列的拖曳區與關閉按鈕分離，避免操作關閉時誤觸拖曳。
+- 新增右上角關閉按鈕，可於本次頁面生命週期暫時隱藏面板；重新整理或下次進入仍會顯示。
+- 關閉按鈕與面板補上繁體中文無障礙名稱、鍵盤焦點樣式及足夠的操作範圍。
+
+### 測試與文件
+- 新增班表解析單元測試，覆蓋今日日期、早班、中班、雙 On-call 與找不到今日資料的錯誤情境。
+- 更新 README 的目前版本、主要功能與 Ops Duty 使用方式；將專案次版本由 4.2.1 提升至 4.3.0。
+- Ops Duty 單元測試共 2 項通過，TypeScript 型別檢查與 `git diff --check` 通過。
+
 ## [4.2.1] - 2026-07-13
 
 ### 修復
@@ -714,6 +732,7 @@
 - Cloudinary
 - Karma/Jasmine
 
+[4.3.0]: https://github.com/NOAHXDM/NGEip/compare/v4.2.1...v4.3.0
 [4.2.1]: https://github.com/NOAHXDM/NGEip/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/NOAHXDM/NGEip/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/NOAHXDM/NGEip/compare/v4.0.3...v4.1.0

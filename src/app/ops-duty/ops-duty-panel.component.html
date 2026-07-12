@@ -1,0 +1,47 @@
+@if (visible()) {
+<aside class="ops-duty-panel" cdkDrag cdkDragBoundary="body" aria-label="今日維運值班面板">
+  <header class="panel-header">
+    <span class="panel-drag-area" cdkDragHandle title="拖曳以移動面板">
+      <span class="panel-title"><mat-icon>engineering</mat-icon> Ops Duty</span>
+      <span class="drag-hint" aria-hidden="true"><mat-icon>drag_indicator</mat-icon></span>
+    </span>
+    <button class="close-button" type="button" aria-label="關閉 Ops Duty 面板" (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  @if (loading()) {
+    <div class="panel-state" role="status">正在載入今日班表…</div>
+  } @else if (errorMessage()) {
+    <div class="panel-state panel-error" role="alert">{{ errorMessage() }}</div>
+    <button class="retry-button" type="button" (click)="refresh()">重新載入</button>
+  } @else if (roster(); as data) {
+    <div class="date-row">
+      <mat-icon>today</mat-icon>
+      <div>
+        <strong>{{ data.dateLabel }}</strong>
+        <small>{{ data.sheetName }}</small>
+      </div>
+    </div>
+
+    <dl class="shift-list">
+      <div>
+        <dt><span class="shift-dot early"></span>早班</dt>
+        <dd>{{ data.earlyShift.join('、') || '無' }}</dd>
+      </div>
+      <div>
+        <dt><span class="shift-dot middle"></span>中班</dt>
+        <dd>{{ data.middleShift.join('、') || '無' }}</dd>
+      </div>
+      <div>
+        <dt><span class="shift-dot oncall"></span>On-call</dt>
+        <dd>{{ data.onCall.join('、') || '無' }}</dd>
+      </div>
+    </dl>
+
+    <a class="source-link" [href]="data.sourceUrl" target="_blank" rel="noopener noreferrer">
+      <mat-icon>open_in_new</mat-icon> 查看資料來源
+    </a>
+  }
+</aside>
+}
