@@ -45,6 +45,7 @@ import { enUS } from 'date-fns/locale';
 import { concatMap, map, Observable, of, switchMap, take } from 'rxjs';
 
 import { AnnualLeaveService } from '../services/annual-leave.service';
+import { NotificationService } from '../services/notification.service';
 import { User, UserService } from '../services/user.service';
 import { UserNamePipe } from '../pipes/user-name.pipe';
 import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
@@ -145,7 +146,13 @@ export class UserProfileComponent {
   myProfileMode = true;
   title = 'My Profile';
   readonly avatarUploading = signal(false);
+  readonly notificationSupported = signal(false);
+  readonly notificationPermission = signal<
+    NotificationPermission | 'unsupported'
+  >('unsupported');
+  readonly notificationOptIn = signal(false);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly notificationService = inject(NotificationService);
 
   constructor(
     private userService: UserService,
@@ -158,6 +165,9 @@ export class UserProfileComponent {
     @Optional() @Inject(MAT_DIALOG_DATA) protected data: any
   ) {
     this.myProfileMode = !this.data;
+    if (this.myProfileMode) {
+      this.refreshNotificationState();
+    }
     this.isAdmin$ = this.userService.isAdmin$;
     this.userList$ = this.userService.list$.pipe(
       map((users) => {
@@ -399,4 +409,27 @@ export class UserProfileComponent {
     if (percentage >= 70) return 'accent';
     return 'primary';
   }
+
+  async refreshNotificationState() {
+    this.notificationSupported.set(
+      await this.notificationService.isMessagingSupported()
+    );
+    this.notificationPermission.set(
+      this.notificationService.getPermissionState()
+    );
+    this.notificationOptIn.set(this.notificationService.isOptedIn());
+  }
+
+  async enableNotifications() {
+    const enabled = await this.notificationService.enableNotifications();
+    await this.refreshNotificationState();
+    this.openSnackBar(enabled ? '推播通知已啟用' : '推播通知啟用失敗或遭拒絕');
+  }
+
+  async disableNotifications() {
+    await this.notificationService.disableNotifications();
+    await this.refreshNotificationState();
+    this.openSnackBar('已停用此裝置的推播通知');
+  }
+
 }

@@ -21,6 +21,11 @@
         <ng-container *ngTemplateOutlet="evaluationReportContent"></ng-container>
       </mat-tab>
     }
+    @if (myProfileMode) {
+      <mat-tab label="通知設定">
+        <ng-container *ngTemplateOutlet="notificationContent"></ng-container>
+      </mat-tab>
+    }
   </mat-tab-group>
 </div>
 
@@ -116,6 +121,61 @@
   </form>
 </ng-template>
 
+<ng-template #notificationContent>
+  <div class="d-flex flex-column gap-3 p-3">
+    <h3 class="pt-3 text-center">通知設定</h3>
+
+    @if (!notificationSupported()) {
+      <div class="text-center text-muted">
+        <mat-icon>info</mat-icon>
+        <p>此瀏覽器或裝置目前不支援瀏覽器推播通知。</p>
+        <p class="small">
+          iOS/iPadOS 使用者請先透過 Safari 分享選單「加入主畫面」，
+          並從主畫面圖示開啟本網站後再試（需 iOS 16.4 以上）。
+        </p>
+      </div>
+    } @else if (notificationPermission() === 'granted' && notificationOptIn()) {
+      <div class="text-center">
+        <mat-icon color="primary">notifications_active</mat-icon>
+        <p>此裝置已啟用推播通知</p>
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+          <button type="button" mat-button (click)="disableNotifications()">
+            停用此裝置的通知
+          </button>
+        </div>
+      </div>
+    } @else if (notificationPermission() === 'denied') {
+      <div class="text-center text-muted">
+        <mat-icon>notifications_off</mat-icon>
+        <p>瀏覽器已封鎖通知權限。</p>
+        <p class="small">
+          請至瀏覽器網址列左側的網站設定，手動將「通知」改為允許，
+          再重新整理本頁面。
+        </p>
+      </div>
+    } @else {
+      <div class="text-center">
+        <mat-icon>notifications</mat-icon>
+        @if (notificationPermission() === 'granted') {
+          <p>瀏覽器已允許通知，但此裝置目前已停用通知。</p>
+          <p class="small text-muted">
+            點下方按鈕即可重新啟用，不會再跳出瀏覽器授權視窗。
+          </p>
+        } @else {
+          <p>開啟後，即使沒有開啟本網站，也能收到重要通知與提醒。</p>
+        }
+        <button
+          type="button"
+          mat-flat-button
+          (click)="enableNotifications()"
+        >
+          啟用通知
+        </button>
+      </div>
+    }
+  </div>
+</ng-template>
+
 <ng-template #advancedContent>
   <form
     class="d-flex flex-column gap-3"
@@ -187,7 +247,6 @@
         matSuffix
       ></mtx-datetimepicker-toggle>
     </mat-form-field>
-
     <button type="submit" mat-flat-button [disabled]="advancedForm.invalid">
       更新
     </button>

@@ -19,6 +19,7 @@ import {
   provideStorage,
   connectStorageEmulator,
 } from '@angular/fire/storage';
+import { getMessaging, provideMessaging } from '@angular/fire/messaging';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { environment } from '../environments/environment';
 import { SystemConfigService } from './services/system-config.service';
@@ -62,6 +63,16 @@ export const appConfig: ApplicationConfig = {
         return storage;
       })
       : provideStorage(() => getStorage()),
+    provideMessaging(() => {
+      // 非所有瀏覽器/情境都支援 Messaging（例如舊版 Safari、非安全來源），
+      // getMessaging() 可能直接 throw；擋在這裡避免拖垮整個 Firebase provider 鏈。
+      // 實際的支援度判斷交給 NotificationService 的 isSupported() gate。
+      try {
+        return getMessaging();
+      } catch {
+        return null as any;
+      }
+    }),
     provideAnimationsAsync(),
     {
       provide: APP_INITIALIZER,

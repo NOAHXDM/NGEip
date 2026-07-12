@@ -40,4 +40,8 @@ interface Preferences {
   statQuickPickOption?: string;
   filterRequesters?: string;
   clientTimezone?: string;
+  notificationPromptDismissed?: boolean;
+  // 此瀏覽器的通知偏好，不代表帳號或其他裝置的設定。
+  // 必須與 Notification.permission 分開保存，才能尊重使用者在站內按下的「停用」。
+  notificationOptIn?: boolean;
 }

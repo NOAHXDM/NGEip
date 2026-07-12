@@ -1,0 +1,20 @@
+<h2 mat-dialog-title>開啟推播通知？</h2>
+
+<mat-dialog-content>
+  <p>開啟後，即使沒有開啟本網站，這個瀏覽器也能收到一般通知與提醒。</p>
+  <p>您可以隨時到「個人設定」頁面重新管理此設定。</p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="dismiss()" [disabled]="requesting">
+    暫不開啟
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    (click)="enable()"
+    [disabled]="requesting"
+  >
+    開啟通知
+  </button>
+</mat-dialog-actions>
