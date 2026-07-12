@@ -1,27 +1,21 @@
 <!--
 Sync Impact Report
-- Version change: N/A（模板） → 1.0.0
+- Version change: 1.0.0 → 1.1.0
 - Modified principles:
-  - 模板原則 1 → I. Firebase 平台唯一後端來源
-  - 模板原則 2 → II. Firebase Authentication 為唯一驗證機制
-  - 模板原則 3 → III. Cloud Firestore 為唯一系統資料庫
-  - 模板原則 4 → IV. Firestore Security Rules 強制執行
-  - 模板原則 5 → V. Angular 與官方 Firebase SDK 優先
-  - 新增 → VI. 效能與成本效率為預設要求
-  - 新增 → VII. 商業邏輯測試為交付門檻
-  - 新增 → VIII. 繁體中文文件與規格治理
+  - I. Firebase 平台唯一後端來源（允許服務新增 Firebase Cloud Messaging）
+  - 技術與資料治理（新增 Messaging 使用者同意、內容敏感度與 Token 生命週期要求）
 - Added sections:
-  - 技術與資料治理
-  - 文件與交付流程
+  - 無
 - Removed sections:
   - 無
+- Amendment summary:
+  - Firebase Cloud Messaging 正式納入允許的 Firebase 官方服務組合，限於通知投遞用途。
+  - 新增推播權限、敏感內容、Token 保存及規格／測試治理要求。
 - Templates requiring updates:
-  - ✅ .specify/templates/plan-template.md
-  - ✅ .specify/templates/spec-template.md
-  - ✅ .specify/templates/tasks-template.md
-  - N/A .specify/templates/commands/
-  - ✅ README.md
-  - ✅ CLAUDE.md
+  - ✅ .specify/templates/plan-template.md（憲章檢查納入 Firebase Cloud Messaging）
+  - ✅ CLAUDE.md（允許服務與 Messaging 實作限制同步）
+  - N/A .specify/templates/spec-template.md
+  - N/A .specify/templates/tasks-template.md
 - Follow-up TODOs:
   - TODO(RATIFICATION_DATE): 無法從既有儲存庫或文件確認首次正式採納日期，需由維護者補填。
   - ✅ Cloudinary 遺留已清理：頭像移植至 Firebase Storage，移除 widget script、cloudinary/dotenv 依賴與系統設定欄位（見 specs/003-cloudinary-to-storage/plan.md）。
@@ -33,7 +27,7 @@ Sync Impact Report
 
 ### I. Firebase 平台唯一後端來源
 所有新建或重構中的後端功能 MUST exclusively 使用 Firebase 官方服務組合：
-Cloud Firestore、Firebase Authentication、Firebase Storage 與 Firebase Hosting。
+Cloud Firestore、Firebase Authentication、Firebase Storage、Firebase Hosting 與 Firebase Cloud Messaging。
 不得為新功能引入 Cloudinary、Realtime Database、自建 API 伺服器或其他第三方後端/BaaS。
 若確有不可避免之例外，必須先提出憲章修訂並附遷移與風險說明。
 理由：統一平台可降低整合複雜度、權限分散與維運成本，並讓安全規則、部署與模擬器流程保持一致。
@@ -86,6 +80,7 @@ plan.md MUST 說明主要成本熱點與對應緩解方案。
 - Firestore 文件命名、集合切分、索引與彙總策略 MUST 以降低讀寫次數與避免熱點為原則。
 - 涉及權限的功能設計 MUST 同時提交資料結構、Security Rules 與測試策略，三者缺一不可。
 - Firebase Hosting 為預設部署目標；若需要額外交付管線，必須證明不破壞既有 Firebase-first 原則。
+- Firebase Cloud Messaging 僅用於通知投遞；瀏覽器通知 MUST 取得使用者明確同意，且不得在未經產品與安全審查下承載個人化、交易型或敏感內容。若保存 FCM Token 或將其與帳號綁定，MUST 於 plan.md 定義生命週期、權限邊界、退出與清理策略；純廣播且不保存 Token 的功能亦 MUST 記錄此架構假設。
 - 所有新增依賴、資料模型與部署差異 MUST 在 plan.md 記錄其必要性、替代方案與成本影響。
 
 ## 文件與交付流程
@@ -106,4 +101,4 @@ plan.md MUST 說明主要成本熱點與對應緩解方案。
 - 所有規格審查、計畫審查、任務拆解與 pull request review MUST 檢查 Firebase-only、Security Rules、測試、效能成本與 zh-TW 文件要求是否符合。
 - 若發現現有程式碼或文件不符憲章，MUST 建立修正工作並在相關 spec/plan/tasks 或 issue 中追蹤至完成，不得將偏差視為默認標準。
 
-**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): 無法從既有儲存庫或文件確認首次正式採納日期 | **Last Amended**: 2026-03-16
+**Version**: 1.1.0 | **Ratified**: TODO(RATIFICATION_DATE): 無法從既有儲存庫或文件確認首次正式採納日期 | **Last Amended**: 2026-07-12
