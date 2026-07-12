@@ -12,13 +12,14 @@
 NGEip 是一套以 **Angular 20 + Firebase** 為核心的企業資訊入口網站（EIP）。
 本專案依據 `.specify/memory/constitution.md` 的治理原則運作，後端能力統一使用
 Firebase Authentication、Cloud Firestore、Firebase Storage 與 Firebase Hosting。
+Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推播。
 
-目前版本：**4.1.0**
+目前版本：**4.2.0**
 
 ## 專案定位
 
 - 服務企業內部的人員資料、出勤、請假、補助與系統設定流程
-- 以 Firebase 為唯一後端平台，集中管理驗證、資料存取、檔案儲存與部署
+- 以 Firebase 為唯一後端平台，集中管理驗證、資料存取、檔案儲存、推播與部署
 - 以繁體中文（zh-TW）作為規格、計畫與使用者文件的主要語言
 
 ## 核心原則摘要
@@ -40,7 +41,17 @@ Firebase Authentication、Cloud Firestore、Firebase Storage 與 Firebase Hostin
 - Attendance 與 subsidy 多檔附件、畫面內預覽、異動稽核與孤兒檔治理
 - 使用者歷程時間軸（合併補助申請與 Admin 事件，依業務日期分頁呈現）
 - 評量考核系統：支援匿名互評、管理者指派管理、可參數化的隨機快選預覽、屬性雷達圖與職業原型報告
+- 瀏覽器推播通知：使用者可依瀏覽器自行允許或停用，並提供 iPhone／iPad 與 Android 加入主畫面教學
 - 系統設定與 Firebase Emulator 本地開發流程
+
+### 瀏覽器推播通知
+
+- 使用者可在個人資料最後一個「通知設定」Tab 管理此瀏覽器的通知偏好；管理者不能代為開啟，也不提供無法保證送達的裝置狀態檢視。
+- FCM Token 僅由 Firebase SDK 在瀏覽器端管理，不顯示、不寫入 Firestore，也不與使用者帳號綁定。
+- 通知偏好與登入狀態分離：登出不會停用通知；使用者明確停用後，背景生命週期不得自動重新訂閱。
+- 發送範圍限定為 Firebase Console 的非敏感全體廣播；個人化、交易型通知、分群或送達追蹤必須另立規格與安全設計。
+- iOS／iPadOS 16.4+ 需先透過 Safari 加入主畫面，再從主畫面圖示開啟網站；Android 可透過 Chrome 安裝應用程式或加入主畫面。
+- Firebase Web App 設定集中於 `src/firebase-config.json`；`npm run build` 會在建置前依 lockfile 的 Firebase SDK 版本產生 `public/firebase-messaging-sw.js`。
 
 ### Training + AI Tool 補助額度
 
@@ -139,6 +150,7 @@ npm start
 ```bash
 npm run build      # 正式環境建置至 dist/angular-eip
 npm run watch      # 開發模式建置並監聽變更
+npm run generate:messaging-sw  # 依共用 Firebase 設定產生 Messaging Service Worker
 npm test           # 執行單元測試
 npm run test:attendance-rules       # 執行 attendance 審核／特休 Firestore Rules 矩陣
 npm run test:attachment-rules       # 執行附件 Firestore／Storage Rules 矩陣

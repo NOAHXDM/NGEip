@@ -7,6 +7,32 @@
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-07-12
+
+### 新增
+- 新增瀏覽器推播通知功能：登入後提供一次性授權引導，使用者可在個人資料最後一個「通知設定」Tab 自行啟用、停用或重新啟用此瀏覽器的通知。
+- 新增 PWA manifest、Messaging Service Worker 與 192／512 圖示，支援背景接收非敏感全體廣播。
+- 通知設定新增 iPhone／iPad 與 Android 加入主畫面教學，並說明 iOS／iPadOS 16.4+ 的 Web Push 前置限制。
+
+### 變更
+- 將通知選擇定義為瀏覽器／裝置本機偏好，不與使用者帳號綁定；登出不再等同停用通知，使用者明確停用後背景生命週期不得自動恢復訂閱。
+- Firebase Web App 公開設定集中至 `src/firebase-config.json`；建置前由 `tools/generate-firebase-messaging-sw.mjs` 依同一設定與 lockfile SDK 版本產生 Messaging Service Worker，避免設定及版本漂移。
+- Firebase Hosting 對 `/firebase-messaging-sw.js` 加入 `no-cache, no-store, must-revalidate`，避免舊版背景程式被長期快取。
+
+### 隱私與安全
+- FCM Token 僅由 Firebase SDK 在瀏覽器端管理，不顯示、不寫入 Firestore、不提供管理者檢視，也不宣稱可保證通知送達。
+- 通知內容限定為 Firebase Console 發送的非敏感全體廣播；個人化、交易型通知、分群、Token 綁定或送達追蹤須另立規格與安全設計。
+- 移除正式環境前景推播 payload log，只保留訂閱建立失敗的診斷資訊。
+
+### 治理與文件
+- 將 NGEip 憲章由 1.0.0 升級至 1.1.0，正式把 Firebase Cloud Messaging 納入允許的 Firebase 官方服務，並同步使用者同意、內容敏感度與 Token 生命週期治理要求。
+- 新增 `specs/008-web-push-notifications/` 的繁中功能規格、實作計畫與任務清單，記錄純廣播假設、風險、遷移、效能與測試策略。
+- 更新 README 的目前版本、Firebase 平台說明、推播產品邊界、PWA 操作限制與 Service Worker 產生指令。
+
+### 測試
+- 新增 NotificationService、Layout、授權對話框與 User Profile 通知設定測試，覆蓋支援度、一次性提示、opt-in／opt-out、背景恢復與 UI 狀態刷新。
+- 版本發布前完整 Karma 測試共 323 項通過，72 項既有測試略過；正式 Angular build 通過。
+
 ## [4.1.0] - 2026-07-03
 
 ### 新增
@@ -679,6 +705,7 @@
 - Cloudinary
 - Karma/Jasmine
 
+[4.2.0]: https://github.com/NOAHXDM/NGEip/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/NOAHXDM/NGEip/compare/v4.0.3...v4.1.0
 [4.0.3]: https://github.com/NOAHXDM/NGEip/compare/v4.0.2...v4.0.3
 [4.0.2]: https://github.com/NOAHXDM/NGEip/compare/v4.0.1...v4.0.2
