@@ -7,6 +7,15 @@
 
 ## [Unreleased]
 
+## [4.2.1] - 2026-07-13
+
+### 修復
+- 修正個人資料與管理者編輯使用者畫面的「補助上限」進度條粗度不一致：將 Angular Material 一般補助進度條的軌道與有效指示區段統一設為 8px，對齊「Training + AI Tool」共用池的堆疊進度條。
+- 使用 Angular Material 20 實際採用的 `--mat-progress-bar-track-height` 與 `--mat-progress-bar-active-indicator-height` design tokens，避免只調整元件外框高度、內層仍維持預設 4px 的問題。
+
+### 文件
+- 將專案 patch 版本更新為 4.2.1，並同步 README 的目前版本及補助進度條視覺規格。
+
 ## [4.2.0] - 2026-07-12
 
 ### 新增
@@ -705,6 +714,7 @@
 - Cloudinary
 - Karma/Jasmine
 
+[4.2.1]: https://github.com/NOAHXDM/NGEip/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/NOAHXDM/NGEip/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/NOAHXDM/NGEip/compare/v4.0.3...v4.1.0
 [4.0.3]: https://github.com/NOAHXDM/NGEip/compare/v4.0.2...v4.0.3

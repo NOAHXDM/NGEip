@@ -141,8 +141,11 @@
   }
 
   mat-progress-bar {
+    --mat-progress-bar-track-height: 8px;
+    --mat-progress-bar-active-indicator-height: 8px;
     height: 8px;
     border-radius: 4px;
+    overflow: hidden;
   }
 
   .stacked-progress-bar {
