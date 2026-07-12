@@ -2,6 +2,9 @@
   "name": "angular-eip",
   "version": "4.1.0",
   "scripts": {
+    "generate:messaging-sw": "node tools/generate-firebase-messaging-sw.mjs",
+    "prebuild": "npm run generate:messaging-sw",
+    "prewatch": "npm run generate:messaging-sw",
     "start": "firebase emulators:start --config firebase.local.json --import ./firestore-backup",
     "build": "ng build",
     "deploy": "npm run build && firebase deploy --config firebase.prod.json",

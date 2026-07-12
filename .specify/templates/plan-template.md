@@ -14,7 +14,7 @@
 <!--
   請以專案實際情況取代本節內容。
   本專案憲章要求：Angular 20、Firebase Authentication、Cloud Firestore、
-  Firebase Storage、Firebase Hosting，以及官方 Firebase JavaScript SDK。
+  Firebase Storage、Firebase Hosting、Firebase Cloud Messaging，以及官方 Firebase JavaScript SDK。
 -->
 
 **語言／版本**：[例如 Angular 20、TypeScript 5.x 或 NEEDS CLARIFICATION]  
@@ -31,7 +31,8 @@
 
 *Gate：Phase 0 研究前必須通過；Phase 1 設計後需再次複核。*
 
-- [ ] 僅使用 Firebase Authentication、Cloud Firestore、Firebase Storage、Firebase Hosting；無新增 Cloudinary、Realtime Database 或其他後端。
+- [ ] 僅使用 Firebase Authentication、Cloud Firestore、Firebase Storage、Firebase Hosting、Firebase Cloud Messaging；無新增 Cloudinary、Realtime Database 或其他後端。
+- [ ] 若使用 Firebase Cloud Messaging，已說明使用者同意流程、通知內容敏感度、Token 是否保存，以及退出／清理策略。
 - [ ] 所有驗證流程均以 Firebase Authentication 為唯一來源，且使用者資料以 Firebase UID 對應 Firestore 文件。
 - [ ] Firestore 資料模型已說明集合、文件鍵、查詢路徑、索引與成本影響，並優先採平坦結構。
 - [ ] 已定義或更新 Firestore Security Rules、模擬器驗證方式與授權邊界。

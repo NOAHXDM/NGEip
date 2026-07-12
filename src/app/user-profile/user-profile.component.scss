@@ -92,6 +92,12 @@
   font-size: 12px;
 }
 
+.pwa-guide-attribution {
+  margin: 12px 0 0;
+  text-align: right;
+  font-size: 12px;
+}
+
 @media (max-width: 600px) {
   .pwa-guide-platforms {
     grid-template-columns: 1fr;

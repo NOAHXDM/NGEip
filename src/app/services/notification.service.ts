@@ -110,7 +110,8 @@ export class NotificationService {
       if (!token) return false;
       this.registerForegroundHandler();
       return true;
-    } catch {
+    } catch (error) {
+      console.error('[NotificationService] 無法建立推播訂閱', error);
       return false;
     }
   }
@@ -143,7 +144,6 @@ export class NotificationService {
     if (this.foregroundListenerRegistered || !this.messaging) return;
     this.foregroundListenerRegistered = true;
     this._fn.onMessage(this.messaging, (payload) => {
-      console.log('[NotificationService] onMessage 收到前景訊息 =>', payload);
       const title = payload.notification?.title ?? '新通知';
       this.snackBar.open(title, '關閉', { duration: 5000 });
     });

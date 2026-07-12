@@ -19,9 +19,14 @@ import {
   provideStorage,
   connectStorageEmulator,
 } from '@angular/fire/storage';
-import { getMessaging, provideMessaging } from '@angular/fire/messaging';
+import {
+  getMessaging,
+  Messaging,
+  provideMessaging,
+} from '@angular/fire/messaging';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { environment } from '../environments/environment';
+import firebaseConfig from '../firebase-config.json';
 import { SystemConfigService } from './services/system-config.service';
 import { LEAVE_POLICY_CONFIG, TAIWAN_POLICY } from './tokens/leave-policy.token';
 
@@ -29,17 +34,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideFirebaseApp(() =>
-      initializeApp({
-        apiKey: 'AIzaSyB_uE1Ij0dNDkxB5cpsMT1qvSWsYfnhF_g',
-        authDomain: 'noahxdm-eip.firebaseapp.com',
-        projectId: 'noahxdm-eip',
-        storageBucket: 'noahxdm-eip.firebasestorage.app',
-        messagingSenderId: '498650578048',
-        appId: '1:498650578048:web:a53ddd4109481f3ee67a65',
-        measurementId: 'G-XXSMLYXYDS',
-      })
-    ),
+    provideFirebaseApp(() => initializeApp(firebaseConfig)),
     environment.useEmulators
       ? provideAuth(() => {
         const auth = getAuth();
@@ -70,7 +65,7 @@ export const appConfig: ApplicationConfig = {
       try {
         return getMessaging();
       } catch {
-        return null as any;
+        return null as unknown as Messaging;
       }
     }),
     provideAnimationsAsync(),
