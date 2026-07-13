@@ -40,6 +40,19 @@ import { License } from './system-config.service';
 import { StorageService } from './storage.service';
 import { TimezoneService } from './timezone.service';
 
+export const TELEGRAM_USERNAME_PATTERN = /^@?[A-Za-z0-9_]{5,32}$/;
+
+export function normalizeTelegramUsername(value: string | null | undefined): string {
+  return (value || '').trim().replace(/^@/, '');
+}
+
+export function telegramProfileUrl(value: string | null | undefined): string | null {
+  const username = normalizeTelegramUsername(value);
+  return TELEGRAM_USERNAME_PATTERN.test(username)
+    ? `https://t.me/${username}`
+    : null;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -170,6 +183,7 @@ export class UserService {
       remoteWorkEligibility: user.remoteWorkEligibility,
       remoteWorkRecommender: user.remoteWorkRecommender,
       birthday: user.birthday,
+      telegramUsername: normalizeTelegramUsername(user.telegramUsername),
     };
     return from(this._fn.updateDoc(docRef, data));
   }
@@ -297,6 +311,7 @@ export interface User {
   remoteWorkRecommender: string[];
   role: 'admin' | 'user';
   startDate?: Timestamp | FieldValue; // 到職日
+  telegramUsername?: string; // Telegram 使用者名稱（不含 @）
   exitDate?: Timestamp | FieldValue; // 離職日
   uid?: string;
 }

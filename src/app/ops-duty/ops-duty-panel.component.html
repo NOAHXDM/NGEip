@@ -27,15 +27,33 @@
     <dl class="shift-list">
       <div>
         <dt><span class="shift-dot early"></span>早班</dt>
-        <dd>{{ data.earlyShift.join('、') || '無' }}</dd>
+        <dd>
+          @for (name of data.earlyShift; track name; let last = $last) {
+            @if (telegramUrl(name); as url) {
+              <a class="telegram-link" [href]="url" target="_blank" rel="noopener noreferrer">{{ name }}</a>
+            } @else { {{ name }} }@if (!last) {、}
+          } @empty { 無 }
+        </dd>
       </div>
       <div>
         <dt><span class="shift-dot middle"></span>中班</dt>
-        <dd>{{ data.middleShift.join('、') || '無' }}</dd>
+        <dd>
+          @for (name of data.middleShift; track name; let last = $last) {
+            @if (telegramUrl(name); as url) {
+              <a class="telegram-link" [href]="url" target="_blank" rel="noopener noreferrer">{{ name }}</a>
+            } @else { {{ name }} }@if (!last) {、}
+          } @empty { 無 }
+        </dd>
       </div>
       <div>
         <dt><span class="shift-dot oncall"></span>On-call</dt>
-        <dd>{{ data.onCall.join('、') || '無' }}</dd>
+        <dd>
+          @for (name of data.onCall; track name; let last = $last) {
+            @if (telegramUrl(name); as url) {
+              <a class="telegram-link" [href]="url" target="_blank" rel="noopener noreferrer">{{ name }}</a>
+            } @else { {{ name }} }@if (!last) {、}
+          } @empty { 無 }
+        </dd>
       </div>
     </dl>
 

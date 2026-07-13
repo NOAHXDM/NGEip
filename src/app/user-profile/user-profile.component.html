@@ -115,6 +115,23 @@
         matSuffix
       ></mtx-datetimepicker-toggle>
     </mat-form-field>
+    <!-- Telegram Username -->
+    <mat-form-field appearance="outline">
+      <mat-label>Telegram 使用者名稱</mat-label>
+      <span matTextPrefix>@&nbsp;</span>
+      <input
+        type="text"
+        matInput
+        formControlName="telegramUsername"
+        autocomplete="off"
+        placeholder="username"
+      />
+      <mat-icon matSuffix>send</mat-icon>
+      <mat-hint>填寫後，值班同事可從 Ops Duty 直接聯繫您</mat-hint>
+      @if (profileForm.get('telegramUsername')?.hasError('pattern')) {
+        <mat-error>請輸入 5–32 位英文字母、數字或底線</mat-error>
+      }
+    </mat-form-field>
     <button type="submit" mat-flat-button [disabled]="profileForm.invalid">
       更新
     </button>

@@ -10,7 +10,11 @@ import { MatSort, MatSortModule } from '@angular/material/sort';
 
 import { UserNamePipe } from '../pipes/user-name.pipe';
 import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
-import { User, UserService } from '../services/user.service';
+import {
+  telegramProfileUrl,
+  User,
+  UserService,
+} from '../services/user.service';
 import { UserProfileComponent } from '../user-profile/user-profile.component';
 import { LineThroughDirective } from '../directives/line-through.directive';
 
@@ -71,5 +75,9 @@ export class UserListComponent {
       width: '65vw',
       maxHeight: '90vh',
     });
+  }
+
+  telegramUrl(user: User): string | null {
+    return telegramProfileUrl(user.telegramUsername);
   }
 }

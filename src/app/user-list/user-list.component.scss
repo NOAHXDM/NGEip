@@ -45,3 +45,26 @@
   overflow: scroll;
   height: calc(100vh - 153px);
 }
+
+.telegram-icon-link {
+  display: inline-grid;
+  width: 21px;
+  height: 21px;
+  margin-top: 4px;
+  color: #229ed9;
+  border-radius: 50%;
+  place-items: center;
+
+  svg {
+    width: 21px;
+    height: 21px;
+    fill: currentColor;
+  }
+
+  &:hover,
+  &:focus-visible {
+    color: #087eaf;
+    outline: 2px solid rgb(34 158 217 / 35%);
+    outline-offset: 2px;
+  }
+}

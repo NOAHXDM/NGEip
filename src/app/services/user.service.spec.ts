@@ -16,7 +16,7 @@ import { firstValueFrom, of, throwError } from 'rxjs';
 import { Auth } from '@angular/fire/auth';
 import { Firestore } from '@angular/fire/firestore';
 
-import { User, UserService } from './user.service';
+import { telegramProfileUrl, User, UserService } from './user.service';
 import { StorageService } from './storage.service';
 import { TimezoneService } from './timezone.service';
 
@@ -81,6 +81,22 @@ describe('UserService（離職流程 updateUserAdvanced）', () => {
     expect(storageServiceSpy.deleteAvatar).not.toHaveBeenCalled();
   });
 
+  it('一般資料更新會儲存正規化後且不含 @ 的 Telegram 使用者名稱', async () => {
+    const user = {
+      uid: MOCK_UID,
+      name: '測試使用者',
+      phone: '0912345678',
+      remoteWorkEligibility: 'N/A',
+      remoteWorkRecommender: [],
+      telegramUsername: '@ops_user',
+    } as unknown as User;
+
+    await firstValueFrom(service.updateUser(user));
+
+    const writtenData = updateDocSpy.calls.mostRecent().args[1] as Record<string, unknown>;
+    expect(writtenData['telegramUsername']).toBe('ops_user');
+  });
+
   it('有 exitDate：更新時清空 photoUrl，並於成功後刪除 Storage 頭像', async () => {
     const user = {
       uid: MOCK_UID,
@@ -124,5 +140,13 @@ describe('UserService（離職流程 updateUserAdvanced）', () => {
     const writtenData = updateDocSpy.calls.mostRecent().args[1] as Record<string, unknown>;
     expect(writtenData['photoUrl']).toBe('');
     expect(storageServiceSpy.deleteAvatar).toHaveBeenCalledOnceWith(MOCK_UID);
+  });
+});
+
+describe('telegramProfileUrl', () => {
+  it('只為合法使用者名稱建立 t.me 連結', () => {
+    expect(telegramProfileUrl('@ops_user')).toBe('https://t.me/ops_user');
+    expect(telegramProfileUrl('invalid-name')).toBeNull();
+    expect(telegramProfileUrl('')).toBeNull();
   });
 });

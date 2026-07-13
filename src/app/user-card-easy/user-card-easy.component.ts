@@ -1,7 +1,11 @@
 import { Component, Input } from '@angular/core';
 import { Observable, take } from 'rxjs';
 import { MatBadgeModule } from '@angular/material/badge';
-import { User, UserService } from '../services/user.service';
+import {
+  telegramProfileUrl,
+  User,
+  UserService,
+} from '../services/user.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { UserProfileComponent } from '../user-profile/user-profile.component';
 import { MatIconModule } from '@angular/material/icon';
@@ -33,5 +37,9 @@ export class UserCardEasyComponent {
         }
       },
     });
+  }
+
+  telegramUrl(): string | null {
+    return telegramProfileUrl(this.user.telegramUsername);
   }
 }

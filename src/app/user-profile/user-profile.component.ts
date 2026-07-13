@@ -46,7 +46,12 @@ import { concatMap, map, Observable, of, switchMap, take } from 'rxjs';
 
 import { AnnualLeaveService } from '../services/annual-leave.service';
 import { NotificationService } from '../services/notification.service';
-import { User, UserService } from '../services/user.service';
+import {
+  normalizeTelegramUsername,
+  TELEGRAM_USERNAME_PATTERN,
+  User,
+  UserService,
+} from '../services/user.service';
 import { UserNamePipe } from '../pipes/user-name.pipe';
 import { FirestoreTimestampPipe } from '../pipes/firestore-timestamp.pipe';
 import { TimezoneService } from '../services/timezone.service';
@@ -113,6 +118,9 @@ export class UserProfileComponent {
     phone: new FormControl(''),
     remoteWorkEligibility: new FormControl('N/A'),
     remoteWorkRecommender: new FormControl<string[]>([]),
+    telegramUsername: new FormControl('', [
+      Validators.pattern(TELEGRAM_USERNAME_PATTERN),
+    ]),
     uid: new FormControl('', [Validators.required]),
     photoUrl: new FormControl(''),
   });
@@ -238,6 +246,7 @@ export class UserProfileComponent {
 
   normalFieldsUpdate() {
     const data: any = this.profileForm.value;
+    data.telegramUsername = normalizeTelegramUsername(data.telegramUsername);
     if (data.birthday) {
       data.birthday = this.timezoneService.convertTimestampByClientTimezone(
         startOfDay(data.birthday)

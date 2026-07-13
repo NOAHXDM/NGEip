@@ -107,3 +107,27 @@ mat-icon {
     margin-top: 26.11px;
   }
 }
+
+.telegram-icon-link {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  margin-left: 7px;
+  color: #229ed9;
+  border-radius: 50%;
+  place-items: center;
+
+  svg {
+    width: 17px;
+    height: 17px;
+    fill: currentColor;
+  }
+
+  &:hover,
+  &:focus-visible {
+    color: #087eaf;
+    outline: 2px solid rgb(34 158 217 / 35%);
+    outline-offset: 2px;
+  }
+}

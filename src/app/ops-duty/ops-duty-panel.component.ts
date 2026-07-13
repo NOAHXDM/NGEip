@@ -1,7 +1,14 @@
 import { CdkDrag, CdkDragHandle } from '@angular/cdk/drag-drop';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { firstValueFrom } from 'rxjs';
 
+import {
+  normalizeTelegramUsername,
+  TELEGRAM_USERNAME_PATTERN,
+  telegramProfileUrl,
+  UserService,
+} from '../services/user.service';
 import { DutyRoster, DutyRosterService } from './duty-roster.service';
 
 @Component({
@@ -13,11 +20,13 @@ import { DutyRoster, DutyRosterService } from './duty-roster.service';
 })
 export class OpsDutyPanelComponent implements OnInit {
   private readonly rosterService = inject(DutyRosterService);
+  private readonly userService = inject(UserService);
 
   readonly roster = signal<DutyRoster | null>(null);
   readonly loading = signal(true);
   readonly errorMessage = signal('');
   readonly visible = signal(true);
+  readonly telegramByName = signal<Record<string, string>>({});
 
   ngOnInit(): void {
     void this.refresh();
@@ -27,7 +36,21 @@ export class OpsDutyPanelComponent implements OnInit {
     this.loading.set(true);
     this.errorMessage.set('');
     try {
-      this.roster.set(await this.rosterService.loadToday());
+      const [roster, users] = await Promise.all([
+        this.rosterService.loadToday(),
+        firstValueFrom(this.userService.list$).catch(() => []),
+      ]);
+      this.roster.set(roster);
+      this.telegramByName.set(
+        Object.fromEntries(
+          users
+            .map((user) => [
+              user.name,
+              normalizeTelegramUsername(user.telegramUsername),
+            ])
+            .filter((entry) => TELEGRAM_USERNAME_PATTERN.test(entry[1]))
+        )
+      );
     } catch (error) {
       this.roster.set(null);
       this.errorMessage.set(
@@ -40,5 +63,9 @@ export class OpsDutyPanelComponent implements OnInit {
 
   close(): void {
     this.visible.set(false);
+  }
+
+  telegramUrl(name: string): string | null {
+    return telegramProfileUrl(this.telegramByName()[name]);
   }
 }

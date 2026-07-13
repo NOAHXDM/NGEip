@@ -18,7 +18,24 @@
         {{ user.email }}
       </span>
     </div>
-    <div class="phone"><mat-icon>call</mat-icon>{{ user.phone }}</div>
+    <div class="phone">
+      <mat-icon>call</mat-icon>{{ user.phone }}
+      @if (telegramUrl(); as url) {
+        <a
+          class="telegram-icon-link"
+          [href]="url"
+          target="_blank"
+          rel="noopener noreferrer"
+          [attr.aria-label]="'使用 Telegram 聯繫 ' + user.name"
+          title="使用 Telegram 聯繫"
+          (click)="$event.stopPropagation()"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.16l-9.48 5.98-4.1-1.28c-.89-.28-.9-.89.19-1.32l16.01-6.17c.74-.27 1.39.18 1.13 1.32l-2.72 12.81c-.19.91-.74 1.13-1.5.7l-4.14-3.05-2 1.93c-.22.22-.41.41-.83.41z" />
+          </svg>
+        </a>
+      }
+    </div>
     <div class="job">
       <div class="info-job">
         <mat-icon>badge</mat-icon>

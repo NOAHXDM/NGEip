@@ -7,6 +7,23 @@
 
 ## [Unreleased]
 
+## [4.3.1] - 2026-07-13
+
+### 新增
+- 在個人資料與管理者編輯使用者的基本資料表單中，於生日下方新增選填的 Telegram 使用者名稱欄位。
+- 使用者名稱接受 5–32 位英文字母、數字或底線；容許貼上開頭 `@`，儲存前會正規化為不含 `@` 的值。
+- Ops Duty 依班表姓名比對使用者資料；有合法 Telegram username 時，班別姓名會成為可直接開啟 `https://t.me/{username}` 的聯繫連結，未設定者維持純文字。
+
+### 介面與無障礙
+- 在右側使用者資訊卡的電話旁，以及使用者列表的「聯絡資訊」欄位新增 Telegram 紙飛機圖示連結，不顯示 username 文字，降低資訊密度。
+- Telegram 圖示連結以新分頁開啟，提供 hover、鍵盤焦點及包含使用者姓名的無障礙標籤。
+- 使用者資訊卡的 Telegram 圖示會阻止 click 事件冒泡，避免聯繫操作同時觸發管理者使用者資料對話框。
+
+### 安全與測試
+- 集中提供 Telegram username 正規化、格式驗證與安全 t.me URL 建立函式；空白或不合法值不產生外部連結。
+- 新增 Telegram 寫入、URL 建立、Ops Duty 姓名連結、使用者資訊卡與列表顯示條件測試；相關測試共 14 項通過，TypeScript 型別檢查與 `git diff --check` 通過。
+- 將專案 patch 版本由 4.3.0 提升至 4.3.1，並同步 README 的個人資料、Ops Duty 與 Telegram 快捷聯繫說明。
+
 ## [4.3.0] - 2026-07-13
 
 ### 新增
@@ -732,6 +749,7 @@
 - Cloudinary
 - Karma/Jasmine
 
+[4.3.1]: https://github.com/NOAHXDM/NGEip/compare/v4.3.0...v4.3.1
 [4.3.0]: https://github.com/NOAHXDM/NGEip/compare/v4.2.1...v4.3.0
 [4.2.1]: https://github.com/NOAHXDM/NGEip/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/NOAHXDM/NGEip/compare/v4.1.0...v4.2.0

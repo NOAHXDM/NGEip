@@ -143,6 +143,18 @@
   line-height: 1.35;
 }
 
+.telegram-link {
+  color: #bae6fd;
+  text-decoration-color: rgb(186 230 253 / 45%);
+  text-underline-offset: 2px;
+}
+
+.telegram-link:hover,
+.telegram-link:focus-visible {
+  color: #fff;
+  text-decoration-color: currentColor;
+}
+
 .shift-dot {
   width: 6px;
   height: 6px;
