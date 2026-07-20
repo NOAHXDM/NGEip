@@ -7,6 +7,16 @@
 
 ## [Unreleased]
 
+## [4.3.2] - 2026-07-21
+
+### 修復
+- 修正已上傳 PDF 開啟預覽時可能顯示 `%PDF`、`stream` 等二進位原始內容的問題；建立 Object URL 前會依附件 metadata 正規化 Blob MIME 為 `application/pdf`，讓瀏覽器交由 PDF viewer 呈現。
+- MIME 正規化只在下載 Blob 型別缺失或不符時建立新 Blob，保留原始檔案位元內容；本機待上傳且型別正確的 `File` 維持原物件，不做多餘包裝。
+
+### 測試與文件
+- 新增 PDF 預覽回歸測試，覆蓋 Storage 回傳 `text/plain` Blob 時的 MIME 修正與內容完整性，並確認本機圖片預覽仍直接使用原始 `File`。
+- 將專案 patch 版本由 4.3.1 提升至 4.3.2，並同步 README 的目前版本與申請附件預覽說明。
+
 ## [4.3.1] - 2026-07-13
 
 ### 新增
@@ -749,6 +759,7 @@
 - Cloudinary
 - Karma/Jasmine
 
+[4.3.2]: https://github.com/NOAHXDM/NGEip/compare/v4.3.1...v4.3.2
 [4.3.1]: https://github.com/NOAHXDM/NGEip/compare/v4.3.0...v4.3.1
 [4.3.0]: https://github.com/NOAHXDM/NGEip/compare/v4.2.1...v4.3.0
 [4.2.1]: https://github.com/NOAHXDM/NGEip/compare/v4.2.0...v4.2.1

@@ -17,15 +17,20 @@ describe('AttachmentPreviewDialogComponent', () => {
     const component = new AttachmentPreviewDialogComponent({ file }, service as any, sanitizer as any);
     await component.load();
     expect(service.loadPreview).not.toHaveBeenCalled();
+    expect(createSpy).toHaveBeenCalledWith(file);
     expect(component.isImage).toBeTrue();
     expect(component.safeUrl).toBe('blob:preview' as any);
   });
 
-  it('loads a remote PDF and revokes its URL on destroy', async () => {
-    const service = { loadPreview: () => of(new Blob(['%PDF-'], { type: 'application/pdf' })) };
+  it('restores the PDF MIME type before previewing a remote Blob', async () => {
+    const service = { loadPreview: () => of(new Blob(['%PDF-'], { type: 'text/plain' })) };
     const attachment = { originalName: 'a.pdf', contentType: 'application/pdf' } as any;
     const component = new AttachmentPreviewDialogComponent({ attachment }, service as any, sanitizer as any);
     await component.load();
+
+    const previewBlob = createSpy.calls.mostRecent().args[0] as Blob;
+    expect(previewBlob.type).toBe('application/pdf');
+    expect(await previewBlob.text()).toBe('%PDF-');
     expect(component.isImage).toBeFalse();
     component.ngOnDestroy();
     expect(revokeSpy).toHaveBeenCalledWith('blob:preview');

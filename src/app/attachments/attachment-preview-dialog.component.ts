@@ -45,7 +45,8 @@ export class AttachmentPreviewDialogComponent implements OnInit, OnDestroy {
         throw new Error('missing-attachment-preview-source');
       }
       if (generation !== this.loadGeneration) return;
-      this.objectUrl = URL.createObjectURL(blob);
+      const previewBlob = this.withExpectedContentType(blob);
+      this.objectUrl = URL.createObjectURL(previewBlob);
       this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.objectUrl);
     } catch (error) {
       if (generation !== this.loadGeneration) return;
@@ -69,5 +70,11 @@ export class AttachmentPreviewDialogComponent implements OnInit, OnDestroy {
     if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
     this.objectUrl = undefined;
     this.safeUrl = undefined;
+  }
+
+  private withExpectedContentType(blob: Blob): Blob {
+    const expectedContentType = this.contentType;
+    if (!expectedContentType || blob.type === expectedContentType) return blob;
+    return new Blob([blob], { type: expectedContentType });
   }
 }
