@@ -16,13 +16,53 @@ import {
   updateDoc,
   where,
 } from '@angular/fire/firestore';
-import { from, Observable, of, switchMap } from 'rxjs';
+import { combineLatest, from, map, Observable, of, switchMap } from 'rxjs';
 import { AttachmentService } from './attachment.service';
 import { AttachmentMetadata } from '../attachments/attachment.models';
 
 export interface SelectOption {
   text: string;
   value: number;
+}
+
+export function calculateLaptopSubsidyPlan(invoiceAmount: number) {
+  const totalSubsidy = Math.min(invoiceAmount * 0.8, 54000);
+  const installmentAmounts: number[] = [];
+  let remainingAmount = totalSubsidy;
+
+  for (let installmentNumber = 1; installmentNumber <= 36; installmentNumber++) {
+    let amount = 0;
+    if (installmentNumber <= 12) {
+      amount = Math.min(1000, remainingAmount);
+    } else if (installmentNumber <= 24) {
+      amount = Math.min(1500, remainingAmount);
+    } else {
+      amount = Math.min(2000, remainingAmount);
+    }
+
+    installmentAmounts.push(amount);
+    remainingAmount -= amount;
+
+    if (remainingAmount <= 0) {
+      break;
+    }
+  }
+
+  return {
+    totalSubsidy,
+    installmentAmounts,
+  };
+}
+
+export function hasOutstandingLaptopInstallments(
+  invoiceAmount: number,
+  recordedInstallmentCount: number
+): boolean {
+  const subsidyInfo = calculateLaptopSubsidyPlan(invoiceAmount);
+  return (
+    subsidyInfo.totalSubsidy > 0 &&
+    recordedInstallmentCount < subsidyInfo.installmentAmounts.length
+  );
 }
 
 @Injectable({
@@ -161,6 +201,60 @@ export class SubsidyService {
     ) as Observable<SubsidyApplication[]>;
   }
 
+  getOutstandingLaptopApplications(): Observable<SubsidyApplication[]> {
+    const collectRef = collection(this.firestore, 'subsidyApplications');
+    const approvedLaptopApplications$ = collectionData(
+      query(
+        collectRef,
+        and(
+          where('status', '==', 'approved'),
+          where('type', '==', SubsidyType.Laptop)
+        ),
+        orderBy('applicationDate', 'asc')
+      ),
+      { idField: 'id' }
+    ) as Observable<SubsidyApplication[]>;
+
+    return approvedLaptopApplications$.pipe(
+      switchMap((applications) => {
+        const applicationsWithIds = applications.filter(
+          (application): application is SubsidyApplication & { id: string } =>
+            Boolean(application.id)
+        );
+
+        if (applicationsWithIds.length === 0) {
+          return of([]);
+        }
+
+        return combineLatest(
+          applicationsWithIds.map((application) =>
+            this.getInstallments(application.id).pipe(
+              map((installments) => {
+                const isOutstanding = hasOutstandingLaptopInstallments(
+                  application.invoiceAmount ?? 0,
+                  installments.length
+                );
+
+                return isOutstanding ? application : null;
+              })
+            )
+          )
+        ).pipe(
+          map((results) =>
+            results
+              .filter(
+                (
+                  application
+                ): application is SubsidyApplication & { id: string } =>
+                  application !== null
+              )
+              .reverse()
+          )
+        );
+      })
+    );
+  }
+
   searchByTypeAndDate(
     type: SubsidyType | null,
     startDate: Date,
@@ -259,32 +353,7 @@ export class SubsidyService {
    * - 第25~36期：2000/期
    */
   calculateLaptopSubsidy(invoiceAmount: number) {
-    const totalSubsidy = Math.min(invoiceAmount * 0.8, 54000);
-    const installmentAmounts: number[] = [];
-    let remainingAmount = totalSubsidy;
-
-    for (let i = 1; i <= 36; i++) {
-      let amount = 0;
-      if (i <= 12) {
-        amount = Math.min(1000, remainingAmount);
-      } else if (i <= 24) {
-        amount = Math.min(1500, remainingAmount);
-      } else {
-        amount = Math.min(2000, remainingAmount);
-      }
-
-      installmentAmounts.push(amount);
-      remainingAmount -= amount;
-
-      if (remainingAmount <= 0) {
-        break;
-      }
-    }
-
-    return {
-      totalSubsidy,
-      installmentAmounts,
-    };
+    return calculateLaptopSubsidyPlan(invoiceAmount);
   }
 
   /**

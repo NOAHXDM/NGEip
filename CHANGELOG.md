@@ -7,6 +7,22 @@
 
 ## [Unreleased]
 
+## [4.3.3] - 2026-07-24
+
+### 新增
+- 在 `/Subsidy/List` 管理員頁面新增「筆電分期未領完」Tab，集中顯示類型為筆電補助、狀態已核准，且尚未完成所有預定分期的申請。
+- 新增未完成筆電分期即時查詢：先篩選已核准筆電申請，再監聽各申請的 `installments` 子集合；當最後一期完成後，紀錄會自動從清單移除。
+- 清單保留「查看歷史」與「分期記錄」操作，管理員可直接檢視稽核軌跡或登錄下一期款項。
+
+### 介面
+- 切換至「筆電分期未領完」Tab 時，關閉並停用類型與日期篩選，確保既有篩選條件不會影響待領完清單。
+- 停用篩選時保留使用者原先選取的類型與日期；返回其他 Tab 後重新啟用並套用原條件。
+
+### 測試與文件
+- 抽出可測試的筆電補助分期計畫與未完成狀態判定函式，新增尚未開始、剩餘一期、全部完成與零補助金額情境測試。
+- 完整 Karma 測試共 333 項通過、72 項既有測試略過；Angular production build、Angular 模板編譯與 `git diff --check` 通過。
+- 將專案 patch 版本由 4.3.2 提升至 4.3.3，並同步 README 的目前版本與筆電補助分期追蹤說明。
+
 ## [4.3.2] - 2026-07-21
 
 ### 修復
@@ -759,6 +775,7 @@
 - Cloudinary
 - Karma/Jasmine
 
+[4.3.3]: https://github.com/NOAHXDM/NGEip/compare/v4.3.2...v4.3.3
 [4.3.2]: https://github.com/NOAHXDM/NGEip/compare/v4.3.1...v4.3.2
 [4.3.1]: https://github.com/NOAHXDM/NGEip/compare/v4.3.0...v4.3.1
 [4.3.0]: https://github.com/NOAHXDM/NGEip/compare/v4.2.1...v4.3.0

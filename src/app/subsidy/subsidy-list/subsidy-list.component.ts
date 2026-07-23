@@ -68,6 +68,7 @@ export class SubsidyListComponent {
 
   @ViewChild(MatSort) sort?: MatSort;
 
+  readonly outstandingLaptopTabIndex = 3;
   selectedTabIndex = 0;
   selectedType: SubsidyType | null = null;
   typeList = this.subsidyService.typeList;
@@ -93,6 +94,13 @@ export class SubsidyListComponent {
   allApplicationsList$?: Observable<MatTableDataSource<SubsidyApplication>>;
   myApplicationsList$?: Observable<MatTableDataSource<SubsidyApplication>>;
   pendingApplicationsList$?: Observable<MatTableDataSource<SubsidyApplication>>;
+  outstandingLaptopApplicationsList$?: Observable<
+    MatTableDataSource<SubsidyApplication>
+  >;
+
+  get filtersDisabled(): boolean {
+    return this.selectedTabIndex === this.outstandingLaptopTabIndex;
+  }
 
   ngOnInit() {
     // 預設載入當月所有申請
@@ -113,20 +121,41 @@ export class SubsidyListComponent {
 
   onTabChange(index: number) {
     this.selectedTabIndex = index;
+
+    if (this.filtersDisabled) {
+      this.showFilterPanel = false;
+      this.dateRangeForm.disable({ emitEvent: false });
+      this.loadOutstandingLaptopApplications();
+      return;
+    }
+
+    this.dateRangeForm.enable({ emitEvent: false });
     // 切換 Tab 時應用當前的過濾條件
     this.applyFilters();
   }
 
   onTypeFilterChange(type: SubsidyType | null) {
+    if (this.filtersDisabled) {
+      return;
+    }
+
     this.selectedType = type;
     this.applyFilters();
   }
 
   onDateRangeChange() {
+    if (this.filtersDisabled) {
+      return;
+    }
+
     this.applyFilters();
   }
 
   toggleFilterPanel() {
+    if (this.filtersDisabled) {
+      return;
+    }
+
     this.showFilterPanel = !this.showFilterPanel;
   }
 
@@ -248,6 +277,12 @@ export class SubsidyListComponent {
     this.pendingApplicationsList$ = observable.pipe(
       map((data) => this.transformToDataSource(data))
     );
+  }
+
+  loadOutstandingLaptopApplications() {
+    this.outstandingLaptopApplicationsList$ = this.subsidyService
+      .getOutstandingLaptopApplications()
+      .pipe(map((data) => this.transformToDataSource(data)));
   }
 
   transformToDataSource(

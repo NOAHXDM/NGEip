@@ -1,6 +1,6 @@
 {
   "name": "angular-eip",
-  "version": "4.3.2",
+  "version": "4.3.3",
   "scripts": {
     "generate:messaging-sw": "node tools/generate-firebase-messaging-sw.mjs",
     "prebuild": "npm run generate:messaging-sw",
