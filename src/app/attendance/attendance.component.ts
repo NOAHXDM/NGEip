@@ -1,9 +1,11 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, OnInit, Inject, signal } from '@angular/core';
 import {
+  AbstractControl,
   FormControl,
   FormGroup,
   ReactiveFormsModule,
+  ValidationErrors,
   Validators,
 } from '@angular/forms';
 import { Timestamp } from '@angular/fire/firestore';
@@ -37,6 +39,25 @@ import { UserService, User } from '../services/user.service';
 import { TimezoneService } from '../services/timezone.service';
 import { AttachmentListComponent } from '../attachments/attachment-list.component';
 import { AttachmentMetadata } from '../attachments/attachment.models';
+import {
+  canChangeAttendanceRequester,
+  canManageAttendanceAttachments,
+  canReassignAttendanceProxy,
+} from '../utils/attendance-permission';
+
+/**
+ * 結束時間必須晚於開始時間。時間尚未選定（初始空字串）或非法日期時不判定，
+ * 交由各欄位自身的 required 驗證處理，避免開啟表單即報錯。
+ */
+export function attendanceDateTimeOrderValidator(
+  group: AbstractControl
+): ValidationErrors | null {
+  const start = group.get('startDateTime')?.value;
+  const end = group.get('endDateTime')?.value;
+  if (!(start instanceof Date) || !(end instanceof Date)) return null;
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+  return end.getTime() > start.getTime() ? null : { endBeforeStart: true };
+}
 
 @Component({
   selector: 'app-attendance',
@@ -98,7 +119,7 @@ export class AttendanceComponent implements OnInit {
     proxyUserId: new FormControl(''),
     startDateTime: new FormControl('', [Validators.required]),
     endDateTime: new FormControl('', [Validators.required]),
-  });
+  }, { validators: attendanceDateTimeOrderValidator });
   reasonPriorityVisible = signal(false);
   calloutVisible = signal(false);
   proxyVisible = signal(true);
@@ -120,9 +141,7 @@ export class AttendanceComponent implements OnInit {
 
   get canManageAttachments(): boolean {
     if (!this.data.attendance) return true;
-    return this.currentUser?.role === 'admin' ||
-      (this.data.attendance.userId === this.currentUser?.uid &&
-        this.data.attendance.status === 'pending');
+    return canManageAttendanceAttachments(this.data.attendance, this.currentUser);
   }
 
   constructor(
@@ -143,6 +162,7 @@ export class AttendanceComponent implements OnInit {
     this.userService.currentUser$.pipe(take(1)).subscribe((user) => {
       this.currentUser = user;
       if (!this.data.attendance && user?.uid) this.attendanceForm.get('userId')?.setValue(user.uid);
+      this.applyFieldPermissions();
     });
     // Detect attendanceForm type changes
     this.attendanceForm.get('type')?.valueChanges.subscribe({
@@ -211,6 +231,21 @@ export class AttendanceComponent implements OnInit {
           }
         },
       });
+  }
+
+  /**
+   * 依 firestore.rules 的不變量鎖住欄位：申請人僅 admin 可改；代理人不可改派代理人。
+   * 不鎖住的話送出會被 Security Rules 拒絕，又回到 issue #38 的誤導訊息。
+   * disabled 控制項不會出現在 attendanceForm.value，因此也不會進入 diff 的 patch。
+   */
+  private applyFieldPermissions(): void {
+    if (!this.data.attendance) return;
+    if (!canChangeAttendanceRequester(this.currentUser)) {
+      this.attendanceForm.get('userId')?.disable({ emitEvent: false });
+    }
+    if (!canReassignAttendanceProxy(this.data.attendance, this.currentUser)) {
+      this.attendanceForm.get('proxyUserId')?.disable({ emitEvent: false });
+    }
   }
 
   save() {

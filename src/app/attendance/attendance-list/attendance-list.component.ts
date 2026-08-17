@@ -48,6 +48,8 @@ import {
   License,
   SystemConfigService,
 } from '../../services/system-config.service';
+import { User, UserService } from '../../services/user.service';
+import { canEditAttendance } from '../../utils/attendance-permission';
 @Component({
   selector: 'app-attendance-list',
   standalone: true,
@@ -78,6 +80,7 @@ import {
 export class AttendanceListComponent implements AfterViewInit {
   readonly userNamePipe = inject(UserNamePipe);
   readonly _filterRequesterSubject = new ReplaySubject<string[]>(1);
+  currentUser: User | null = null;
 
   license$: Observable<License>;
   filterRequesterSet: Set<string>;
@@ -117,8 +120,12 @@ export class AttendanceListComponent implements AfterViewInit {
     private clientPreferencesService: ClientPreferencesService,
     private _dialog: MatDialog,
     private _snackBar: MatSnackBar,
-    public systemConfigService: SystemConfigService
+    public systemConfigService: SystemConfigService,
+    private userService: UserService
   ) {
+    this.userService.currentUser$
+      .pipe(takeUntilDestroyed())
+      .subscribe({ next: (user) => (this.currentUser = user) });
     this.logsSearchOption =
       this.clientPreferencesService.getPreference('logsSearchOption') || '0';
     this.filterRequesterSet = new Set(
@@ -253,6 +260,15 @@ export class AttendanceListComponent implements AfterViewInit {
         }
       },
     });
+  }
+
+  /**
+   * 與 firestore.rules 的 attendanceContentEditable() 對應：只有 admin、申請人本人
+   * 與代理人本人看得到編輯入口。不比照收斂的話，無權限者按下去只會拿到
+   * Security Rules 的拒絕（GitHub issue #38）。
+   */
+  canEdit(attendance: AttendanceLog): boolean {
+    return canEditAttendance(attendance, this.currentUser);
   }
 
   openEditAttendanceDialog(attendance: AttendanceLog) {

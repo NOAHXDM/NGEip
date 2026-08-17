@@ -78,13 +78,27 @@ service cloud.firestore {
       return !('attachments' in data) || (data.attachments is list && data.attachments.size() <= 5);
     }
 
-    // 申請人僅能在自己仍為 pending 的 attendance 申請上編輯內容與附件，
+    // 舊文件可能沒有 proxyUserId 欄位，一律以帶預設值的取法讀取，
+    // 避免缺欄位時 evaluation error 讓合法更新被誤拒。uid 永不為空字串。
+    function attendanceProxyUid(data) {
+      return data.get('proxyUserId', '');
+    }
+
+    // GitHub issue #38：申請人本人與代理人皆可在 pending 期間編輯申請內容與附件，
     // 且不得變更 userId 與 status；status 轉換則允許任一已登入者執行。
-    function attendanceOwnerEditable(existing, incoming, uid) {
-      return existing.userId == uid
-        && existing.status == 'pending'
+    // 代理人不得改派代理人，否則等同可把編輯權轉發給任意第三方。
+    function attendanceContentEditable(existing, incoming, uid) {
+      return existing.status == 'pending'
         && incoming.userId == existing.userId
-        && incoming.status == existing.status;
+        && incoming.status == existing.status
+        && (
+          existing.userId == uid
+          || (attendanceProxyUid(existing) == uid
+            && attendanceProxyUid(incoming) == attendanceProxyUid(existing)
+            // 附件另有 upload session／storage 規則鏈，仍以申請人為準；
+            // 若不鎖住，代理人可直接改寫 attachments 陣列孤兒化他人檔案。
+            && incoming.get('attachments', []) == existing.get('attachments', []))
+        );
     }
 
     function attendanceStatusEditable(existing, incoming) {
@@ -134,11 +148,11 @@ service cloud.firestore {
       allow create: if isSignedIn() && validAttachmentCount(request.resource.data)
         && (!('attachments' in request.resource.data) || request.resource.data.attachments.size() == 0
           || request.resource.data.userId == request.auth.uid || isAdmin());
-      // GitHub issue #34：任一已登入者可變更validJourneyEventAttachmentAt attendance status；內容與附件仍只允許 admin
-      // 或「pending 狀態下的申請人本人」更新，避免 status 審核入口順手改動申請內容。
+      // GitHub issue #34：任一已登入者可變更 attendance status；內容與附件仍只允許 admin
+      // 或「pending 狀態下的申請人本人／代理人」更新，避免 status 審核入口順手改動申請內容。
       allow update: if isSignedIn() && validAttachmentCount(request.resource.data)
         && (isAdmin()
-          || attendanceOwnerEditable(resource.data, request.resource.data, request.auth.uid)
+          || attendanceContentEditable(resource.data, request.resource.data, request.auth.uid)
           || attendanceStatusEditable(resource.data, request.resource.data));
       allow delete: if isAdmin();
 

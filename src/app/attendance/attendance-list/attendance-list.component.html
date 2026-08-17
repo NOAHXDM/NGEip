@@ -186,10 +186,12 @@
       <mat-icon [style.color]="'red'">cancel</mat-icon>
       <span>拒絕</span>
     </button>
+    @if (canEdit(data)) {
     <button mat-menu-item (click)="openEditAttendanceDialog(data)">
       <mat-icon [style.color]="'gray'">edit_square</mat-icon>
       <span>編輯</span>
     </button>
+    }
     } @else {
     <button
       mat-menu-item

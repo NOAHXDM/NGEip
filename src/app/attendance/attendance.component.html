@@ -68,6 +68,9 @@
         matSuffix
       ></mtx-datetimepicker-toggle>
     </mat-form-field>
+    @if (attendanceForm.hasError('endBeforeStart')) {
+    <p class="text-danger" role="alert">結束時間必須晚於開始時間。</p>
+    }
     <!-- HOURS -->
     <mat-form-field>
       <mat-label>時數</mat-label>

@@ -1,5 +1,39 @@
 import { of, Subject, throwError } from 'rxjs';
-import { AttendanceComponent } from './attendance.component';
+import {
+  AttendanceComponent,
+  attendanceDateTimeOrderValidator,
+} from './attendance.component';
+
+describe('attendanceDateTimeOrderValidator', () => {
+  function group(start: unknown, end: unknown): any {
+    return { get: (name: string) => ({ value: name === 'startDateTime' ? start : end }) };
+  }
+
+  it('accepts an end strictly after the start', () => {
+    expect(attendanceDateTimeOrderValidator(
+      group(new Date('2026-08-09T16:30:00'), new Date('2026-08-10T00:30:00'))
+    )).toBeNull();
+  });
+
+  // GitHub issue #38 的原始資料就是把 00:30 打成 12:30，區間並未反轉；
+  // 這個驗證器只擋反向與零長度，時數與區間的一致性另案處理。
+  it('rejects an end before or equal to the start', () => {
+    const start = new Date('2026-08-10T00:30:00');
+    expect(attendanceDateTimeOrderValidator(
+      group(start, new Date('2026-08-09T16:30:00'))
+    )).toEqual({ endBeforeStart: true });
+    expect(attendanceDateTimeOrderValidator(group(start, new Date(start))))
+      .toEqual({ endBeforeStart: true });
+  });
+
+  it('stays silent until both sides are real dates', () => {
+    expect(attendanceDateTimeOrderValidator(group('', ''))).toBeNull();
+    expect(attendanceDateTimeOrderValidator(group(new Date('2026-08-09T16:30:00'), ''))).toBeNull();
+    expect(attendanceDateTimeOrderValidator(
+      group(new Date('nope'), new Date('2026-08-10T00:30:00'))
+    )).toBeNull();
+  });
+});
 
 describe('AttendanceComponent attachments', () => {
   function create(attendance?: any, service: any = { typeList: [], reasonPriorityList: [] }): AttendanceComponent {
@@ -13,6 +47,53 @@ describe('AttendanceComponent attachments', () => {
   }
 
   it('allows attachments on a new request', () => expect(create().canManageAttachments).toBeTrue());
+
+  // GitHub issue #38：UI 必須先鎖住 rules 不允許的欄位，否則送出會被拒絕，
+  // 使用者只會看到通用錯誤訊息，回到原本難以判讀的狀況。
+  describe('field locking on edit', () => {
+    function edit(actor: any, attendance: any): AttendanceComponent {
+      const component = new AttendanceComponent(
+        { close: jasmine.createSpy() } as any,
+        { typeList: [], reasonPriorityList: [] } as any,
+        { list$: of([]), getUsersWithinExitWindow: () => of([]), currentUser$: of(actor) } as any,
+        { convertDateByClientTimezone: (value: unknown) => value } as any,
+        { title: 'edit', attendance }
+      );
+      component.ngOnInit();
+      return component;
+    }
+
+    const attendance = {
+      userId: 'owner', status: 'pending', proxyUserId: 'proxy', attachments: [],
+      type: 1, reason: 'reason', hours: 8,
+      startDateTime: new Date('2026-08-09T16:30:00'),
+      endDateTime: new Date('2026-08-10T00:30:00'),
+    };
+
+    it('lets the proxy edit content but not reassign the proxy or the requester', () => {
+      const component = edit({ uid: 'proxy', role: 'user' }, attendance);
+      expect(component.attendanceForm.get('userId')?.disabled).toBeTrue();
+      expect(component.attendanceForm.get('proxyUserId')?.disabled).toBeTrue();
+      expect(component.attendanceForm.get('endDateTime')?.disabled).toBeFalse();
+      expect(component.canManageAttachments).toBeFalse();
+      // 鎖住的欄位不得進入 patch，否則 rules 的 userId/proxyUserId 不變量會被觸發。
+      expect(Object.keys(component.attendanceForm.value)).not.toContain('userId');
+      expect(Object.keys(component.attendanceForm.value)).not.toContain('proxyUserId');
+    });
+
+    it('lets the requester reassign the proxy but not the requester', () => {
+      const component = edit({ uid: 'owner', role: 'user' }, attendance);
+      expect(component.attendanceForm.get('userId')?.disabled).toBeTrue();
+      expect(component.attendanceForm.get('proxyUserId')?.enabled).toBeTrue();
+      expect(component.canManageAttachments).toBeTrue();
+    });
+
+    it('leaves every field open for admin', () => {
+      const component = edit({ uid: 'admin', role: 'admin' }, attendance);
+      expect(component.attendanceForm.get('userId')?.enabled).toBeTrue();
+      expect(component.attendanceForm.get('proxyUserId')?.enabled).toBeTrue();
+    });
+  });
 
   it('allows only pending owner or admin to manage existing attachments', () => {
     const owner = create({ userId: 'owner', status: 'pending', attachments: [] });
@@ -46,7 +127,8 @@ describe('AttendanceComponent attachments', () => {
       { title: 'new' }
     );
     component.attendanceForm.patchValue({
-      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date() as any, endDateTime: new Date() as any,
+      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date('2026-08-09T16:30:00') as any,
+      endDateTime: new Date('2026-08-10T00:30:00') as any,
     });
     const files = [new File(['%PDF-'], 'one.pdf', { type: 'application/pdf' })];
     component.addFiles(files);
@@ -73,7 +155,8 @@ describe('AttendanceComponent attachments', () => {
     const component = create(attendance, service);
     component.currentUser = { uid: 'owner', role: 'user' } as any;
     component.attendanceForm.patchValue({
-      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date() as any, endDateTime: new Date() as any,
+      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date('2026-08-09T16:30:00') as any,
+      endDateTime: new Date('2026-08-10T00:30:00') as any,
     });
     const pending = new File(['%PDF-'], 'new.pdf', { type: 'application/pdf' });
     component.addFiles([pending]);
@@ -105,7 +188,8 @@ describe('AttendanceComponent attachments', () => {
     );
     component.currentUser = { uid: 'owner', role: 'user' } as any;
     component.attendanceForm.patchValue({
-      type: 1, reason: 'new reason', userId: 'owner', startDateTime: new Date() as any, endDateTime: new Date() as any,
+      type: 1, reason: 'new reason', userId: 'owner', startDateTime: new Date('2026-08-09T16:30:00') as any,
+      endDateTime: new Date('2026-08-10T00:30:00') as any,
     });
 
     component.save();
@@ -117,7 +201,8 @@ describe('AttendanceComponent attachments', () => {
     const service = { typeList: [], reasonPriorityList: [], create: jasmine.createSpy() };
     const component = create(undefined, service);
     component.attendanceForm.patchValue({
-      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date() as any, endDateTime: new Date() as any,
+      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date('2026-08-09T16:30:00') as any,
+      endDateTime: new Date('2026-08-10T00:30:00') as any,
     });
 
     component.save();
@@ -141,7 +226,8 @@ describe('AttendanceComponent attachments', () => {
     );
     component.currentUser = { uid: 'owner' } as any;
     component.attendanceForm.patchValue({
-      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date() as any, endDateTime: new Date() as any,
+      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date('2026-08-09T16:30:00') as any,
+      endDateTime: new Date('2026-08-10T00:30:00') as any,
     });
 
     component.save();
@@ -159,7 +245,8 @@ describe('AttendanceComponent attachments', () => {
     const component = create(undefined, service);
     component.currentUser = { uid: 'owner' } as any;
     component.attendanceForm.patchValue({
-      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date() as any, endDateTime: new Date() as any,
+      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date('2026-08-09T16:30:00') as any,
+      endDateTime: new Date('2026-08-10T00:30:00') as any,
     });
 
     component.save();
@@ -179,7 +266,8 @@ describe('AttendanceComponent attachments', () => {
     const component = create(attendance, service);
     component.currentUser = { uid: 'owner' } as any;
     component.attendanceForm.patchValue({
-      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date() as any, endDateTime: new Date() as any,
+      type: 1, reason: 'reason', userId: 'owner', startDateTime: new Date('2026-08-09T16:30:00') as any,
+      endDateTime: new Date('2026-08-10T00:30:00') as any,
     });
 
     component.save();

@@ -7,6 +7,23 @@
 
 ## [Unreleased]
 
+### 新增
+- 出勤申請開放代理人代改：申請單的代理人可在 `pending` 期間編輯申請內容（GitHub issue #38）。代理人不得改派代理人、變更申請人、變更狀態或管理附件。
+
+### 修復
+- 修正出勤申請清單對所有登入者顯示「編輯」入口，但 Security Rules 只允許 admin 與申請人本人更新，導致無權限者送出後只看到「申請與附件未能更新，原資料未變更。」的問題（GitHub issue #38）。編輯入口改為與 rules 一致。
+- 更新申請被 Security Rules 拒絕時改回傳「你沒有權限修改這筆申請，請聯繫管理員。」，不再落到易被誤讀為「系統偵測不到變更」的通用訊息。
+- 出勤申請表單新增「結束時間必須晚於開始時間」的跨欄位驗證。
+
+### 安全
+- `firestore.rules` 的 `attendanceOwnerEditable()` 改名為 `attendanceContentEditable()` 並納入代理人；同時鎖住代理人對 `proxyUserId` 與 `attachments` 的寫入，避免編輯權被轉發給第三方或他人附件遭孤兒化。
+- 表單依權限鎖定欄位：申請人（`userId`）僅 admin 可改，代理人（`proxyUserId`）僅 admin 與申請人本人可改；停用的控制項不會進入更新 patch。
+
+### 測試與文件
+- 新增 `src/app/utils/attendance-permission.ts` 作為前端權限判斷的唯一來源，與 rules 一對一對應，並補上單元測試。
+- `tools/attendance-permission-emulator-tests.cjs` 擴充代理人矩陣：可代改內容、不可改派代理人／動附件／轉移申請人／夾帶 status 變更、改派後失去權限、非 pending 不可編輯，以及舊文件缺 `proxyUserId` 欄位不得誤拒。
+- Karma 測試 349 項通過、72 項既有測試略過；`npm run test:attendance-rules` 與 Angular production build 通過。
+
 ## [4.3.3] - 2026-07-24
 
 ### 新增
