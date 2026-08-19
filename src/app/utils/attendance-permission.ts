@@ -4,9 +4,14 @@ import { User } from '../services/user.service';
 /**
  * Attendance 申請的編輯權限判斷。
  *
- * 這裡是前端的唯一來源，並與 firestore.rules 的 attendanceContentEditable() /
- * attendanceProxyReassignable() 一對一對應；任何一側調整都必須同步另一側，
- * 否則 UI 會再次開放出 Security Rules 會拒絕的入口（GitHub issue #38）。
+ * 這裡是前端的唯一來源，對應 firestore.rules 的 attendanceContentEditable()
+ * 與 isAdmin()。「代理人不得改派代理人」與「代理人不得動附件」在 rules 那側
+ * 沒有獨立函式，而是 attendanceContentEditable() proxy 分支裡的不變量：
+ * attendanceProxyUid(incoming) == attendanceProxyUid(existing) 與
+ * incoming.get('attachments', []) == existing.get('attachments', [])。
+ *
+ * 任何一側調整都必須同步另一側，否則 UI 會再次開放出 Security Rules 會拒絕的
+ * 入口（GitHub issue #38）。完整對照表見 specs/010-attendance-proxy-editing/plan.md。
  */
 
 type AttendanceSubject = Pick<AttendanceLog, 'userId' | 'status' | 'proxyUserId'>;
