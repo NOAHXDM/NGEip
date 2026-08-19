@@ -14,7 +14,7 @@ NGEip 是一套以 **Angular 20 + Firebase** 為核心的企業資訊入口網�
 Firebase Authentication、Cloud Firestore、Firebase Storage 與 Firebase Hosting。
 Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推播。
 
-目前版本：**4.3.3**
+目前版本：**4.3.4**
 
 ## 專案定位
 

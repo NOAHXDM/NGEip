@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [4.3.4] - 2026-08-19
+
 ### 新增
 - 出勤申請開放代理人代改：申請單的代理人可在 `pending` 期間編輯申請內容（GitHub issue #38）。代理人不得改派代理人、變更申請人、變更狀態或管理附件。
 
@@ -19,11 +21,19 @@
 - `firestore.rules` 的 `attendanceOwnerEditable()` 改名為 `attendanceContentEditable()` 並納入代理人；同時鎖住代理人對 `proxyUserId` 與 `attachments` 的寫入，避免編輯權被轉發給第三方或他人附件遭孤兒化。
 - 表單依權限鎖定欄位：申請人（`userId`）僅 admin 可改，代理人（`proxyUserId`）僅 admin 與申請人本人可改；停用的控制項不會進入更新 patch。
 
+### 重構
+- 抽出 `isPendingOwner()` 述詞供 `canReassignAttendanceProxy()` 與 `canManageAttendanceAttachments()` 共用。兩者目前判斷相同但屬獨立政策（代理人是否可管理附件仍待議），因此只共用述詞、不合併為單一函式。
+- `AttendanceLog.proxyUserId` 與 `User.uid` 本身已是 optional，移除多餘的 `Partial` 包裝，型別改為直接 `Pick`。
+
 ### 測試與文件
 - 新增 `src/app/utils/attendance-permission.ts` 作為前端權限判斷的唯一來源，與 rules 一對一對應，並補上單元測試。
-- `tools/attendance-permission-emulator-tests.cjs` 擴充代理人矩陣：可代改內容、不可改派代理人／動附件／轉移申請人／夾帶 status 變更、改派後失去權限、非 pending 不可編輯，以及舊文件缺 `proxyUserId` 欄位不得誤拒。
-- `AttachmentService.updateErrorMessage()` 補上 `permission-denied` 與未知錯誤兩條分支的測試；README 的 Attendance 審核權限段落同步更新內容與附件的邊界差異。
+- `tools/attendance-permission-emulator-tests.cjs` 擴充代理人矩陣：可代改內容（含 issue #38 當事欄位 `endDateTime` 的原始更正情境）、不可改派代理人／動附件／轉移申請人／夾帶 status 變更、改派後失去權限、非 pending 不可編輯，以及舊文件缺 `proxyUserId` 欄位不得誤拒。
+- `AttachmentService.updateErrorMessage()` 補上 `permission-denied` 與未知錯誤兩條分支的測試。
+- README 的 Attendance 審核權限段落補上內容與附件的邊界差異，並說明「已核准／已拒絕須先退回待審再編輯」的設計理由：退回待審會退還特休時數，重新核准再依新時數扣除，就地編輯已核准申請的 `hours` 則無補正路徑。
+- 修正 `attendance-permission.ts` 的 docblock 指向不存在的 `attendanceProxyReassignable()`；該不變量實際內嵌於 `attendanceContentEditable()` 的 proxy 分支，改為據實說明並指向 `specs/010-attendance-proxy-editing/plan.md` 的對照表。
+- 新增 `specs/010-attendance-proxy-editing/` 的繁中功能規格與實作計畫，記錄權限矩陣、部署順序與「無關第三方代改」的範圍外決策。
 - Karma 測試 351 項通過、72 項既有測試略過；`npm run test:attendance-rules` 的 23 條矩陣與 Angular production build 通過。
+- 將專案 patch 版本由 4.3.3 提升至 4.3.4，並同步 README 的目前版本與 Attendance 審核權限說明。
 
 ## [4.3.3] - 2026-07-24
 
@@ -793,6 +803,7 @@
 - Cloudinary
 - Karma/Jasmine
 
+[4.3.4]: https://github.com/NOAHXDM/NGEip/compare/v4.3.3...v4.3.4
 [4.3.3]: https://github.com/NOAHXDM/NGEip/compare/v4.3.2...v4.3.3
 [4.3.2]: https://github.com/NOAHXDM/NGEip/compare/v4.3.1...v4.3.2
 [4.3.1]: https://github.com/NOAHXDM/NGEip/compare/v4.3.0...v4.3.1
