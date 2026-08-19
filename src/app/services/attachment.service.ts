@@ -328,6 +328,11 @@ export class AttachmentService {
     if (error instanceof Error && error.message === 'too-many-files') {
       return '每筆申請最多五個附件，請刪除部分附件後再試。';
     }
+    // GitHub issue #38：Security Rules 拒絕時原本落到下方通用訊息，
+    // 「原資料未變更」易被誤讀成「系統偵測不到變更」，需明確指出是權限問題。
+    if (this.errorCode(error) === 'permission-denied') {
+      return '你沒有權限修改這筆申請，請聯繫管理員。';
+    }
     return '申請與附件未能更新，原資料未變更。';
   }
 }

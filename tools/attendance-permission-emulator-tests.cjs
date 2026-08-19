@@ -1,12 +1,14 @@
 const { initializeTestEnvironment, assertFails, assertSucceeds } = require('@firebase/rules-unit-testing');
 const { collection, doc, setDoc, updateDoc, writeBatch } = require('firebase/firestore');
 
-// GitHub issue #34：任一已登入者可變更 attendance status；內容/附件更新仍維持 owner/admin 邊界。
-// 驗證矩陣涵蓋 owner、other-user、admin、未登入者、status transition 與特休餘額連動。
+// GitHub issue #34：任一已登入者可變更 attendance status；附件更新仍維持 owner/admin 邊界。
+// GitHub issue #38：內容欄位另開放給代理人代改，但代理人不得改派代理人或動附件。
+// 驗證矩陣涵蓋 owner、proxy、other-user、admin、未登入者、status transition 與特休餘額連動。
 const projectId = 'demo-attendance-permission';
 const ownerUid = 'attendance-owner';
 const otherUid = 'attendance-other';
 const adminUid = 'attendance-admin';
+const proxyUid = 'attendance-proxy';
 
 async function main() {
   const env = await initializeTestEnvironment({ projectId });
@@ -17,12 +19,14 @@ async function main() {
         setDoc(doc(db, 'users', ownerUid), { role: 'user', remainingLeaveHours: 16 }),
         setDoc(doc(db, 'users', otherUid), { role: 'user' }),
         setDoc(doc(db, 'users', adminUid), { role: 'admin' }),
+        setDoc(doc(db, 'users', proxyUid), { role: 'user' }),
       ]);
     });
 
     const owner = env.authenticatedContext(ownerUid);
     const other = env.authenticatedContext(otherUid);
     const admin = env.authenticatedContext(adminUid);
+    const proxy = env.authenticatedContext(proxyUid);
     const anonymous = env.unauthenticatedContext();
     const ownerDb = owner.firestore();
 
@@ -102,6 +106,72 @@ async function main() {
       lastAttendanceLeaveAdjustmentId: 'annual',
       lastAttendanceLeaveAdjustmentBy: otherUid,
     }));
+
+    // GitHub issue #38：代理人可在 pending 期間代改申請內容，
+    // 但不得改派代理人（避免把編輯權轉發給第三方）、不得動附件、不得改 userId/status。
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'attendanceLogs', 'proxied'), {
+        userId: ownerUid, status: 'pending', type: 1, reason: 'origin',
+        hours: 8, attachments: [], proxyUserId: proxyUid,
+        startDateTime: new Date('2026-08-09T16:30:00Z'),
+        // issue #38 的原始錯誤資料：結束時間應為 00:30 卻誤填成 12:30。
+        endDateTime: new Date('2026-08-10T12:30:00Z'),
+      });
+    });
+    const proxyDb = proxy.firestore();
+    // 14. 代理人可代改內容欄位（issue #38 的產品需求）。
+    // endDateTime 是該 issue 的當事欄位，明確覆蓋原始情境的更正動作。
+    await assertSucceeds(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied'), {
+      endDateTime: new Date('2026-08-10T00:30:00Z'),
+    }));
+    await assertSucceeds(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied'), { reason: 'proxy amend' }));
+    await assertSucceeds(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied'), { hours: 4 }));
+    // 15. 代理人不得改派代理人（含改成自己以外的人與清空）。
+    await assertFails(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied'), { proxyUserId: otherUid }));
+    await assertFails(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied'), { proxyUserId: '' }));
+    // 16. 代理人不得動附件（附件仍由 upload session 鏈以申請人為準）。
+    await assertFails(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied'), { attachments: [attachment] }));
+    // 17. 代理人不得轉移申請人。
+    await assertFails(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied'), { userId: proxyUid }));
+    // 18. 代理人不得在改 status 的同時夾帶內容變更。
+    await assertFails(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied'), { status: 'approved', reason: 'mixed' }));
+    // 19. 申請人本人仍可改派代理人。
+    await assertSucceeds(updateDoc(doc(ownerDb, 'attendanceLogs', 'proxied'), { proxyUserId: otherUid }));
+    // 20. 已被改派後，原代理人失去編輯權。
+    await assertFails(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied'), { reason: 'stale proxy' }));
+    // 21. 非 pending 時代理人亦不得編輯。
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'attendanceLogs', 'proxied'), {
+        status: 'approved', proxyUserId: proxyUid,
+      });
+    });
+    await assertFails(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied'), { reason: 'approved edit' }));
+
+    // 22. 舊文件沒有 proxyUserId 欄位時，申請人本人的既有流程不得因缺欄位而被誤拒。
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'attendanceLogs', 'legacy'), {
+        userId: ownerUid, status: 'pending', type: 1, reason: 'legacy', hours: 8,
+      });
+    });
+    await assertSucceeds(updateDoc(doc(ownerDb, 'attendanceLogs', 'legacy'), { reason: 'legacy edit' }));
+    await assertFails(updateDoc(doc(proxyDb, 'attendanceLogs', 'legacy'), { reason: 'legacy hijack' }));
+
+    // 23. 代理人編輯「已有附件」的申請：AttachmentService 每次更新都會把 attachments
+    // 原樣寫回，因此規則的 list-of-maps 相等比較必須成立，否則帶附件的申請一律改不了。
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'attendanceLogs', 'proxied-with-files'), {
+        userId: ownerUid, status: 'pending', type: 1, reason: 'origin',
+        hours: 8, attachments: [attachment], proxyUserId: proxyUid,
+      });
+    });
+    // 只改內容、不帶 attachments。
+    await assertSucceeds(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied-with-files'), { reason: 'proxy amend' }));
+    // 內容變更 + 原樣寫回 attachments（實際客戶端的寫入形狀）。
+    await assertSucceeds(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied-with-files'), {
+      reason: 'proxy amend again', attachments: [attachment],
+    }));
+    // 但變更附件內容仍必須被拒。
+    await assertFails(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied-with-files'), { attachments: [] }));
 
     console.log('Attendance permission emulator matrix: PASS');
   } finally {

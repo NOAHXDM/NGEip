@@ -152,6 +152,20 @@ describe('AttachmentService', () => {
     expect(message).toBe('另一個視窗已新增附件，請重新載入後再試。');
   });
 
+  // GitHub issue #38：Security Rules 拒絕時若落到通用訊息，
+  // 「原資料未變更」會被誤讀成「系統偵測不到變更」。
+  it('names the permission problem instead of reporting an unchanged record', () => {
+    const service = serviceWithStorage({});
+    const message = (service as any).updateErrorMessage({ code: 'permission-denied' });
+    expect(message).toBe('你沒有權限修改這筆申請，請聯繫管理員。');
+  });
+
+  it('keeps the generic update message for unrecognised failures', () => {
+    const service = serviceWithStorage({});
+    const message = (service as any).updateErrorMessage(new Error('boom'));
+    expect(message).toBe('申請與附件未能更新，原資料未變更。');
+  });
+
   it('extracts diagnostic codes without logging an error message or storage path', () => {
     const service = serviceWithStorage({});
     expect((service as any).errorCode({ code: 'storage/unauthorized', message: 'private/path' }))
