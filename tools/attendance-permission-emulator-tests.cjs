@@ -113,10 +113,17 @@ async function main() {
       await setDoc(doc(ctx.firestore(), 'attendanceLogs', 'proxied'), {
         userId: ownerUid, status: 'pending', type: 1, reason: 'origin',
         hours: 8, attachments: [], proxyUserId: proxyUid,
+        startDateTime: new Date('2026-08-09T16:30:00Z'),
+        // issue #38 的原始錯誤資料：結束時間應為 00:30 卻誤填成 12:30。
+        endDateTime: new Date('2026-08-10T12:30:00Z'),
       });
     });
     const proxyDb = proxy.firestore();
-    // 14. 代理人可代改結束時間等內容欄位（issue #38 的產品需求）。
+    // 14. 代理人可代改內容欄位（issue #38 的產品需求）。
+    // endDateTime 是該 issue 的當事欄位，明確覆蓋原始情境的更正動作。
+    await assertSucceeds(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied'), {
+      endDateTime: new Date('2026-08-10T00:30:00Z'),
+    }));
     await assertSucceeds(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied'), { reason: 'proxy amend' }));
     await assertSucceeds(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied'), { hours: 4 }));
     // 15. 代理人不得改派代理人（含改成自己以外的人與清空）。
