@@ -9,17 +9,32 @@ import { User } from '../services/user.service';
  * 否則 UI 會再次開放出 Security Rules 會拒絕的入口（GitHub issue #38）。
  */
 
-type AttendanceSubject = Pick<AttendanceLog, 'userId' | 'status'> &
-  Pick<Partial<AttendanceLog>, 'proxyUserId'>;
-type ActorSubject = Pick<User, 'role'> & { uid?: string };
+type AttendanceSubject = Pick<AttendanceLog, 'userId' | 'status' | 'proxyUserId'>;
+type ActorSubject = Pick<User, 'role' | 'uid'>;
 
 function proxyUid(attendance: AttendanceSubject): string {
   return attendance.proxyUserId ?? '';
 }
 
 /**
+ * 「pending 狀態下的申請人本人」。多個政策目前都歸約到這個述詞，
+ * 但各自是獨立政策（例如附件是否開放給代理人仍待議），因此維持分開的公開函式，
+ * 只共用述詞本身，不共用政策。
+ */
+function isPendingOwner(
+  attendance: AttendanceSubject,
+  actor: ActorSubject
+): boolean {
+  return attendance.status === 'pending' && attendance.userId === actor.uid;
+}
+
+/**
  * 可編輯申請內容者：admin、申請人本人、代理人本人。
- * 後兩者僅限申請仍為 pending；admin 不受狀態限制（可代辦已核准申請的更正）。
+ *
+ * admin 分支不看狀態，是為了對齊 firestore.rules 的 admin 權限。
+ * UI 刻意不提供非 pending 的編輯入口：已核准／已拒絕的申請必須先退回待審才能編輯，
+ * 這同時保證特休餘額正確（退回待審會退還時數，重新核准再依新時數扣除；
+ * 就地編輯已核准申請的 hours 則無任何補正路徑）。
  */
 export function canEditAttendance(
   attendance: AttendanceSubject | null | undefined,
@@ -42,8 +57,7 @@ export function canReassignAttendanceProxy(
   actor: ActorSubject | null | undefined
 ): boolean {
   if (!attendance || !actor?.uid) return false;
-  if (actor.role === 'admin') return true;
-  return attendance.status === 'pending' && attendance.userId === actor.uid;
+  return actor.role === 'admin' || isPendingOwner(attendance, actor);
 }
 
 /** 可變更申請人（userId）者：僅 admin。rules 對其他路徑一律要求 userId 不變。 */
@@ -65,6 +79,5 @@ export function canManageAttendanceAttachments(
   actor: ActorSubject | null | undefined
 ): boolean {
   if (!attendance || !actor?.uid) return false;
-  if (actor.role === 'admin') return true;
-  return attendance.status === 'pending' && attendance.userId === actor.uid;
+  return actor.role === 'admin' || isPendingOwner(attendance, actor);
 }

@@ -22,7 +22,8 @@
 ### 測試與文件
 - 新增 `src/app/utils/attendance-permission.ts` 作為前端權限判斷的唯一來源，與 rules 一對一對應，並補上單元測試。
 - `tools/attendance-permission-emulator-tests.cjs` 擴充代理人矩陣：可代改內容、不可改派代理人／動附件／轉移申請人／夾帶 status 變更、改派後失去權限、非 pending 不可編輯，以及舊文件缺 `proxyUserId` 欄位不得誤拒。
-- Karma 測試 349 項通過、72 項既有測試略過；`npm run test:attendance-rules` 與 Angular production build 通過。
+- `AttachmentService.updateErrorMessage()` 補上 `permission-denied` 與未知錯誤兩條分支的測試；README 的 Attendance 審核權限段落同步更新內容與附件的邊界差異。
+- Karma 測試 351 項通過、72 項既有測試略過；`npm run test:attendance-rules` 的 23 條矩陣與 Angular production build 通過。
 
 ## [4.3.3] - 2026-07-24
 

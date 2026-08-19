@@ -97,7 +97,8 @@ Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推�
 ### Attendance 審核權限
 
 - 任一已登入使用者可變更所有 attendance 申請的 `status`（`pending`／`approved`／`rejected`），但該操作只能單獨更新狀態，不可混入原因、類型、時間、時數、`userId` 或附件異動。
-- Attendance 內容維持較嚴格邊界：申請人本人與該申請的代理人可編輯 pending 申請；管理員可代辦任意狀態。代理人不可改派代理人、變更申請人或管理附件。
+- Attendance 內容維持較嚴格邊界：申請人本人與該申請的代理人可編輯 pending 申請。代理人不可改派代理人、變更申請人或管理附件。
+- 已核准／已拒絕的申請不提供編輯入口，須先退回待審再編輯。這同時保證特休餘額正確：退回待審會退還原時數，重新核准再依新時數扣除。Rules 層的 admin 權限不受狀態限制，但畫面一律走「退回待審 → 編輯 → 重新核准」。
 - 附件邊界比內容更窄：僅申請人本人（pending）與管理員可管理附件，代理人為唯讀。
 - AnnualLeave 從 pending 核准時會扣除申請人的剩餘特休時數，從 approved 退回 pending 時會補回；這項餘額異動必須與同一筆 attendance status transition 原子提交，並由 Firestore Rules 驗證。
 
