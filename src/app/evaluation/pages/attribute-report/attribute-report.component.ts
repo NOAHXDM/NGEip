@@ -328,6 +328,17 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
         <app-user-journey-timeline
           [userId]="uid"
           [eventPermissions]="personalEventPermissions" />
+      } @else {
+        <!--
+          GitHub issue #27：登入狀態失效時原本整個區塊直接消失，
+          使用者只會看到空白而不知道發生什麼事，改為明確的空狀態提示。
+        -->
+        <mat-card class="timeline-loading-card">
+          <mat-card-content class="timeline-loading-content">
+            <mat-icon class="timeline-empty-icon">lock</mat-icon>
+            <span>登入狀態已失效，請重新登入後查看使用者歷程。</span>
+          </mat-card-content>
+        </mat-card>
       }
     </div>
   `,
@@ -653,6 +664,10 @@ const ATTRIBUTE_KEYS: AttributeKey[] = ['EXE', 'INS', 'ADP', 'COL', 'STB', 'INN'
       color: #546e7a;
       font-size: 13px;
       padding: 16px;
+    }
+
+    .timeline-empty-icon {
+      color: #90a4ae;
     }
   `],
 })
