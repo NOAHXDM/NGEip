@@ -262,6 +262,81 @@ describe('UserJourneyTimelineComponent', () => {
     expect(events.update).toHaveBeenCalledOnceWith(event, result.input, 'admin', [], ['old-file']);
   });
 
+  it('服務拋出的繁中訊息會原樣顯示在 snackbar', async () => {
+    const closed$ = new Subject<JourneyEventDialogResult | undefined>();
+    const { component, dialog, events, snackBar } = createComponent();
+    const event = journeyEvent();
+    component.userId = 'u1';
+    component.eventPermissions = { canCreate: true, canUpdate: true, canDelete: true };
+    dialog.open.and.returnValue({ afterClosed: () => closed$.asObservable() } as never);
+    events.update.and.rejectWith(new Error('事件已被其他人更新，請重新載入後再試。'));
+
+    const pending = component.openEdit(event);
+    closed$.next({
+      input: {
+        targetUserId: 'u1',
+        eventDate: new Date('2026-06-24T00:00:00Z'),
+        title: '更新事件',
+        content: '新內容',
+      },
+      files: [],
+      removedAttachmentIds: [],
+    });
+    closed$.complete();
+    await pending;
+
+    expect(snackBar.open).toHaveBeenCalledWith(
+      '事件已被其他人更新，請重新載入後再試。', '關閉', { duration: 5000 });
+  });
+
+  it('未在地化的 Firebase 原始錯誤不會外洩，改用通用繁中提示', async () => {
+    const closed$ = new Subject<JourneyEventDialogResult | undefined>();
+    const { component, dialog, events, snackBar } = createComponent();
+    const event = journeyEvent();
+    component.userId = 'u1';
+    component.eventPermissions = { canCreate: true, canUpdate: true, canDelete: true };
+    dialog.open.and.returnValue({ afterClosed: () => closed$.asObservable() } as never);
+    events.update.and.rejectWith(
+      new Error('FirebaseError: Missing or insufficient permissions.'));
+    spyOn(console, 'error');
+
+    const pending = component.openEdit(event);
+    closed$.next({
+      input: {
+        targetUserId: 'u1',
+        eventDate: new Date('2026-06-24T00:00:00Z'),
+        title: '更新事件',
+        content: '新內容',
+      },
+      files: [],
+      removedAttachmentIds: [],
+    });
+    closed$.complete();
+    await pending;
+
+    expect(snackBar.open).toHaveBeenCalledWith('操作失敗，請稍後重試。', '關閉', { duration: 5000 });
+    expect(snackBar.open).not.toHaveBeenCalledWith(
+      jasmine.stringContaining('insufficient permissions'), jasmine.anything(), jasmine.anything());
+  });
+
+  it('刪除事件失敗時非 Error 例外也會顯示通用繁中提示', async () => {
+    const closed$ = new Subject<boolean | undefined>();
+    const { component, dialog, events, snackBar } = createComponent();
+    const event = journeyEvent();
+    component.userId = 'u1';
+    component.eventPermissions = { canCreate: true, canUpdate: true, canDelete: true };
+    dialog.open.and.returnValue({ afterClosed: () => closed$.asObservable() } as never);
+    events.delete.and.rejectWith('permission-denied' as never);
+    spyOn(console, 'error');
+
+    const pending = component.deleteEvent(event);
+    closed$.next(true);
+    closed$.complete();
+    await pending;
+
+    expect(snackBar.open).toHaveBeenCalledWith('操作失敗，請稍後重試。', '關閉', { duration: 5000 });
+  });
+
   it('編輯事件進行中會阻擋第二次開啟', async () => {
     const closed$ = new Subject<JourneyEventDialogResult | undefined>();
     const { component, dialog } = createComponent();

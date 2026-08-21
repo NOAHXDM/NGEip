@@ -53,6 +53,7 @@ export class UserJourneyTimelineComponent implements OnChanges {
     '#ca8a04',
     '#0284c7',
   ] as const;
+  private static readonly LOCALIZED_MESSAGE = /[\u4e00-\u9fff]/;
   private static readonly DAY_GAP_SCALE = 0.16;
   private static readonly MINIMUM_ITEM_GAP = 32;
   private static readonly MAXIMUM_EXTRA_ITEM_GAP = 200;
@@ -269,8 +270,20 @@ export class UserJourneyTimelineComponent implements OnChanges {
   }
 
   private showError(error: unknown): void {
-    const message = error instanceof Error ? error.message : '操作失敗，請稍後重試。';
-    this.snackBar.open(message, '關閉', { duration: 5000 });
+    this.snackBar.open(this.localizedErrorMessage(error), '關閉', { duration: 5000 });
+  }
+
+  /**
+   * GitHub issue #27：JourneyEventService 已將所有可預期的失敗轉成繁中訊息，
+   * 但非預期錯誤（Firebase SDK、瀏覽器 API）的 message 是英文技術字串，
+   * 直接彈到 snackbar 既無法閱讀，也會把 Firestore 規則細節洩漏給使用者。
+   * 以是否含中文字元判斷訊息是否已在地化，未在地化者記錄後改用通用提示。
+   */
+  private localizedErrorMessage(error: unknown): string {
+    const message = error instanceof Error ? error.message : '';
+    if (UserJourneyTimelineComponent.LOCALIZED_MESSAGE.test(message)) return message;
+    console.error('使用者歷程操作失敗', error);
+    return '操作失敗，請稍後重試。';
   }
 
   private requireActorUid(): string | null {
@@ -286,6 +299,11 @@ export class UserJourneyTimelineComponent implements OnChanges {
     ));
   }
 
+  /**
+   * GitHub issue #27：目前 reload() 每次都同時換掉 session 物件與遞增 generation，
+   * 兩個條件恆等價。刻意保留雙重比對，讓未來若改為重用 session（例如快取回填）
+   * 時，generation 仍能單獨識別出已被取代的載入批次。
+   */
   private isCurrentSession(session: JourneyTimelineSession, generation: number): boolean {
     return this.isAlive() && this.session === session && this.sessionGeneration === generation;
   }

@@ -7,6 +7,19 @@
 
 ## [Unreleased]
 
+## [4.3.5] - 2026-08-21
+
+### 修復
+- 使用者歷程事件的新增／更新／刪除失敗時，不再把 Firebase SDK 的英文原始 message 直接彈到 snackbar（GitHub issue #27）。`JourneyEventService` 已在地化的繁中訊息維持原樣顯示，非預期錯誤改記錄 console 並顯示通用提示。
+- 「我的職場屬性報告」在登入狀態失效（`currentUser()` 為 `null`）時補上空狀態提示，不再只留下空白區塊（GitHub issue #27）。
+
+### 測試與文件
+- `UserJourneyTimelineComponent` 補上三項錯誤訊息測試：繁中訊息原樣顯示、Firebase 原始錯誤不外洩、非 `Error` 例外落到通用提示。
+- `isCurrentSession()` 補註解說明 session reference 與 generation 兩個條件目前恆等價，但刻意保留雙重比對以支援未來 session 重用；經評估後未刪除冗餘條件（GitHub issue #27）。
+- 評估後不調整 `loadTimelinePageFromBuffers()` 的 while 迴圈：`ensureEventBuffer()` / `ensureSubsidyBuffer()` 開頭皆早退，單頁最壞情況僅 40 個 microtask 且不產生額外 Firestore 讀取，改寫反而會增加緩衝區補值邏輯的複雜度（GitHub issue #27）。
+- Karma 測試 354 項通過；Angular production build 通過。
+- 將專案 patch 版本由 4.3.4 提升至 4.3.5，並同步 README 的目前版本與使用者歷程時間軸錯誤處理說明。
+
 ## [4.3.4] - 2026-08-19
 
 ### 新增
