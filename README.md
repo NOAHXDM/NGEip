@@ -10,8 +10,8 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/NOAHXDM/NGEip)
 
 NGEip 是一套以 **Angular 20 + Firebase** 為核心的企業資訊入口網站（EIP）。
-本專案依據 `.specify/memory/constitution.md` 的治理原則運作，後端能力統一使用
-Firebase Authentication、Cloud Firestore、Firebase Storage 與 Firebase Hosting。
+本專案後端能力統一使用
+Firebase Authentication、Cloud Firestore、Firebase Storage、Firebase Hosting 與 Cloud Functions for Firebase。
 Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推播。
 
 目前版本：**4.3.5**
@@ -24,10 +24,10 @@ Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推�
 
 ## 核心原則摘要
 
-1. **Firebase-only backend**：新增或重構功能不得再引入 Cloudinary、Realtime Database 或其他後端服務。
+1. **Firebase-only backend**：新增或重構功能使用 Firebase 官方服務，包含 Cloud Functions for Firebase；不得再引入 Cloudinary、Realtime Database 或其他後端服務。
 2. **驗證一致性**：所有登入流程皆以 Firebase Authentication 為唯一來源，使用者資料儲存在 Firestore，並以 Firebase UID 作為鍵值。
 3. **Firestore-first data model**：資料模型優先採平坦結構，設計時需同時考量索引、查詢效率與讀寫成本。
-4. **Security Rules mandatory**：所有資料存取必須受 Firestore Security Rules 驗證。
+4. **存取邊界 mandatory**：前端存取必須受 Firestore Security Rules 驗證；Cloud Functions 使用 Admin SDK 時必須在伺服器端顯式授權。
 5. **Angular + 官方 Firebase SDK**：前端 Firebase 互動統一透過官方 Firebase JavaScript SDK。
 6. **測試為交付門檻**：所有 business logic 必須具備單元測試與整合測試。
 7. **文件分工**：產品需求寫在 `spec.md`，技術實作與決策寫在 `plan.md`。
@@ -132,12 +132,12 @@ node tools/seed-salary-adjustment-events.js --actor=<adminUid>         # dry-run
 node tools/seed-salary-adjustment-events.js --actor=<adminUid> --apply # 實際寫入
 ```
 
-> 兩支腳本透過 Firebase Admin SDK 寫入，執行前需 `npm i -D firebase-admin` 並設定 `GOOGLE_APPLICATION_CREDENTIALS`。
+> 兩支腳本透過 Functions workspace 已安裝的 Firebase Admin SDK 寫入；執行前需設定 `GOOGLE_APPLICATION_CREDENTIALS`。
 
 ## 技術堆疊
 
 - **Frontend**：Angular 20、TypeScript、Angular Material、Bootstrap 5
-- **Backend Platform**：Firebase Authentication、Cloud Firestore、Firebase Storage、Firebase Hosting
+- **Backend Platform**：Firebase Authentication、Cloud Firestore、Firebase Storage、Firebase Hosting、Firebase Cloud Messaging、Cloud Functions for Firebase 2nd gen
 - **Testing**：Karma、Jasmine、Firebase Emulator Suite
 - **Utilities**：date-fns
 
@@ -147,7 +147,7 @@ node tools/seed-salary-adjustment-events.js --actor=<adminUid> --apply # 實際�
 
 ### 先決條件
 
-- Node.js 20.19+
+- Node.js 22（與 Cloud Functions runtime 及 CI 一致）
 - npm 10+
 - Angular CLI 20+
 - Firebase CLI：`npm install -g firebase-tools`
@@ -172,11 +172,13 @@ npm start
 - Firebase Auth Emulator：`http://localhost:9099`
 - Firestore Emulator：`http://localhost:8080`
 - Storage Emulator：`http://localhost:9199`
+- Functions Emulator：`http://localhost:5001`
 
 常用指令：
 
 ```bash
 npm run build      # 正式環境建置至 dist/angular-eip
+npm run functions:build  # 編譯 Cloud Functions TypeScript
 npm run watch      # 開發模式建置並監聽變更
 npm run generate:messaging-sw  # 依共用 Firebase 設定產生 Messaging Service Worker
 npm test           # 執行單元測試
@@ -189,7 +191,7 @@ npm run audit:request-attachments   # 正式資料 dry-run（需 Admin SDK 憑�
 npm run deploy     # 建置並部署至 Firebase（使用 firebase.prod.json）
 ```
 
-PR CI 會執行 TypeScript spec typecheck、headless Karma、production build、journey rules 與 journey integration 測試；若本機 Firebase CLI 遇到 Hosting web framework 設定，需使用支援 `FIREBASE_CLI_EXPERIMENTS=webframeworks` 的 Firebase CLI 版本。
+PR CI 會執行 TypeScript spec typecheck、Cloud Functions TypeScript build、headless Karma、production build、journey rules 與 journey integration 測試；若本機 Firebase CLI 遇到 Hosting web framework 設定，需使用支援 `FIREBASE_CLI_EXPERIMENTS=webframeworks` 的 Firebase CLI 版本。
 
 ## 架構約束
 
@@ -215,9 +217,17 @@ PR CI 會執行 TypeScript spec typecheck、headless Karma、production build、
 
 ### 安全規則
 
-- 所有資料存取都必須通過 `firestore.rules`
+- 所有前端資料存取都必須通過 `firestore.rules`
 - 新增集合、權限或敏感欄位時，必須同步更新安全規則與測試
 - 不得以「先開放再補規則」作為正式流程
+- Cloud Functions 使用 Admin SDK 時必須在函式內驗證 Auth、角色、輸入 schema 與資源所有權
+
+### Cloud Functions
+
+- 新增伺服器端流程優先使用 Cloud Functions for Firebase 2nd gen。
+- 正式環境預設部署至 `asia-east1`，與 `noahxdm-eip` default Firestore 的實際 location 一致。
+- Firestore 事件觸發不保證順序且可能重複投遞，所有處理器都必須可冪等重試。
+- 外部 API 憑證使用 Secret Manager，不得放入儲存庫、前端 environment 或 Firestore。
 
 ### 前端與套件
 
@@ -241,13 +251,14 @@ PR CI 會執行 TypeScript spec typecheck、headless Karma、production build、
 
 ## 部署
 
-正式站點預設部署至 Firebase Hosting。部署前至少需確認：
+正式前端預設部署至 Firebase Hosting，伺服器端流程部署至 Cloud Functions for Firebase 2nd gen。部署前至少需確認：
 
 1. Firebase Authentication 與 Firestore 設定已完成
 2. Firestore Security Rules 與索引已同步更新
 3. 正式環境設定檔（例如 `firebase.prod.json`）已配置完成
 4. 測試通過，且未引入違反憲章的新依賴或新後端服務
 5. `storage.cors.json` 已套用至正式 bucket；Firebase deploy 不會自動更新 bucket CORS
+6. Functions 已通過 TypeScript 建置與 Emulator 測試，且 region 維持 `asia-east1` 或已記錄偏離理由
 
 ## 遺留注意事項
 

@@ -48,6 +48,9 @@ jobs:
       - name: Typecheck spec build
         run: npx tsc -p tsconfig.spec.json --noEmit
 
+      - name: Build Cloud Functions
+        run: npm run functions:build
+
       - name: Run headless Karma tests
         run: npm test -- --watch=false
 
