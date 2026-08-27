@@ -11,3 +11,4 @@ setGlobalOptions({
 });
 
 export { getGoogleDocPlainText } from "./jsm-google-doc-description/http";
+export { telegramMobileconfigWebhook } from "./telegram-mobileconfig/http";
