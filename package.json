@@ -15,6 +15,7 @@
     "deploy": "npm run build && firebase deploy --config firebase.prod.json",
     "watch": "ng build --watch --configuration development",
     "test": "ng test --browsers=ChromeHeadlessNoSandbox",
+    "functions:test": "npm --prefix functions test",
     "test:debug": "ng test --browsers=Chrome",
     "test:attachment-audit": "node --test tools/request-attachment-orphan-audit.test.js",
     "test:attachment-rules": "firebase emulators:exec --config firebase.local.json --project demo-request-attachments --only firestore,storage \"node tools/request-attachment-emulator-tests.cjs\"",

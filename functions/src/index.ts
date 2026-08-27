@@ -9,3 +9,5 @@ import { setGlobalOptions } from "firebase-functions/v2";
 setGlobalOptions({
   region: "asia-east1",
 });
+
+export { getGoogleDocPlainText } from "./jsm-google-doc-description/http";
