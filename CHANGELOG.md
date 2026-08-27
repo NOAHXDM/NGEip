@@ -7,6 +7,19 @@
 
 ## [Unreleased]
 
+## [4.4.2] - 2026-08-27
+
+### 移除
+- 移除已由前端方案取代的 `telegramMobileconfigWebhook`、mobileconfig 產生器、自動化測試與 012 規格文件；README 與本機 Secret 範例同步清理。正式環境應依序停用 Telegram webhook、刪除 Function，再移除 `TELEGRAM_BOT_TOKEN` 與 `TELEGRAM_WEBHOOK_SECRET`。
+
+### 安全與配置
+- Functions source 不再 export Telegram webhook，也不再宣告或綁定 Telegram Bot token 與 webhook secret；既有 Jira Google Docs Function 及其 `JIRA_DOC_WEBHOOK_TOKEN` 維持不變。
+- 正式環境清理必須先確認並停用 Telegram webhook，再刪除 `asia-east1` 的 `telegramMobileconfigWebhook`，最後完整刪除兩個專用 Secret，避免仍部署的 Function 引用不存在的密鑰。
+
+### 測試與文件
+- 剩餘 Cloud Functions 27 項測試與 TypeScript build 通過，並確認作用中程式碼、README、本機 Secret 範例及規格目錄不再引用已移除功能。
+- 將專案 patch 版本由 4.4.1 提升至 4.4.2，並同步 README 目前版本與 CHANGELOG 發布紀錄。
+
 ## [4.4.1] - 2026-08-27
 
 ### 新增
@@ -852,6 +865,7 @@
 - Cloudinary
 - Karma/Jasmine
 
+[4.4.2]: https://github.com/NOAHXDM/NGEip/compare/v4.4.1...v4.4.2
 [4.4.1]: https://github.com/NOAHXDM/NGEip/compare/v4.4.0...v4.4.1
 [4.4.0]: https://github.com/NOAHXDM/NGEip/compare/v4.3.5...v4.4.0
 [4.3.5]: https://github.com/NOAHXDM/NGEip/compare/v4.3.4...v4.3.5

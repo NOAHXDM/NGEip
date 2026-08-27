@@ -14,7 +14,7 @@ NGEip 是一套以 **Angular 20 + Firebase** 為核心的企業資訊入口網�
 Firebase Authentication、Cloud Firestore、Firebase Storage、Firebase Hosting 與 Cloud Functions for Firebase。
 Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推播。
 
-目前版本：**4.4.1**
+目前版本：**4.4.2**
 
 ## 專案定位
 
@@ -43,7 +43,6 @@ Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推�
 - 評量考核系統：支援匿名互評、管理者指派管理、可參數化的隨機快選預覽、屬性雷達圖與職業原型報告
 - Ops Duty 今日維運值班面板：登入後可快速查看早班、中班與 On-call 人員
 - 瀏覽器推播通知：使用者可依瀏覽器自行允許或停用，並提供 iPhone／iPad 與 Android 加入主畫面教學
-- Telegram Web Clip 描述檔產生器：由 Bot 接收名稱、網址與圖片，回傳可安裝的 `.mobileconfig`
 - Jira Google Docs 描述同步：以 Cloud Function 取代已停用的 n8n workflow，將留言指定文件的純文字內容寫入工單描述
 - 系統設定與 Firebase Emulator 本地開發流程
 
@@ -69,25 +68,6 @@ Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推�
 - 發送範圍限定為 Firebase Console 的非敏感全體廣播；個人化、交易型通知、分群或送達追蹤必須另立規格與安全設計。
 - iOS／iPadOS 16.4+ 需先透過 Safari 加入主畫面，再從主畫面圖示開啟網站；Android 可透過 Chrome 安裝應用程式或加入主畫面。
 - Firebase Web App 設定集中於 `src/firebase-config.json`；`npm run build` 會在建置前依 lockfile 的 Firebase SDK 版本產生 `public/firebase-messaging-sw.js`。
-
-### Telegram Web Clip 描述檔產生器
-
-- `telegramMobileconfigWebhook` 取代既有 n8n workflow；使用者在 Bot 私人聊天室附上圖片並輸入
-  `/createclip label:顯示名稱 url:https://example.com`，即可收到引用原訊息的 `.mobileconfig`。
-- Function 同步完成 Telegram `getFile`、圖片下載、plist 產生與 `sendDocument` 後才回覆 webhook；此低頻短流程不使用 Firestore 或 Task Queue。
-- 支援一般 Telegram 照片及 MIME 為 `image/*` 的文件附件；XML 內容、檔名與 UUID 均在伺服器端安全處理，圖片上限為 20 MiB。
-- `TELEGRAM_WEBHOOK_SECRET` 驗證 webhook 來源，`TELEGRAM_BOT_TOKEN` 僅由此 Function 從 Secret Manager 取得；log 不保存 chat ID、訊息、網址、圖片或密鑰。
-
-只部署這支 Function：
-
-```bash
-firebase deploy \
-  --config firebase.prod.json \
-  --project=noahxdm-eip \
-  --only functions:telegramMobileconfigWebhook
-```
-
-Secret 建立、`setWebhook`、本機檢查及端到端驗證步驟請參考 `specs/012-telegram-mobileconfig-webhook/plan.md`。
 
 ### Jira Google Docs 描述同步
 
