@@ -14,7 +14,7 @@ NGEip 是一套以 **Angular 20 + Firebase** 為核心的企業資訊入口網�
 Firebase Authentication、Cloud Firestore、Firebase Storage、Firebase Hosting 與 Cloud Functions for Firebase。
 Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推播。
 
-目前版本：**4.3.5**
+目前版本：**4.4.0**
 
 ## 專案定位
 
@@ -43,6 +43,7 @@ Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推�
 - 評量考核系統：支援匿名互評、管理者指派管理、可參數化的隨機快選預覽、屬性雷達圖與職業原型報告
 - Ops Duty 今日維運值班面板：登入後可快速查看早班、中班與 On-call 人員
 - 瀏覽器推播通知：使用者可依瀏覽器自行允許或停用，並提供 iPhone／iPad 與 Android 加入主畫面教學
+- Jira Google Docs 描述同步：以 Cloud Function 取代已停用的 n8n workflow，將留言指定文件的純文字內容寫入工單描述
 - 系統設定與 Firebase Emulator 本地開發流程
 
 ### Ops Duty 今日維運值班面板
@@ -67,6 +68,25 @@ Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推�
 - 發送範圍限定為 Firebase Console 的非敏感全體廣播；個人化、交易型通知、分群或送達追蹤必須另立規格與安全設計。
 - iOS／iPadOS 16.4+ 需先透過 Safari 加入主畫面，再從主畫面圖示開啟網站；Android 可透過 Chrome 安裝應用程式或加入主畫面。
 - Firebase Web App 設定集中於 `src/firebase-config.json`；`npm run build` 會在建置前依 lockfile 的 Firebase SDK 版本產生 `public/firebase-messaging-sw.js`。
+
+### Jira Google Docs 描述同步
+
+- Jira Automation 從包含 `#descriptionFromDocID` 的留言擷取 Google Docs URL，呼叫 `getGoogleDocPlainText`，再將 Function 回傳內容更新至工單描述。
+- Function 只讀 Google Docs 並同步回傳結果；Jira Automation 是唯一的 Jira 寫入者。Function 不保存 Jira API credential、不呼叫 Jira REST API，也不寫入 Firestore。
+- 正式 Function 使用 Cloud Functions for Firebase 2nd gen，部署於 `asia-east1`；Webhook 共用密鑰保存於 Secret Manager 的 `JIRA_DOC_WEBHOOK_TOKEN`，Google Docs 則由專用 runtime service account 以 `documents.readonly` scope 讀取。
+- 回傳格式與原 n8n simple-output 行為相容，只擷取第一個 Google Docs tab 的頂層段落純文字並保留換行。
+- 此版本刻意維持純文字範圍，不轉換字型、粗體、顏色、超連結、圖片、表格或多分頁內容；需要上述格式時須另立契約與規格。
+
+只部署這支 Function：
+
+```bash
+firebase deploy \
+  --config firebase.prod.json \
+  --project=noahxdm-eip \
+  --only functions:getGoogleDocPlainText
+```
+
+完整的 Jira request、response 與 hidden header 設定請參考 `specs/011-jsm-google-doc-description/contracts/jira-automation.md`；實際 token 不得寫入 Git、rule description 或 audit log。
 
 ### Training + AI Tool 補助額度
 
@@ -179,6 +199,7 @@ npm start
 ```bash
 npm run build      # 正式環境建置至 dist/angular-eip
 npm run functions:build  # 編譯 Cloud Functions TypeScript
+npm run functions:test   # 執行 Cloud Functions 單元與 HTTP 契約測試
 npm run watch      # 開發模式建置並監聽變更
 npm run generate:messaging-sw  # 依共用 Firebase 設定產生 Messaging Service Worker
 npm test           # 執行單元測試

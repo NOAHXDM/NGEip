@@ -47,6 +47,9 @@ Thumbs.db
 .firebase
 *-debug.log
 .runtimeconfig.json
+/functions/.secret.local
+/functions/.env.local
+/functions/service-account*.json
 
 # Temp
 .env
