@@ -7,6 +7,24 @@
 
 ## [Unreleased]
 
+## [4.4.0] - 2026-08-27
+
+### 新增
+- 新增 Cloud Functions for Firebase 2nd gen 後端執行基線，統一使用 Node.js 22、`asia-east1`、Functions Emulator 與正式／本機 Firebase 設定。
+- 新增 `getGoogleDocPlainText` HTTPS webhook，取代已停用的 n8n「Get google doc content to modify JSM issue description」workflow。Jira Automation 從留言擷取 Google Docs URL、呼叫 Function，並維持為唯一的 Jira description 寫入者。
+- Google Docs 內容轉換維持原 n8n simple-output 相容行為：讀取第一個 tab 的頂層段落純文字、保留空白與換行，並回傳來源 URL、document ID、revision ID 與內容雜湊。
+
+### 安全
+- Webhook 以 Secret Manager 的 `JIRA_DOC_WEBHOOK_TOKEN` 驗證，並使用常數時間比較；正式 token 不進入 Git、前端設定、Jira rule description 或 audit log。
+- Google Docs 由專用 runtime service account 透過 Application Default Credentials 與 `documents.readonly` scope 讀取，不配置長效 access token、OAuth refresh token 或 service-account JSON key。
+- Function 嚴格限制 POST、JSON content type、request body、Google Docs URL 與 Jira issue key，對外只回傳固定錯誤碼與安全訊息。
+
+### 測試與文件
+- 新增 27 項 Cloud Functions 測試，涵蓋 webhook 契約、驗證、純文字轉換、Google API 錯誤映射與 HTTP 回應；正式部署及 Jira Automation 端對端測試已完成。
+- 新增 Jira Automation request 契約與功能規格，並同步 README 的部署指令、權限邊界與操作說明。
+- 本版本刻意維持純文字相容；Google Docs 樣式、圖片、表格與多分頁轉換不納入範圍，也不繼續實作。
+- 將專案次版本由 4.3.5 提升至 4.4.0。
+
 ## [4.3.5] - 2026-08-21
 
 ### 修復
@@ -816,6 +834,8 @@
 - Cloudinary
 - Karma/Jasmine
 
+[4.4.0]: https://github.com/NOAHXDM/NGEip/compare/v4.3.5...v4.4.0
+[4.3.5]: https://github.com/NOAHXDM/NGEip/compare/v4.3.4...v4.3.5
 [4.3.4]: https://github.com/NOAHXDM/NGEip/compare/v4.3.3...v4.3.4
 [4.3.3]: https://github.com/NOAHXDM/NGEip/compare/v4.3.2...v4.3.3
 [4.3.2]: https://github.com/NOAHXDM/NGEip/compare/v4.3.1...v4.3.2
