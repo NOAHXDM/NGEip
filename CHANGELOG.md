@@ -7,6 +7,24 @@
 
 ## [Unreleased]
 
+## [4.4.1] - 2026-08-27
+
+### 新增
+- 新增 `telegramMobileconfigWebhook` Cloud Functions for Firebase 2nd gen HTTPS webhook，取代已停用的 n8n「Make .mobileconfig webclip」workflow。
+- Telegram Bot 私人聊天室支援 `/createclip label:顯示名稱 url:https://example.com` 指令，可搭配一般照片或 MIME 為 `image/*` 的文件附件，產生並回傳 Apple Web Clip `.mobileconfig`。
+- 新增純邏輯 mobileconfig 產生器，負責指令解析、Telegram 圖片選擇、XML 1.0 escaping、安全 UUID、檔名清理及 plist 組合。
+
+### 安全
+- Telegram webhook 使用 Secret Manager 的 `TELEGRAM_WEBHOOK_SECRET` 驗證 `X-Telegram-Bot-Api-Secret-Token`；Bot API token 以 `TELEGRAM_BOT_TOKEN` 綁定至單一 Function，不進入 Git 或前端設定。
+- 圖片下載限制為 Telegram Bot API 的 20 MiB 上限；Function log 僅記錄 request ID、update ID、耗時、圖片大小與固定結果碼，不記錄 chat ID、訊息、網址、圖片或密鑰。
+- Function 僅接受 POST、忽略非私人聊天室，所有 Telegram API 呼叫均設有逾時，並在 `sendDocument` 完成後才回覆 HTTP 200，避免 response 結束後執行不可靠的背景工作。
+
+### 測試與文件
+- Cloud Functions 測試共 47 項通過，涵蓋 webhook Secret、HTTP method、Telegram update、照片與圖片文件、指令錯誤、缺少圖片、XML escaping、plist 產生及上游錯誤；`plutil` plist 驗證通過。
+- 正式 Telegram webhook 端到端驗證已完成，確認圖片下載、`.mobileconfig` 回傳、錯誤提示與部署設定可正常運作。
+- 新增 `specs/012-telegram-mobileconfig-webhook/` 繁中規格與實作計畫，包含本機檢查、Secret 建立、單一 Function 部署、`setWebhook`、端到端驗證與停止接收步驟。
+- 將專案 patch 版本由 4.4.0 提升至 4.4.1，並同步 README 的目前版本、功能摘要、安全邊界與部署入口。
+
 ## [4.4.0] - 2026-08-27
 
 ### 新增
@@ -834,6 +852,7 @@
 - Cloudinary
 - Karma/Jasmine
 
+[4.4.1]: https://github.com/NOAHXDM/NGEip/compare/v4.4.0...v4.4.1
 [4.4.0]: https://github.com/NOAHXDM/NGEip/compare/v4.3.5...v4.4.0
 [4.3.5]: https://github.com/NOAHXDM/NGEip/compare/v4.3.4...v4.3.5
 [4.3.4]: https://github.com/NOAHXDM/NGEip/compare/v4.3.3...v4.3.4
