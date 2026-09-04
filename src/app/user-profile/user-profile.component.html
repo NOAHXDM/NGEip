@@ -1,5 +1,5 @@
-<div class="container d-flex justify-content-center align-items-center py-2">
-  <mat-tab-group dynamicHeight>
+<div class="container profile-page py-2">
+  <mat-tab-group class="profile-tabs" dynamicHeight>
     <mat-tab label="基本資料">
       <ng-container *ngTemplateOutlet="normalContent"></ng-container>
     </mat-tab>
@@ -31,7 +31,7 @@
 
 <ng-template #normalContent>
   <form
-    class="d-flex flex-column gap-3"
+    class="profile-content d-flex flex-column gap-3"
     [formGroup]="profileForm"
     (ngSubmit)="normalFieldsUpdate()"
     novalidate
@@ -139,7 +139,7 @@
 </ng-template>
 
 <ng-template #notificationContent>
-  <div class="d-flex flex-column gap-3 p-3">
+  <div class="profile-content d-flex flex-column gap-3 p-3">
     <h3 class="pt-3 text-center">通知設定</h3>
 
     @if (!notificationSupported()) {
@@ -228,7 +228,7 @@
 
 <ng-template #advancedContent>
   <form
-    class="d-flex flex-column gap-3"
+    class="profile-content d-flex flex-column gap-3"
     [formGroup]="advancedForm"
     (ngSubmit)="advancedFieldsUpdate()"
     novalidate
@@ -304,7 +304,7 @@
 </ng-template>
 
 <ng-template #remainingLeaveHoursContent>
-  <div class="d-flex flex-column gap-3">
+  <div class="profile-content d-flex flex-column gap-3">
     <button type="button" mat-button disabled>
       <mat-icon>local_cafe</mat-icon>
       剩餘 {{ remainingLeaveHours() }} 小時

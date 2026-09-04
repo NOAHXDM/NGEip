@@ -7,6 +7,20 @@
 
 ## [Unreleased]
 
+## [4.4.3] - 2026-09-04
+
+### 修復
+- 修正 `/MyProfile` 的 `mat-tab-group` 位於置中 flex container 時，寬度會跟隨目前啟用內容的 intrinsic width 重新計算，造成切換基本資料、補助上限與通知設定時 Tab header 左右跳動，寬螢幕下也無法穩定填滿內容容器的問題。
+- Tab group 改為固定填滿 Bootstrap container，並設定 `min-width: 0`，避免 flex item 的內容最小寬度在窄螢幕撐開頁面；既有 `dynamicHeight` 僅繼續處理內容高度動畫。
+
+### 介面
+- 基本資料、進階資料、剩餘特休與通知設定共用最大 960px 的置中內容寬度，使 Tab header 與實際內容寬度可獨立控制；補助上限保留原有最大 600px 的閱讀寬度。
+- 移除個人資料頁外層不必要的 flex 置中配置，讓 Angular Material 預設的 stretch tabs 能在固定寬度的 Tab group 內平均分配；行動裝置仍沿用 Material 的頁籤分頁／捲動行為。
+
+### 測試與文件
+- UserProfile 通知設定 targeted Karma 測試 3 項通過，Angular development build 與差異格式檢查通過。
+- README 新增個人資料版面規則與響應式行為說明；將專案 patch 版本由 4.4.2 提升至 4.4.3，並同步 package lockfile 與 CHANGELOG 發布紀錄。
+
 ## [4.4.2] - 2026-08-27
 
 ### 移除
@@ -865,6 +879,7 @@
 - Cloudinary
 - Karma/Jasmine
 
+[4.4.3]: https://github.com/NOAHXDM/NGEip/compare/v4.4.2...v4.4.3
 [4.4.2]: https://github.com/NOAHXDM/NGEip/compare/v4.4.1...v4.4.2
 [4.4.1]: https://github.com/NOAHXDM/NGEip/compare/v4.4.0...v4.4.1
 [4.4.0]: https://github.com/NOAHXDM/NGEip/compare/v4.3.5...v4.4.0

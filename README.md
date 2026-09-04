@@ -14,7 +14,7 @@ NGEip 是一套以 **Angular 20 + Firebase** 為核心的企業資訊入口網�
 Firebase Authentication、Cloud Firestore、Firebase Storage、Firebase Hosting 與 Cloud Functions for Firebase。
 Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推播。
 
-目前版本：**4.4.2**
+目前版本：**4.4.3**
 
 ## 專案定位
 
@@ -59,6 +59,12 @@ Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推�
 - Telegram 使用者名稱為選填欄位，接受 5–32 位英文字母、數字或底線；輸入開頭 `@` 時會在儲存前自動移除，Firestore 僅保存正規化後的 username。
 - 有合法 Telegram username 的在職使用者，會在右側使用者資訊卡的電話旁，以及使用者列表的「聯絡資訊」欄位顯示 Telegram 紙飛機圖示；介面不顯示 username 文字。
 - 點擊圖示會另開 `https://t.me/{username}`，並提供包含使用者姓名的無障礙標籤；右側卡片會阻止點擊事件冒泡，避免同時開啟使用者編輯視窗。
+
+### 個人資料版面
+
+- `/MyProfile` 的 Tab header 會固定填滿 Bootstrap 內容容器，不再依目前 Tab 的內容寬度縮放；切換基本資料、剩餘特休、補助上限或通知設定時，頁籤位置與整體寬度維持穩定。
+- 基本資料、進階資料、剩餘特休與通知設定內容採最大 960px 的置中閱讀寬度；補助上限維持最大 600px，讓寬螢幕保有一致導覽範圍而不過度拉寬內容。
+- 小螢幕下 Tab group 可縮至容器寬度，空間不足時沿用 Angular Material 的頁籤分頁／捲動行為，避免內容的最小寬度撐出整頁水平捲軸。
 
 ### 瀏覽器推播通知
 

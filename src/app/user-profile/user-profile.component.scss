@@ -1,3 +1,15 @@
+.profile-tabs {
+  width: 100%;
+  min-width: 0;
+}
+
+.profile-content {
+  width: 100%;
+  max-width: 960px;
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+
 .table-container {
   max-height: 30vh;
   overflow: auto;
