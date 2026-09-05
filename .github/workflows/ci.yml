@@ -51,6 +51,12 @@ jobs:
       - name: Build Cloud Functions
         run: npm run functions:build
 
+      - name: Test Cloud Functions
+        run: npm run functions:test
+
+      - name: Test JSM weekly report transactions and rules
+        run: npm run test:jsm-weekly
+
       - name: Run headless Karma tests
         run: npm test -- --watch=false
 

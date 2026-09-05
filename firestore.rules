@@ -2,6 +2,11 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // 週報僅由 IAM 保護的後端／管理工具存取；包含已登入管理者的瀏覽器皆不可直接修改。
+    match /jsmWeeklyReportState/{id} { allow read, write: if false; }
+    match /jsmWeeklyReportRuns/{id} { allow read, write: if false; }
+    match /jsmWeeklyReportWeeks/{id} { allow read, write: if false; }
+    match /jsmWeeklyReportCalendars/{id} { allow read, write: if false; }
     // 通用函數
     function isSignedIn() {
       return request.auth != null;

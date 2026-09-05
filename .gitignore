@@ -49,6 +49,7 @@ Thumbs.db
 .runtimeconfig.json
 /functions/.secret.local
 /functions/.env.local
+/functions/.env.*
 /functions/service-account*.json
 
 # Temp

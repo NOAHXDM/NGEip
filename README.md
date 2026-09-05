@@ -75,6 +75,13 @@ Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推�
 - iOS／iPadOS 16.4+ 需先透過 Safari 加入主畫面，再從主畫面圖示開啟網站；Android 可透過 Chrome 安裝應用程式或加入主畫面。
 - Firebase Web App 設定集中於 `src/firebase-config.json`；`npm run build` 會在建置前依 lockfile 的 Firebase SDK 版本產生 `public/firebase-messaging-sw.js`。
 
+### JSM 每週報表
+
+- `sendJsmWeeklyReport` 為預設停用的私有 HTTP Function；一般部署不建立排程。管理者在同一 GCP 專案手動建立每日 17:30（Asia/Taipei）的 Cloud Scheduler 與 Email 告警。
+- 依政府行事曆選出當週最後工作日，查詢目前為 Done 且本期完成的 DMIT 標準工單，產生單欄 Excel 傳送 Telegram；零筆只通知，不保存 Excel 至 Storage。
+- 排程與人工補跑共用 IAM 入口，透過 Firestore 維護期間、防重送與送達不明的人工確認。
+- 設定、Jira token scopes、日曆匯入與補跑操作見 [手動部署文件](specs/013-jsm-weekly-report/manual-deployment.md)。
+
 ### Jira Google Docs 描述同步
 
 - Jira Automation 從包含 `#descriptionFromDocID` 的留言擷取 Google Docs URL，呼叫 `getGoogleDocPlainText`，再將 Function 回傳內容更新至工單描述。
