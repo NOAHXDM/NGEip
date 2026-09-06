@@ -7,6 +7,29 @@
 
 ## [Unreleased]
 
+## [4.5.0] - 2026-09-06
+
+### 新增
+
+- 新增 `sendJsmWeeklyReport` 私有 HTTP Function，依台灣政府行事曆選出週一至週日的最後工作日，於 17:30 查詢 DMIT 已完成的標準工單；支援補班星期六、整週放假累計及臨時停班保留原定寄送日。
+- 報表期間採上次成功截止時間至本期 17:30，首次以上週五 17:30 起算；查詢當下為 Done 且本期完成的工單依完成時間排序，重開後再次完成可列入新一期。
+- 產生無表頭、單欄工單標題的 Excel 並傳送 Telegram，保留重複標題；零筆只通知期間與筆數，不產空檔，Excel 不留存 Firebase Storage。
+- 新增政府年度 CSV 驗證／匯入工具，以及 `retry`、`confirmSent`、`confirmNotSent` 人工復原操作。
+
+### 安全與配置
+
+- Function 預設停用且不含 `onSchedule`，Cloud Scheduler 與 Email 告警須手動設定；排程與人工操作共用 invoker IAM 身分及單一入口，runtime 則使用獨立執行身分。
+- Jira 採個人 Atlassian 帳號的有範圍 API 權杖，認證預設為 Basic（Email + token），透過 Cloud ID gateway 分頁查詢；Token 與 Telegram 設定保存在 Secret Manager，dotenv 僅存非密鑰參數。
+- Firestore transaction、全域執行鎖與 attemptId 防止並行及跨期重送；失敗不自動重試、不推進截止時間，送達不明時阻擋後續報表並等待人工確認。
+- 新增四個後端專用集合的 client 存取拒絕規則，並限制送出期限、外部 API 目標與錯誤紀錄內容；ExcelJS 間接相依 uuid 以 scoped override 固定為 11.1.1。
+
+### 測試與文件
+
+- 新增週報需求、技術計畫、審查與手動部署文件，涵蓋 Jira scopes、完成欄位驗證、Secrets、IAM、日曆、Scheduler、Email 告警及人工補跑。
+- Functions 建置及 43 項測試通過；7 項 Firestore Emulator 整合測試涵蓋並行交易、失敗累計、人工復原、日曆與 client 權限，CI 同步納入。Angular production build 與差異格式檢查通過。
+- 同步 README 功能摘要與 CI 說明，將專案次版本由 4.4.3 提升至 4.5.0，更新 package lockfile。
+- Jira 索引延遲及非 snapshot 查詢仍有限制；自動化測試不代表正式 Jira、Telegram 與 Email 端到端驗證已完成。
+
 ## [4.4.3] - 2026-09-04
 
 ### 修復
@@ -879,6 +902,7 @@
 - Cloudinary
 - Karma/Jasmine
 
+[4.5.0]: https://github.com/NOAHXDM/NGEip/compare/v4.4.3...v4.5.0
 [4.4.3]: https://github.com/NOAHXDM/NGEip/compare/v4.4.2...v4.4.3
 [4.4.2]: https://github.com/NOAHXDM/NGEip/compare/v4.4.1...v4.4.2
 [4.4.1]: https://github.com/NOAHXDM/NGEip/compare/v4.4.0...v4.4.1

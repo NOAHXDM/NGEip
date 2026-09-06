@@ -14,9 +14,16 @@
     "logs": "firebase functions:log"
   },
   "dependencies": {
+    "csv-parse": "^6.1.0",
+    "exceljs": "^4.4.0",
     "firebase-admin": "^14.3.0",
     "firebase-functions": "^7.3.2",
     "google-auth-library": "^10.9.1"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "11.1.1"
+    }
   },
   "devDependencies": {
     "typescript": "~5.8.0"

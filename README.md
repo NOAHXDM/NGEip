@@ -14,7 +14,7 @@ NGEip 是一套以 **Angular 20 + Firebase** 為核心的企業資訊入口網�
 Firebase Authentication、Cloud Firestore、Firebase Storage、Firebase Hosting 與 Cloud Functions for Firebase。
 Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推播。
 
-目前版本：**4.4.3**
+目前版本：**4.5.0**
 
 ## 專案定位
 
@@ -44,6 +44,7 @@ Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推�
 - Ops Duty 今日維運值班面板：登入後可快速查看早班、中班與 On-call 人員
 - 瀏覽器推播通知：使用者可依瀏覽器自行允許或停用，並提供 iPhone／iPad 與 Android 加入主畫面教學
 - Jira Google Docs 描述同步：以 Cloud Function 取代已停用的 n8n workflow，將留言指定文件的純文字內容寫入工單描述
+- JSM 每週報表：依政府行事曆於最後工作日產生已完成工單 Excel，傳送 Telegram 並支援人工補跑
 - 系統設定與 Firebase Emulator 本地開發流程
 
 ### Ops Duty 今日維運值班面板
@@ -74,6 +75,13 @@ Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推�
 - 發送範圍限定為 Firebase Console 的非敏感全體廣播；個人化、交易型通知、分群或送達追蹤必須另立規格與安全設計。
 - iOS／iPadOS 16.4+ 需先透過 Safari 加入主畫面，再從主畫面圖示開啟網站；Android 可透過 Chrome 安裝應用程式或加入主畫面。
 - Firebase Web App 設定集中於 `src/firebase-config.json`；`npm run build` 會在建置前依 lockfile 的 Firebase SDK 版本產生 `public/firebase-messaging-sw.js`。
+
+### JSM 每週報表
+
+- `sendJsmWeeklyReport` 為預設停用的私有 HTTP Function；一般部署不建立排程。管理者在同一 GCP 專案手動建立每日 17:30（Asia/Taipei）的 Cloud Scheduler 與 Email 告警。
+- 依政府行事曆選出當週最後工作日，查詢目前為 Done 且本期完成的 DMIT 標準工單，產生單欄 Excel 傳送 Telegram；零筆只通知，不保存 Excel 至 Storage。
+- 排程與人工補跑共用 IAM 入口，透過 Firestore 維護期間、防重送與送達不明的人工確認。
+- Jira 採個人帳號的有範圍 API 權杖，使用 Basic（帳號 Email + token）；設定、scopes、日曆匯入與補跑操作見 [手動部署文件](specs/013-jsm-weekly-report/manual-deployment.md)。
 
 ### Jira Google Docs 描述同步
 
@@ -218,7 +226,7 @@ npm run audit:request-attachments   # 正式資料 dry-run（需 Admin SDK 憑�
 npm run deploy     # 建置並部署至 Firebase（使用 firebase.prod.json）
 ```
 
-PR CI 會執行 TypeScript spec typecheck、Cloud Functions TypeScript build、headless Karma、production build、journey rules 與 journey integration 測試；若本機 Firebase CLI 遇到 Hosting web framework 設定，需使用支援 `FIREBASE_CLI_EXPERIMENTS=webframeworks` 的 Firebase CLI 版本。
+PR CI 會執行 TypeScript spec typecheck、Cloud Functions TypeScript build 與單元測試、JSM 週報 Firestore Emulator 整合測試、headless Karma、production build、journey rules 與 journey integration 測試；若本機 Firebase CLI 遇到 Hosting web framework 設定，需使用支援 `FIREBASE_CLI_EXPERIMENTS=webframeworks` 的 Firebase CLI 版本。
 
 ## 架構約束
 
