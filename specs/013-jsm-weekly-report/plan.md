@@ -6,6 +6,10 @@
 
 `calendar.ts` 負責台北日期、週界與政府 CSV；`jira.ts` 負責分頁唯讀查詢；`delivery.ts` 負責 XLSX 與 Telegram；`store.ts` 集中 Firestore transaction；`service.ts` 串接可注入依賴；`http.ts` 處理契約、設定、IAM 部署選項與安全 log。
 
+## Jira 認證
+
+Jira 認證依 2026-09-06 決策採個人帳號 scoped API token。`JSM_WEEKLY_JIRA_AUTH` 預設 basic，搭配必填的 token 擁有者 Email；client 將 email:token 編碼為 Basic，並固定使用 api.atlassian.com/ex/jira 的 Cloud ID gateway。Token 由 Secret Manager 提供；dotenv 僅保存非密鑰設定，不保存 scopes 或 token。保留明確指定 bearer 的既有相容分支，但不是本流程預設。Google Cloud invoker 的 OIDC Bearer 與 Jira Basic 是兩個獨立認證邊界。
+
 ## 完成時間
 
 依最新決策採目前 Done + `statuscategorychangedate`。該欄位是最近狀態「類別」變更時間，從非 Done 重開再進入 Done 才形成新完成時間；Done 類別內的狀態切換不算新的完成。啟用前驗證 DMIT 重開狀態屬非 Done，重新完成會更新此欄位，再設定 `JSM_WEEKLY_WORKFLOW_VERIFIED=true`。不假設 resolutiondate 在各 workflow 都會更新，不讀 changelog。

@@ -46,8 +46,8 @@ test("政府 CSV 驗證完整閏年、BOM、引號備註，拒絕缺日／重複
   assert.throws(() => parseGovernmentCalendar(lines.join("\n").replace(",0,", ",1,"), 2028), /INVALID_CALENDAR/);
 });
 
-const config = { cloudId: "cloud-test", project: "DMIT", token: "secret", auth: "bearer", email: "" };
-test("Jira 160 筆分頁、唯讀 scope 對應 POST；不讀 changelog", async () => {
+const config = { cloudId: "cloud-test", project: "DMIT", token: "secret", auth: "basic", email: "report@example.test" };
+test("個人 scoped token 使用 Basic 與 gateway，Jira 160 筆分頁；不讀 changelog", async () => {
   const calls = [];
   const client = new JiraClient(config, async (url, init) => {
     calls.push({ url, init, body: JSON.parse(init.body) });
@@ -59,13 +59,17 @@ test("Jira 160 筆分頁、唯讀 scope 對應 POST；不讀 changelog", async (
   assert.match(calls[0].body.jql, /statusCategory = Done/);
   assert.match(calls[0].body.jql, /statusCategoryChangedDate/);
   assert.equal(calls[1].body.nextPageToken, "page2");
-  assert.equal(calls[0].init.headers.Authorization, "Bearer secret");
-  assert.ok(calls.every(c => c.url.endsWith("/search/jql")));
-  const basic = new JiraClient({ ...config, auth: "basic", email: "report@example.test" }, async (_, init) => {
-    assert.equal(init.headers.Authorization, `Basic ${Buffer.from("report@example.test:secret").toString("base64")}`);
+  assert.ok(calls.every(c => c.init.headers.Authorization === `Basic ${Buffer.from("report@example.test:secret").toString("base64")}`));
+  assert.ok(calls.every(c => c.url === "https://api.atlassian.com/ex/jira/cloud-test/rest/api/3/search/jql"));
+});
+
+test("Basic 缺少帳號 Email 時拒絕，保留明確指定 Bearer 的相容性", async () => {
+  assert.throws(() => new JiraClient({ ...config, email: "" }), /JIRA_CONFIG/);
+  const bearer = new JiraClient({ ...config, auth: "bearer", email: "" }, async (_, init) => {
+    assert.equal(init.headers.Authorization, "Bearer secret");
     return Response.json({ issues: [], isLast: true });
   });
-  await basic.report(start, end);
+  await bearer.report(start, end);
 });
 
 test("Jira 不重試 429，不靜默接受不完整分頁／重複 token", async () => {

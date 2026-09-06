@@ -2,11 +2,18 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createReportHandler, sendJsmWeeklyReport } = require("../lib/jsm-weekly-report/http.js");
 const { cutoffAt } = require("../lib/jsm-weekly-report/calendar.js");
+const { declaredParams } = require("firebase-functions/params");
 function request(body = { action: "scheduled" }, extra = {}) {
   return { method: "POST", body, get: key => ({ "content-type": "application/json", "x-cloudscheduler-scheduletime": cutoffAt("2026-09-04") })[key], ...extra };
 }
 function response() { return { set() { return this; }, status(n) { this.code = n; return this; }, json(body) { this.body = body; } }; }
 const silent = { info() {}, error() {} };
+test("個人 scoped token 的部署認證預設為 Basic，Jira token 仍為 Secret", () => {
+  const auth = declaredParams.find(p => p.name === "JSM_WEEKLY_JIRA_AUTH").toSpec();
+  assert.equal(auth.default, "basic");
+  const token = declaredParams.find(p => p.name === "JSM_WEEKLY_JIRA_TOKEN").toSpec();
+  assert.equal(token.type, "secret");
+});
 test("共用入口為 private HTTPS，無 schedule trigger", () => {
   for (const fn of [sendJsmWeeklyReport]) {
     assert.deepEqual(fn.__endpoint.httpsTrigger.invoker, ["private"]);

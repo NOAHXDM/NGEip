@@ -1,10 +1,12 @@
 # JSM 週報手動部署與操作
 
-Function 已實作，預設停用；本文件不代表正式部署已完成。以下 `<...>` 均須換成自己的值。API 權限於 2026-09-05 依官方文件核對。
+Function 已實作，預設停用；本文件不代表正式部署已完成。以下 `<...>` 均須換成自己的值。API 權限於 2026-09-05 依官方文件核對；2026-09-06 確認採個人 Atlassian 帳號的有範圍 API 權杖，認證方式為 Basic。
 
 ## Jira token 範圍
 
-本版只使用 **POST `/rest/api/3/search/jql`**，不讀歷程或專案狀態 API。建立 Jira scoped API token 時，若介面提供 Classic scope，可勾選官方建議的 `read:jira-work`；若使用 Granular scopes，勾選下列 **5 項**，兩種方式擇一即可：
+在個人 Atlassian 帳號的安全性 → API 權杖頁面，選擇「建立有範圍的 API 權杖」，指定 Jira 並設定到期日；不要選無範圍的「建立 API 權杖」。
+
+本版只使用 **POST `/rest/api/3/search/jql`**，不讀歷程或專案狀態 API。建立有範圍權杖時，若介面提供 Classic scope，可勾選官方建議的 `read:jira-work`；若使用 Granular scopes，勾選下列 **5 項**，兩種方式擇一即可。Classic scope 仍是 scope，不代表無範圍權杖：
 
 - [ ] `read:issue-details:jira`
 - [ ] `read:field.default-value:jira`
@@ -16,7 +18,9 @@ Function 已實作，預設停用；本文件不代表正式部署已完成。�
 
 帳號另需 DMIT 的 Browse Projects 與 issue security level 可見權限；scopes 不會增加帳號原本看不到的工單。HTTP 200 不代表資料完整，須與同帳號人工查詢核對。設定 token 到期日並安排輪替。
 
-Scoped token 一律使用 `https://api.atlassian.com/ex/jira/<CLOUD_ID>`。Atlassian service account token 用 Bearer；一般帳號 token 用 Basic（email + token）。以環境參數指定，不猜測認證類型。
+本流程使用 `https://api.atlassian.com/ex/jira/<CLOUD_ID>`，程式已固定此 gateway；不改用 `<site>.atlassian.net`。`CLOUD_ID` 是 Jira 站台 ID，不是 Organization ID、Firebase Project ID 或完整網址。
+
+個人帳號的有範圍權杖採 **Basic（建立權杖的帳號 Email + 原始 token）**；有 scopes 不等於 Bearer。程式會組成認證標頭，不必自行將 token 做 Base64 編碼或加上 Basic／Bearer 前綴。Scopes 在 Atlassian 建立權杖時選取，不能透過 dotenv 增加。
 
 ## 首次啟用前：驗證完成欄位
 
@@ -47,19 +51,25 @@ firebase functions:secrets:set JSM_WEEKLY_TELEGRAM_CHAT_ID --project <PROJECT_ID
 
 使用 CLI 互動輸入值，不把密鑰放在命令列、Git、log 或前端。chat ID 為數字字串（群組通常是負數）；Bot 須在群組中且能傳訊息／文件。
 
-建立未提交 Git 的 `functions/.env.<PROJECT_ID>`：
+建立未提交 Git 的 `functions/.env.<PROJECT_ID>`，檔名使用部署目標的 Firebase Project ID。此檔只保存非密鑰的專案設定，部署時由 Firebase CLI 讀取；Token 與 chat ID 仍留在 Secret Manager，不放進 dotenv：
 
 ```dotenv
 JSM_WEEKLY_ENABLED=false
 JSM_WEEKLY_WORKFLOW_VERIFIED=false
 JSM_WEEKLY_JIRA_CLOUD_ID=<CLOUD_ID>
 JSM_WEEKLY_JIRA_PROJECT=DMIT
-JSM_WEEKLY_JIRA_AUTH=bearer
-JSM_WEEKLY_JIRA_EMAIL=
+JSM_WEEKLY_JIRA_AUTH=basic
+JSM_WEEKLY_JIRA_EMAIL=<ATLASSIAN_ACCOUNT_EMAIL>
 JSM_WEEKLY_RUNTIME_SERVICE_ACCOUNT=<RUNTIME_SA_EMAIL>
 ```
 
-一般帳號 token 改為 `JSM_WEEKLY_JIRA_AUTH=basic` 並填 email。workflow 與日曆驗證完成後將前兩項改成 true 再部署。尚未填設定的 clone 預設停用，Repository 不含 onSchedule。每一專案支援一條報表資料流；已有執行紀錄後不要任意更改 Jira Project 或群組設定，避免混用 cursor。
+`JSM_WEEKLY_JIRA_EMAIL` 必填，必須與建立該權杖的 Atlassian 帳號一致；不是告警收件者。`JSM_WEEKLY_RUNTIME_SERVICE_ACCOUNT` 則填 Google Cloud runtime IAM 帳號（例如 `jsm-weekly-runtime@<PROJECT_ID>.iam.gserviceaccount.com`），不是 Jira 帳號，也不是 Scheduler invoker。
+
+workflow 與日曆驗證完成後將前兩項改成 true 再部署。尚未填設定的 clone 預設停用，Repository 不含 onSchedule。每一專案支援一條報表資料流；已有執行紀錄後不要任意更改 Jira Project 或群組設定，避免混用 cursor。
+
+若先前照舊範例填了 `JSM_WEEKLY_JIRA_AUTH=bearer` 且 Email 留空，必須手動改為上述設定再部署；程式改變預設值不會覆蓋你已有的 dotenv。換電腦或 CI 部署也須提供同一組非密鑰參數。Token 更新則以 Secret CLI 建立新版本，再重新部署引用它的 Function。
+
+底層 Jira client 仍保留明確指定 Bearer 的相容能力，供 Atlassian Service Account token 使用；這不是本次確認的個人權杖部署流程，不要因為權杖有 scopes 就切換為 Bearer。
 
 ## 匯入政府行事曆
 
@@ -136,6 +146,8 @@ Function 使用 Scheduler 自帶 `X-CloudScheduler-ScheduleTime` 作為原定截
 reportId 是原期週一日期，可在 Firestore jsmWeeklyReportRuns 或成功 log 取得。retry 只接受 failed，沿用原 start/end；已成功或新一期已涵蓋的舊期拒絕補跑。
 
 以下 shell 變數只用於短期 OIDC token，執行時勿啟用 shell trace：
+
+此處的 `Authorization: Bearer` 是 **Google Cloud OIDC 呼叫 Function**，不是 Jira API 認證；即使 dotenv 的 Jira AUTH 為 basic，下列命令仍須維持 Bearer。
 
 ```sh
 JSM_REPORT_ID_TOKEN=$(gcloud auth print-identity-token --impersonate-service-account='<INVOKER_SA_EMAIL>' --audiences='<FUNCTION_URL>')

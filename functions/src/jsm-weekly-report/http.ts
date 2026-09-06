@@ -13,7 +13,8 @@ const enabled = defineBoolean("JSM_WEEKLY_ENABLED", { default: false });
 const workflowVerified = defineBoolean("JSM_WEEKLY_WORKFLOW_VERIFIED", { default: false });
 const cloudId = defineString("JSM_WEEKLY_JIRA_CLOUD_ID", { default: "" });
 const project = defineString("JSM_WEEKLY_JIRA_PROJECT", { default: "DMIT" });
-const auth = defineString("JSM_WEEKLY_JIRA_AUTH", { default: "bearer" });
+// 個人 Atlassian 帳號建立的 scoped API token 使用 email + token 的 Basic 認證。
+const auth = defineString("JSM_WEEKLY_JIRA_AUTH", { default: "basic" });
 const email = defineString("JSM_WEEKLY_JIRA_EMAIL", { default: "" });
 const serviceAccount = defineString("JSM_WEEKLY_RUNTIME_SERVICE_ACCOUNT", { default: "default" });
 const jiraToken = defineSecret("JSM_WEEKLY_JIRA_TOKEN");

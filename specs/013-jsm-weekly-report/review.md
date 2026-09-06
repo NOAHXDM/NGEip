@@ -30,3 +30,18 @@ CI 已加入兩組週報相關測試；此處結果為本機執行，不代表�
 - Telegram 結果不明時必須先人工核對，不保證跨外部 API 的 exactly-once delivery。
 
 操作與驗證步驟見 [手動部署文件](manual-deployment.md)。
+
+## 2026-09-06：個人有範圍權杖決策同步
+
+- 文件、需求、計畫與 README 統一採個人 Atlassian 帳號的 scoped API token；部署範例填 Basic 與 token 擁有者 Email。
+- HTTP 參數的認證預設從 bearer 改為 basic；底層保留明確選用 Bearer 的相容性，不影響 Google OIDC Bearer。
+- 註明已有 dotenv 必須自行更新、Cloud ID 與 Firebase Project ID 的差異，以及 Secret 與非密鑰參數的分工。未讀取或修改個人 dotenv／Secret 值。
+- `npm run functions:test` 建置及 43 項測試通過，新增預設認證與缺少 Email 驗證；160 筆分頁測試改走 Basic 並驗證精確 gateway URL。
+- `git diff --check` 通過。本次未更改交易、日曆與 Rules，未重跑 Firestore Emulator；未部署或執行正式 Jira 認證測試。
+
+## 2026-09-06：4.5.0 合併前驗證
+
+- 依次版本升版同步 package.json、package-lock.json、README 與 CHANGELOG 為 4.5.0。
+- 重新執行 Functions 建置與 43 項測試、7 項 Firestore Emulator 整合測試，全部通過。
+- Angular production build 首次在受限環境以 134 中止且未提供診斷；放寬環境限制後重跑成功。完整前端 Karma 測試未在本輪重跑。
+- 差異格式檢查通過；未修改本機 dotenv、Secrets 或使用者既有 `.codex/`，未執行雲端部署。

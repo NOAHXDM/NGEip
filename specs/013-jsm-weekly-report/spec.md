@@ -8,7 +8,7 @@
 4. 每期一張工單一列，不以標題去重，以最近進入 Done 類別時間舊到新排序。
 5. 起點為上次成功截止時間；首次啟動以當週之前一週星期五 17:30 為起點，首次假日檢查也保存起點。終點固定本期最後工作日 17:30。
 6. Excel 維持附件格式：工作表 Sheet、無表頭、單欄標題。群組訊息只包含期間與筆數。零筆只寄訊息「本期共 0 筆」，不附檔，但成功後仍推進截止時間。
-7. Jira token、Telegram Bot token、chat ID 保存 Secret Manager。Excel 不留存 Firebase Storage。
+7. Jira 使用個人 Atlassian 帳號建立的有範圍 API 權杖，授予本報表所需的唯讀權限；Jira token、Telegram Bot token、chat ID 保存 Secret Manager。Excel 不留存 Firebase Storage。
 8. 失敗寄 Email，不自動重試，不推進截止時間。管理者可選擇補跑，未補跑則下週累計；Telegram 送達不明需人工釐清後再繼續。
 9. 人工補跑沿用失敗一期原期間。已寄送成功或已有新一期成功涵蓋的舊報表不得再次補跑。
 10. 排程與管理者共用相同 IAM 身分及單一 HTTP 入口。一般部署不能建立或啟用 Scheduler，另以手動部署文件建立同專案排程及 Email 告警。
