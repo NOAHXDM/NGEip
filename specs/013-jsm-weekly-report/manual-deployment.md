@@ -123,7 +123,7 @@ gcloud services enable cloudscheduler.googleapis.com --project <PROJECT_ID>
 gcloud scheduler jobs create http jsm-weekly-report --project <PROJECT_ID> --location asia-east1 --schedule='30 17 * * *' --time-zone=Asia/Taipei --uri='<FUNCTION_URL>' --http-method=POST --headers='Content-Type=application/json' --message-body='{"action":"scheduled"}' --oidc-service-account-email='<INVOKER_SA_EMAIL>' --oidc-token-audience='<FUNCTION_URL>' --max-retry-attempts=0 --max-retry-duration=0s --attempt-deadline=600s
 ```
 
-Function 使用 Scheduler 自帶 `X-CloudScheduler-ScheduleTime` 作為原定截止時間，只接受台北 17:30 且在一天內的投遞。只有本週最後工作日才查 Jira、寄送。不可將一般 Run now 當成補跑；補跑請使用下方 retry 契約。
+Function 使用 Scheduler 自帶 `X-CloudScheduler-ScheduleTime` 判斷排程日期，接受台北時間 17:30:00（含）至 17:35:00（不含）的觸發時間，例如 17:30:05.199743；時間不得在未來，且投遞時須距觸發時間未滿 24 小時。報表截止時間一律取該日期的 17:30:00，不會隨觸發偏移或投遞延遲而延後。只有本週最後工作日才查 Jira、寄送，其他日期回傳 HTTP 200 與 `skipped`。一般 Run now 仍受此觸發範圍限制，不可當成補跑；補跑請使用下方 retry 契約。
 
 17:30 是開始查詢與報表截止時間，實際送達時間在查詢及產檔之後。無失敗重試仍可能有重複投遞，Firestore run 及全域執行鎖負責防重送。
 

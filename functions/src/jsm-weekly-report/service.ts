@@ -39,10 +39,13 @@ export async function scheduled(deps: Dependencies, scheduleTime: string) {
   const now = deps.now();
   requireValue(Number.isFinite(time) && time <= now && now - time < 86_400_000, "INVALID_SCHEDULE_TIME");
   const date = localDate(time);
-  requireValue(time === Date.parse(cutoffAt(date)), "INVALID_SCHEDULE_TIME");
+  const cutoff = cutoffAt(date);
+  // 觸發時間容許 5 分鐘內的偏移；報表期間仍截止於當天台北 17:30。
+  const offset = time - Date.parse(cutoff);
+  requireValue(offset >= 0 && offset < 5 * 60_000, "INVALID_SCHEDULE_TIME");
   const plan = await deps.store.plan(date);
   if (plan.date !== date) return { result: "skipped", reportId: plan.id };
-  return execute(deps, plan.id, cutoffAt(date));
+  return execute(deps, plan.id, cutoff);
 }
 
 export function parseAdmin(body: unknown): { action: "retry" | "confirmSent" | "confirmNotSent"; reportId: string; messageId?: number } {

@@ -35,6 +35,20 @@ test("共用入口拒絕不完整請求；錯誤原文不外洩", async () => {
     assert.ok(!JSON.stringify(res.body).includes("token-secret"));
   }
 });
+test("實際 Scheduler 帶微秒時間的請求成功通過並回 200 skipped", async () => {
+  const deps = { now: () => Date.parse("2026-09-08T09:30:07.745Z"), store: {
+    plan: async () => ({ id: "2026-09-07", date: "2026-09-11" }),
+  } };
+  const req = request({ action: "scheduled" }, { get: key => ({
+    "content-type": "application/json",
+    "x-cloudscheduler-scheduletime": "2026-09-08T09:30:05.199743Z",
+  })[key] });
+  const res = response();
+  await createReportHandler(() => deps, () => true, silent)(req, res);
+  assert.equal(res.code, 200);
+  assert.deepEqual(res.body, { result: "skipped", reportId: "2026-09-07" });
+});
+
 test("正常略過回 200；人工確認透過同一入口", async () => {
   const actions = [];
   const deps = { now: () => Date.parse(cutoffAt("2026-09-04")), store: { plan: async () => ({ id: "2026-08-31", date: "2026-09-05" }), resolve: async (...args) => actions.push(args) } };

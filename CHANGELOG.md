@@ -7,6 +7,20 @@
 
 ## [Unreleased]
 
+## [4.5.1] - 2026-09-08
+
+### 修復
+
+- 修正 JSM 週報要求 Scheduler 觸發時間精確等於 17:30:00，導致實際 `17:30:05.199743` 請求被拒絕並回傳 HTTP 400／`INVALID_SCHEDULE_TIME` 的問題。
+- 接受台北時間 17:30:00（含）至 17:35:00（不含）的觸發偏移，將報表截止固定為當日 17:30:00；保留未來時間、過期投遞驗證及最後工作日判斷，不因偏移延長統計期間。
+- 沿用每週執行紀錄與防重送流程；非最後工作日回傳 `skipped`，同週已執行回傳 `alreadyAttempted`。
+
+### 測試與文件
+
+- 新增實際微秒時間的 HTTP 回歸測試，以及觸發範圍邊界、時區表示、未來／過期時間、固定報表期間與重複投遞測試；TypeScript 建置及全部 46 項 Functions 測試通過。
+- 更新 README 與手動部署文件，說明觸發容許範圍、固定截止時間、Run now 限制及單一 Function 更新方式。
+- 專案 patch 版本由 4.5.0 提升至 4.5.1，同步 package.json、package-lock.json 與 README；本機測試不代表正式部署或 Jira／Telegram 端到端驗證已完成。
+
 ## [4.5.0] - 2026-09-06
 
 ### 新增
@@ -902,6 +916,7 @@
 - Cloudinary
 - Karma/Jasmine
 
+[4.5.1]: https://github.com/NOAHXDM/NGEip/compare/v4.5.0...v4.5.1
 [4.5.0]: https://github.com/NOAHXDM/NGEip/compare/v4.4.3...v4.5.0
 [4.4.3]: https://github.com/NOAHXDM/NGEip/compare/v4.4.2...v4.4.3
 [4.4.2]: https://github.com/NOAHXDM/NGEip/compare/v4.4.1...v4.4.2

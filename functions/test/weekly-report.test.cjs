@@ -151,6 +151,45 @@ test("資料庫延遲超過送出期限時停止，不在人工解鎖後才寄�
   assert.deepEqual(failures, [{ code: "REPORT_DEADLINE", uncertain: false }]);
 });
 
+test("排程容許觸發偏移，報表截止固定 17:30 且重複投遞不重送", async () => {
+  const scheduledTime = "2026-09-08T09:30:05.199743Z";
+  const cutoff = cutoffAt("2026-09-08");
+  const now = Date.parse("2026-09-08T09:30:07.745Z");
+  let claimed = false, sent = 0;
+  const periods = [];
+  const deps = { now: () => now, store: {
+    plan: async date => { assert.equal(date, "2026-09-08"); return { id: "2026-09-07", date }; },
+    claim: async (id, actualCutoff) => {
+      assert.equal(actualCutoff, cutoff);
+      if (claimed) return null;
+      claimed = true;
+      return { id, start: end, end: actualCutoff, startedAt: now };
+    },
+    sending: async () => {}, complete: async () => {},
+    fail: async () => assert.fail("unexpected delivery failure"),
+  }, jira: { report: async (from, to) => { periods.push([from, to]); return []; } },
+  telegram: { send: async () => { sent++; return 1; } } };
+  assert.equal((await scheduled(deps, scheduledTime)).result, "sent");
+  assert.deepEqual(periods, [[end, cutoff]]);
+  assert.equal((await scheduled(deps, scheduledTime)).result, "alreadyAttempted");
+  assert.equal(sent, 1);
+});
+
+test("觸發範圍為 17:30 起至 17:35 前；非最後工作日略過", async () => {
+  const deps = { now: () => Date.parse("2026-09-08T09:36:00Z"), store: {
+    plan: async () => ({ id: "2026-09-07", date: "2026-09-11" }),
+    claim: async () => assert.fail("非最後工作日不應建立報表"),
+  } };
+  for (const time of ["2026-09-08T09:30:00Z", "2026-09-08T09:30:05.199743Z", "2026-09-08T09:34:59.999Z", "2026-09-08T17:30:05.199743+08:00"]) {
+    assert.equal((await scheduled(deps, time)).result, "skipped");
+  }
+  const invalidDeps = { ...deps, store: { plan: async () => assert.fail("無效時間不得讀寫排程計畫") } };
+  for (const time of ["2026-09-08T09:29:59.999Z", "2026-09-08T09:35:00Z", "2026-09-08T10:00:00Z", "invalid", "2026-09-09T09:30:00Z", "2026-09-07T09:30:00Z"]) {
+    await assert.rejects(scheduled(invalidDeps, time), /INVALID_SCHEDULE_TIME/);
+  }
+  await assert.rejects(scheduled({ ...invalidDeps, now: () => Date.parse("2026-09-09T09:30:00Z") }, "2026-09-08T09:30:00Z"), /INVALID_SCHEDULE_TIME/);
+});
+
 test("排程採原定時間，不將延遲到達視為新的 cutoff；人工輸入限制", async () => {
   const deps = { now: () => Date.parse(end) + 30_000, store: { plan: async () => ({ id: "2026-08-31", date: "2026-09-03" }) } };
   assert.equal((await scheduled(deps, end)).result, "skipped");
