@@ -17,6 +17,14 @@ const project = defineString("JSM_WEEKLY_JIRA_PROJECT", { default: "DMIT" });
 const auth = defineString("JSM_WEEKLY_JIRA_AUTH", { default: "basic" });
 const email = defineString("JSM_WEEKLY_JIRA_EMAIL", { default: "" });
 const serviceAccount = defineString("JSM_WEEKLY_RUNTIME_SERVICE_ACCOUNT", { default: "default" });
+const invokerAccount = defineString("JSM_WEEKLY_INVOKER_SERVICE_ACCOUNT", {
+  default: "private",
+  description: "排程與人工共用的 service account 完整 Email；private 表示不授權呼叫者。",
+  input: { text: {
+    validationRegex: /^(private|[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z][a-z0-9-]{4,28}[a-z0-9]\.iam\.gserviceaccount\.com)$/,
+    validationErrorMessage: "請填專用 invoker service account 的完整 Email（不含 serviceAccount: 前綴），或 private。",
+  } },
+});
 const jiraToken = defineSecret("JSM_WEEKLY_JIRA_TOKEN");
 const telegramToken = defineSecret("JSM_WEEKLY_TELEGRAM_TOKEN");
 const chatId = defineSecret("JSM_WEEKLY_TELEGRAM_CHAT_ID");
@@ -78,7 +86,12 @@ export function createReportHandler(getDependencies = dependencies, isEnabled = 
 }
 
 const options = {
-  invoker: "private" as const, cors: false, region: "asia-east1", timeoutSeconds: 540,
+  // invoker 的 SDK 型別只接受字串；保留 CEL，交由 CLI 在讀取專案 dotenv 後解析。
+  // 不可使用 .value() 或 process.env：discovery 階段尚未解析部署參數。
+  // private 會移除手動授權，因此明確宣告帳號，使後續部署維持相同權限。
+  // CLI 的 dotenv 不套用互動輸入驗證；額外攔截 public，避免誤設成公開入口。
+  invoker: invokerAccount.equals("public").thenElse("private", invokerAccount).toCEL(),
+  cors: false, region: "asia-east1", timeoutSeconds: 540,
   memory: "512MiB" as const, minInstances: 0, maxInstances: 2, concurrency: 1,
   serviceAccount, secrets: [jiraToken, telegramToken, chatId],
 };

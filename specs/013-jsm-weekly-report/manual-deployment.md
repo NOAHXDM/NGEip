@@ -41,7 +41,7 @@ Function 已實作，預設停用；本文件不代表正式部署已完成。�
 
 ## 設定 Secrets 與執行環境
 
-先建立專用 runtime service account，授予 Firestore 存取需要的 `roles/datastore.user`，以及以下三個 Secret 的 `roles/secretmanager.secretAccessor`。不要共用既有 Google Docs Function 的 service account。排程／人工共用另一個 invoker service account，不授予它 Firestore 或 Secret 存取權。
+先建立專用 runtime service account，授予 Firestore 存取需要的 `roles/datastore.user`，以及以下三個 Secret 的 `roles/secretmanager.secretAccessor`。不要共用既有 Google Docs Function 的 service account。排程／人工共用另一個 invoker service account，不授予它 Firestore 或 Secret 存取權。invoker 也須在部署前建立於同一專案（已存在則沿用），不得使用 Cloud Scheduler service agent 本身。
 
 ```sh
 firebase functions:secrets:set JSM_WEEKLY_JIRA_TOKEN --project <PROJECT_ID>
@@ -61,9 +61,14 @@ JSM_WEEKLY_JIRA_PROJECT=DMIT
 JSM_WEEKLY_JIRA_AUTH=basic
 JSM_WEEKLY_JIRA_EMAIL=<ATLASSIAN_ACCOUNT_EMAIL>
 JSM_WEEKLY_RUNTIME_SERVICE_ACCOUNT=<RUNTIME_SA_EMAIL>
+JSM_WEEKLY_INVOKER_SERVICE_ACCOUNT=<INVOKER_SA_EMAIL>
 ```
 
 `JSM_WEEKLY_JIRA_EMAIL` 必填，必須與建立該權杖的 Atlassian 帳號一致；不是告警收件者。`JSM_WEEKLY_RUNTIME_SERVICE_ACCOUNT` 則填 Google Cloud runtime IAM 帳號（例如 `jsm-weekly-runtime@<PROJECT_ID>.iam.gserviceaccount.com`），不是 Jira 帳號，也不是 Scheduler invoker。
+
+`JSM_WEEKLY_INVOKER_SERVICE_ACCOUNT` 填排程／人工共用帳號的完整 Email，例如 `jsm-weekly-invoker@<PROJECT_ID>.iam.gserviceaccount.com`；不加 `serviceAccount:` 前綴，不填 runtime 帳號。這是非密鑰的部署參數，CLI 會用它設定此 Cloud Run 服務的 `roles/run.invoker`。未設定時參數預設 `private`（不授予直接呼叫權限）；非互動部署若缺參數可能直接中止，應明確提供值。互動輸入僅接受專用服務帳號 Email 或 `private`；若 dotenv 誤填 `public`，程式仍解析為 `private`，不開放匿名呼叫；空值或無效 principal 會造成部署失敗，不可用來啟用服務。
+
+**每一台部署電腦與 CI 都必須提供相同 invoker 參數。** Firebase CLI 會依程式設定更新服務層級的 Run Invoker 綁定；本設計只宣告這一個帳號，額外手動加入的同角色成員不會保留。不要再依賴「程式固定 private、部署後手動加權限」：後續部署會清掉該手動授權。`private` 也不會移除專案／組織層級繼承的權限，須另行檢查。
 
 workflow 與日曆驗證完成後將前兩項改成 true 再部署。尚未填設定的 clone 預設停用，Repository 不含 onSchedule。每一專案支援一條報表資料流；已有執行紀錄後不要任意更改 Jira Project 或群組設定，避免混用 cursor。
 
@@ -95,11 +100,12 @@ Function 每天檢查本週並保存預定發送日。更新使最後工作日�
 
 ```sh
 npm run functions:test
+npm run test:jsm-weekly-deployment
 npm run test:jsm-weekly
 firebase deploy --config firebase.prod.json --project <PROJECT_ID> --only functions:sendJsmWeeklyReport,firestore:rules
 ```
 
-這不會建立 Scheduler。首次部署須確認 Secrets、runtime service account 與部署者的 serviceAccountUser 權限。Function 設為 invoker private；部署後確認沒有 allUsers／allAuthenticatedUsers 的 Run Invoker 授權，也沒有更高層級的非預期授權。
+這不會建立 Scheduler。首次部署須確認 Secrets、runtime service account 與部署者的 serviceAccountUser 權限；部署者還需有目標服務的 `run.services.getIamPolicy`／`run.services.setIamPolicy` 權限，才能讀取與更新呼叫授權，不要把這些部署權限授予 invoker。Function 仍是需要 IAM 認證的私有入口，但部署時會明確授權設定中的 invoker，而不是固定使用 `invoker: "private"`。部署後確認沒有 allUsers／allAuthenticatedUsers 的 Run Invoker 授權，也沒有更高層級的非預期授權。
 
 取得 Function 的 service URI 與 Cloud Run service 名稱：
 
@@ -108,15 +114,41 @@ gcloud functions describe sendJsmWeeklyReport --gen2 --region asia-east1 --proje
 gcloud functions describe sendJsmWeeklyReport --gen2 --region asia-east1 --project <PROJECT_ID> --format='value(serviceConfig.service)'
 ```
 
-以下 `<FUNCTION_URL>` 使用輸出的 service URI；`<RUN_SERVICE>` 用 service 資源名稱的最後一段。以同一個 invoker service account 供排程與管理者呼叫：
+以下 `<FUNCTION_URL>` 使用輸出的 service URI；`<RUN_SERVICE>` 用 service 資源名稱的最後一段。檢查部署後的直接授權：
 
 ```sh
-gcloud run services add-iam-policy-binding <RUN_SERVICE> --region asia-east1 --project <PROJECT_ID> --member='serviceAccount:<INVOKER_SA_EMAIL>' --role=roles/run.invoker
+gcloud run services get-iam-policy <RUN_SERVICE> --region asia-east1 --project <PROJECT_ID> --format=yaml
 ```
+
+預期 `roles/run.invoker` 的 members 包含 `serviceAccount:<INVOKER_SA_EMAIL>`。不要只看部署成功訊息；若缺少，先核對部署參數與部署者更新 IAM 的權限。
+
+## 已部署環境：修復重新部署後 Scheduler 403
+
+舊版固定 `invoker: "private"`，會在 Firebase 部署更新 IAM 時移除先前手動加上的 Run Invoker 授權。這種情況不能只重複手動加權限，必須更新程式及部署參數：
+
+1. 更新至本次修正的程式，在既有 `functions/.env.<PROJECT_ID>` **新增** `JSM_WEEKLY_INVOKER_SERVICE_ACCOUNT=<INVOKER_SA_EMAIL>`。保留其他已驗證設定，不要把已啟用的 enabled／workflowVerified 重設為 false；不必重建 Secret 或服務帳號。
+2. 執行上述單元、部署設定與 Emulator 測試。部署設定測試需要全域安裝 Firebase CLI（CI 固定 14.27.0）；它只在本機使用 CLI 的參數解析與 IAM member 轉換，不呼叫 Google API。非全域安裝可用 `FIREBASE_TOOLS_ROOT` 指定 firebase-tools 套件目錄。
+3. 僅更新週報 Function；本次沒有修改 Firestore Rules：
+
+```sh
+firebase deploy --config firebase.prod.json --project <PROJECT_ID> --only functions:sendJsmWeeklyReport
+```
+
+4. 用上一節 `get-iam-policy` 確認指定 invoker 已具有服務層級的 `roles/run.invoker`。再確認既有 Scheduler 的儲存設定：
+
+```sh
+gcloud scheduler jobs describe jsm-weekly-report --project <PROJECT_ID> --location asia-east1 --format='yaml(state,schedule,timeZone,httpTarget.uri,httpTarget.httpMethod,httpTarget.oidcToken,retryConfig)'
+```
+
+`serviceAccountEmail` 必須等於新增參數；`audience` 使用 `serviceConfig.uri`，URI 指向同一 Function，POST、每日 `30 17 * * *`、Asia/Taipei，且未暫停。沿用原本的零重試設定，不必重建 Scheduler、匯入日曆或重新登入 ADC。
+
+5. 等下一次正常 17:30 排程，確認 Scheduler 成功及 Function 結果。非最後工作日預期 HTTP 200／`skipped`；最後工作日才可能寄送。**不要在任意時間按 Run now 驗收**，它仍受下節的觸發時間限制。
+
+若 403 發生在 Cloud Run IAM、handler 未執行，該次不會建立可 `retry` 的 failed 報表；不要憑 Scheduler 日期手動建立 reportId 或修改 cursor。沿用既有狀態讓下一次有效排程處理；若沒有任何成功初始化，首次起點仍依當週之前一週五計算，並非從首次 403 日期回推。若另有 failed／needsReview 紀錄，再依下方人工操作處理。
 
 ## 手動建立 Cloud Scheduler
 
-先在同一專案建立 invoker service account（不得使用 Cloud Scheduler service agent 本身），啟用 Scheduler API。建立 job 的操作者須能 actAs 此帳號；保留 Scheduler service agent 的 roles/cloudscheduler.serviceAgent。
+使用部署參數中的同一個 invoker service account，啟用 Scheduler API。建立 job 的操作者須能 actAs 此帳號；保留 Scheduler service agent 的 roles/cloudscheduler.serviceAgent。
 
 ```sh
 gcloud services enable cloudscheduler.googleapis.com --project <PROJECT_ID>
@@ -192,5 +224,7 @@ severity>=ERROR
 - [一般帳號 scoped API token](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account)
 - [Service account API token](https://support.atlassian.com/user-management/docs/manage-api-tokens-for-service-accounts/)
 - [Cloud Scheduler OIDC](https://cloud.google.com/scheduler/docs/http-target-auth)
+- [Firebase 部署參數與 dotenv](https://firebase.google.com/docs/functions/config-env)
+- [Firebase CLI 部署 Function 與 invoker 更新實作](https://github.com/firebase/firebase-tools/blob/v14.27.0/src/deploy/functions/release/fabricator.ts)
 - [Cloud Scheduler 重試](https://docs.cloud.google.com/scheduler/docs/configuring/retry-jobs)
 - [Email 日誌告警](https://docs.cloud.google.com/logging/docs/alerting/log-based-alerts)

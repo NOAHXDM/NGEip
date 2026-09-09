@@ -1,6 +1,6 @@
 {
   "name": "angular-eip",
-  "version": "4.5.1",
+  "version": "4.5.2",
   "workspaces": [
     "functions"
   ],
@@ -16,6 +16,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test --browsers=ChromeHeadlessNoSandbox",
     "functions:test": "npm --prefix functions test",
+    "test:jsm-weekly-deployment": "npm run functions:build && node --test tools/jsm-weekly-deployment-tests.cjs",
     "test:jsm-weekly": "npm run functions:build && firebase emulators:exec --config firebase.weekly-test.json --project demo-jsm-weekly --only firestore \"node --test tools/jsm-weekly-emulator-tests.cjs\"",
     "test:debug": "ng test --browsers=Chrome",
     "test:attachment-audit": "node --test tools/request-attachment-orphan-audit.test.js",

@@ -7,6 +7,19 @@
 
 ## [Unreleased]
 
+## [4.5.2] - 2026-09-09
+
+### 修復
+
+- 修正週報 Function 固定 `invoker: "private"` 導致重新部署清除手動 Run Invoker 授權、Scheduler 再次收到 HTTP 403 的問題。新增 `JSM_WEEKLY_INVOKER_SERVICE_ACCOUNT` 部署參數，明確維護指定呼叫帳號；預設 private，誤填 public 亦不開放匿名。
+
+### 測試與文件
+
+- 新增部署參數／Firebase CLI IAM member 解析回歸測試並納入 CI；47 項 Functions、6 項部署設定及 7 項 Firestore Emulator 測試通過，涵蓋 SDK manifest 至 CLI backend 的完整設定轉換。
+- 更新 README、需求與部署文件，說明既有 dotenv 遷移、各部署電腦／CI 需提供 invoker 參數、IAM 驗證及沿用 Scheduler 的操作。不變更 Secret、日曆、報表期間或相依套件版本。
+- 專案 patch 版本由 4.5.1 提升至 4.5.2，同步 package.json、package-lock.json 與 README。
+- 管理者已提供正式 Function 更新成功及指定 invoker 具備 roles/run.invoker 的驗證結果；下一次 Scheduler 執行與 Telegram 送達仍待驗收。
+
 ## [4.5.1] - 2026-09-08
 
 ### 修復

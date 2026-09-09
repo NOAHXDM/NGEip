@@ -14,12 +14,22 @@ test("個人 scoped token 的部署認證預設為 Basic，Jira token 仍為 Sec
   const token = declaredParams.find(p => p.name === "JSM_WEEKLY_JIRA_TOKEN").toSpec();
   assert.equal(token.type, "secret");
 });
-test("共用入口為 private HTTPS，無 schedule trigger", () => {
+test("共用入口由部署參數指定 invoker，無 schedule trigger", () => {
   for (const fn of [sendJsmWeeklyReport]) {
-    assert.deepEqual(fn.__endpoint.httpsTrigger.invoker, ["private"]);
+    assert.deepEqual(fn.__endpoint.httpsTrigger.invoker, [
+      '{{ params.JSM_WEEKLY_INVOKER_SERVICE_ACCOUNT == "public" ? "private" : params.JSM_WEEKLY_INVOKER_SERVICE_ACCOUNT }}',
+    ]);
     assert.equal(fn.__endpoint.scheduleTrigger, undefined);
     assert.equal(fn.__endpoint.timeoutSeconds, 540);
   }
+});
+test("invoker 參數預設 private，互動驗證只接受專用服務帳號或 private", () => {
+  const spec = declaredParams.find(p => p.name === "JSM_WEEKLY_INVOKER_SERVICE_ACCOUNT").toSpec();
+  assert.equal(spec.type, "string");
+  assert.equal(spec.default, "private");
+  const valid = new RegExp(spec.input.text.validationRegex);
+  for (const value of ["private", "weekly-invoker@demo-project.iam.gserviceaccount.com"]) assert.ok(valid.test(value));
+  for (const value of ["", "public", "allUsers", "allAuthenticatedUsers", "user@example.com", "serviceAccount:weekly-invoker@demo-project.iam.gserviceaccount.com"]) assert.ok(!valid.test(value));
 });
 test("停用預設不讀 secret、不查詢、不寄送", async () => {
   const res = response();

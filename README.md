@@ -14,7 +14,7 @@ NGEip 是一套以 **Angular 20 + Firebase** 為核心的企業資訊入口網�
 Firebase Authentication、Cloud Firestore、Firebase Storage、Firebase Hosting 與 Cloud Functions for Firebase。
 Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推播。
 
-目前版本：**4.5.1**
+目前版本：**4.5.2**
 
 ## 專案定位
 
@@ -83,19 +83,21 @@ Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推�
 - 依政府行事曆選出當週最後工作日，查詢目前為 Done 且本期完成的 DMIT 標準工單，產生單欄 Excel 傳送 Telegram；零筆只通知，不保存 Excel 至 Storage。
 - 非最後工作日正常回傳 HTTP 200 與 `skipped`。一般 Run now 仍受上述時間範圍限制，不能取代 `retry` 補跑。
 - 排程與人工補跑共用 IAM 入口，透過 Firestore 維護期間、防重送與送達不明的人工確認。
+- `JSM_WEEKLY_INVOKER_SERVICE_ACCOUNT` 明確指定呼叫帳號，後續部署會維持該服務層級授權；未設定則預設 private。各部署電腦／CI 均須提供，不能只在 Console 手動加入 Run Invoker。
 - Jira 採個人帳號的有範圍 API 權杖，使用 Basic（帳號 Email + token）；設定、scopes、日曆匯入與補跑操作見 [手動部署文件](specs/013-jsm-weekly-report/manual-deployment.md)。
 
-更新既有週報 Function：
+更新既有週報 Function 前，先在 `functions/.env.<PROJECT_ID>` 新增 `JSM_WEEKLY_INVOKER_SERVICE_ACCOUNT=<INVOKER_SA_EMAIL>`，保留既有其他設定。部署後依手動文件核對 IAM：
 
 ```bash
 npm run functions:test
+npm run test:jsm-weekly-deployment
 firebase deploy \
   --config firebase.prod.json \
   --project=noahxdm-eip \
   --only functions:sendJsmWeeklyReport
 ```
 
-首次建置的日曆、IAM、Secrets 與 Scheduler 設定請依手動部署文件完成；本次時間修正部署後沿用既有排程。
+首次建置的日曆、IAM、Secrets 與 Scheduler 設定請依手動部署文件完成；本次 IAM 修正部署後沿用既有排程。部署設定測試需安裝 Firebase CLI，只在本機驗證參數解析與授權成員，不修改雲端 IAM。
 
 ### Jira Google Docs 描述同步
 
@@ -240,7 +242,7 @@ npm run audit:request-attachments   # 正式資料 dry-run（需 Admin SDK 憑�
 npm run deploy     # 建置並部署至 Firebase（使用 firebase.prod.json）
 ```
 
-PR CI 會執行 TypeScript spec typecheck、Cloud Functions TypeScript build 與單元測試、JSM 週報 Firestore Emulator 整合測試、headless Karma、production build、journey rules 與 journey integration 測試；若本機 Firebase CLI 遇到 Hosting web framework 設定，需使用支援 `FIREBASE_CLI_EXPERIMENTS=webframeworks` 的 Firebase CLI 版本。
+PR CI 會執行 TypeScript spec typecheck、Cloud Functions TypeScript build 與單元測試、JSM 週報部署 IAM 設定測試與 Firestore Emulator 整合測試、headless Karma、production build、journey rules 與 journey integration 測試；若本機 Firebase CLI 遇到 Hosting web framework 設定，需使用支援 `FIREBASE_CLI_EXPERIMENTS=webframeworks` 的 Firebase CLI 版本。
 
 ## 架構約束
 

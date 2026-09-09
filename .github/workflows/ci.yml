@@ -57,6 +57,9 @@ jobs:
       - name: Test JSM weekly report transactions and rules
         run: npm run test:jsm-weekly
 
+      - name: Test JSM weekly report deployment IAM configuration
+        run: npm run test:jsm-weekly-deployment
+
       - name: Run headless Karma tests
         run: npm test -- --watch=false
 

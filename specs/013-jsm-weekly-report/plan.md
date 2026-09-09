@@ -4,6 +4,8 @@
 
 `sendJsmWeeklyReport` 是 Node 22、asia-east1、2nd gen 私有 HTTP Function，540 秒 timeout、512 MiB、minInstances 0。Cloud Run IAM 在 handler 前驗證 OIDC；排程與人工操作者共用 invoker 身分，所有操作有相同權限。沒有 onSchedule、公開 webhook 或前端管理頁。預設 `JSM_WEEKLY_ENABLED=false`。
 
+`JSM_WEEKLY_INVOKER_SERVICE_ACCOUNT` 是部署參數，預設 private；正式環境填專用 invoker Email，CLI 以此維護 Run Invoker 直接綁定，避免每次部署固定 private 而清掉人工授權。SDK invoker 僅接受字串，因此傳入參數的 CEL 表達式，等 CLI 載入 dotenv 後再解析，不在 discovery 階段呼叫 `.value()`。額外將 public 解析為 private，防止 dotenv 繞過互動輸入驗證而開放匿名。離線測試使用實際 Firebase CLI 解析器驗證預設、指定帳號及重複解析結果；私有性仍須檢查上層繼承 IAM。
+
 `calendar.ts` 負責台北日期、週界與政府 CSV；`jira.ts` 負責分頁唯讀查詢；`delivery.ts` 負責 XLSX 與 Telegram；`store.ts` 集中 Firestore transaction；`service.ts` 串接可注入依賴；`http.ts` 處理契約、設定、IAM 部署選項與安全 log。
 
 ## Jira 認證
