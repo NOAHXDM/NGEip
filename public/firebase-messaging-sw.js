@@ -1,7 +1,7 @@
 // 此檔案由 tools/generate-firebase-messaging-sw.mjs 產生，請勿手動編輯。
 // Firebase 設定來源：src/firebase-config.json；SDK 版本來源：package-lock.json。
-importScripts('https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/11.10.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.19.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
   "apiKey": "AIzaSyB_uE1Ij0dNDkxB5cpsMT1qvSWsYfnhF_g",
