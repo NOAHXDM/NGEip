@@ -6,6 +6,12 @@
 
 > 憲章要求：本文件記錄技術實作、Firestore 結構、安全規則、相容性與測試策略；產品需求與驗收標準請見 spec.md。
 
+## 文件版本與後續實作
+
+本文保留 issue #22／#34 當時的實作計畫；以下 `attendanceOwnerEditable()` 與規則片段為歷史設計，不是目前可直接套用的 Rules。issue #38 已將其擴充為 `attendanceContentEditable()`，允許 pending 代理人編輯內容，但禁止改派代理人、變更申請人與附件。目前規則請對照 [010 實作計畫](../010-attendance-proxy-editing/plan.md) 與 [firestore.rules](../../firestore.rules)。
+
+目前 Admin 的資料更新權限不受申請狀態限制，也不受一般登入者的 status 單欄位限制；清單介面則只在 pending 提供編輯入口。日期先後與時數驗證的實際範圍見 [010 跨欄位驗證與時數驗證現況](../010-attendance-proxy-editing/plan.md#跨欄位驗證)。
+
 ## 技術範圍
 
 調整 `firestore.rules` 中 `attendanceLogs` 的 `allow update` 邊界，並補上對應 Emulator 測試矩陣。issue #34 確認一般 `user` 可審核所有 attendance，因此 `status` 轉換由任一已登入者執行；內容欄位與附件仍維持 owner pending 或 admin。AnnualLeave 的 `pending -> approved` / `approved -> pending` 需允許一般 user 在同一 transaction 內調整申請人的 `remainingLeaveHours`。
@@ -47,7 +53,7 @@ allow update: if isSignedIn() && validAttachmentCount(request.resource.data)
 
 - 移除「任意登入者可更新非附件欄位」的歷史寬鬆分支。
 - status 轉換改為所有已登入者可執行，但僅限單獨變更 `status`。
-- 內容欄位、附件與 `userId` 仍只允許 admin 或 pending owner。
+- 當時內容欄位與附件僅允許 admin 或 pending owner；`userId` 僅允許 admin 變更。後續代理人內容編輯擴充見 010。
 
 ### AnnualLeave 特休餘額連動
 

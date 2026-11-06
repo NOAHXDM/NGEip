@@ -89,7 +89,7 @@ service cloud.firestore {
       return data.get('proxyUserId', '');
     }
 
-    // GitHub issue #38：申請人本人與代理人皆可在 pending 期間編輯申請內容與附件，
+    // GitHub issue #38：pending 期間申請人本人可編輯內容與附件；代理人僅可編輯內容，
     // 且不得變更 userId 與 status；status 轉換則允許任一已登入者執行。
     // 代理人不得改派代理人，否則等同可把編輯權轉發給任意第三方。
     function attendanceContentEditable(existing, incoming, uid) {
@@ -153,8 +153,8 @@ service cloud.firestore {
       allow create: if isSignedIn() && validAttachmentCount(request.resource.data)
         && (!('attachments' in request.resource.data) || request.resource.data.attachments.size() == 0
           || request.resource.data.userId == request.auth.uid || isAdmin());
-      // GitHub issue #34：任一已登入者可變更 attendance status；內容與附件仍只允許 admin
-      // 或「pending 狀態下的申請人本人／代理人」更新，避免 status 審核入口順手改動申請內容。
+      // GitHub issue #34：任一已登入者可單獨變更 attendance status；admin 可更新任意狀態的內容與附件。
+      // 非 admin 僅能在 pending 編輯內容（本人或代理人）與附件（僅本人）；代理人不得改派代理人。
       allow update: if isSignedIn() && validAttachmentCount(request.resource.data)
         && (isAdmin()
           || attendanceContentEditable(resource.data, request.resource.data, request.auth.uid)

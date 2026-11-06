@@ -37,6 +37,8 @@ issue #38 的根因是 UI 與 Security Rules 的權限判斷各寫各的。修�
 
 ### 表單欄位鎖定
 
+`canEditAttendance()` 與 Rules 對 Admin 均不限制申請狀態，但清單模板另以 `status == 'pending'` 包住編輯入口，因此 Admin 在畫面上也須先退回待審。此介面流程與資料層授權須分別描述。
+
 停用的 Angular 控制項不會出現在 `FormGroup.value`，因此不會進入 `AttendanceService.diff()`
 產生的 patch。這讓「UI 鎖定」與「rules 不變量」自然對齊：使用者改不到的欄位也不會被送出，
 不會因為送出 rules 不允許的欄位而觸發拒絕。
@@ -51,7 +53,13 @@ issue #38 的根因是 UI 與 Security Rules 的權限判斷各寫各的。修�
 
 `attendanceDateTimeOrderValidator` 掛在 FormGroup 層級並具名匯出以便單獨測試。
 兩側皆為合法 `Date` 時才判定，避免表單開啟時（初始值為空字串）立即報錯。
-這是 UX 層防護，繞過 SDK 直接寫入仍可通過；rules 未加對應驗證，屬已知取捨。
+這是前端表單防護；具備寫入權限者繞過表單、直接使用 SDK 寫入時，不會受到此驗證限制。Rules 未加對應日期先後驗證，屬已知取捨。
+
+### 時數驗證現況
+
+`hours` 預設為 `0.5`，表單設有 `Validators.min(0.5)`，未設 `Validators.required`。輸入框的 `step="0.5"` 是增減步長，不能視為已實作半小時倍數驗證；HTML 的 `min="0"` 也不能取代表單的最小值 0.5。
+
+目前未自動由起訖時間計算時數，也未驗證時數與區間一致。Firestore Rules 未驗證時數必填、正數、上下限或半小時倍數；這些限制不得記為已由資料庫強制執行。
 
 ## 變更檔案
 
