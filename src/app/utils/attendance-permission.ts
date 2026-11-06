@@ -1,4 +1,4 @@
-import { AttendanceLog } from '../services/attendance.service';
+import { AttendanceLog, AttendanceType } from '../services/attendance.service';
 import { User } from '../services/user.service';
 
 /**
@@ -16,6 +16,27 @@ import { User } from '../services/user.service';
 
 type AttendanceSubject = Pick<AttendanceLog, 'userId' | 'status' | 'proxyUserId'>;
 type ActorSubject = Pick<User, 'role' | 'uid'>;
+
+/**
+ * 離職日有值即視為離職，包含未來日期；歷史通報值不因此清除。
+ * 在職者可能因進階設定存檔而帶有 `exitDate: ''` 或 `null`，不可只判斷欄位是否存在。
+ */
+export function isActiveCallout(user: User): boolean {
+  return !user.exitDate;
+}
+
+export function canApproveAttendance(
+  attendance: Pick<AttendanceLog, 'type' | 'status' | 'userId' | 'callout'>,
+  actor: ActorSubject | null | undefined,
+  users: readonly User[]
+): boolean {
+  if (!actor?.uid) return false;
+  if (attendance.type !== AttendanceType.Overtime) return true;
+  const callout = users.find((user) => user.uid === attendance.callout);
+  return attendance.status === 'pending' && !!callout
+    && callout.uid !== attendance.userId
+    && (actor.role === 'admin' || (actor.uid === callout.uid && isActiveCallout(callout)));
+}
 
 function proxyUid(attendance: AttendanceSubject): string {
   return attendance.proxyUserId ?? '';

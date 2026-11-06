@@ -1,5 +1,5 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, OnInit, Inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject, signal } from '@angular/core';
 import {
   AbstractControl,
   FormControl,
@@ -27,7 +27,7 @@ import { provideDateFnsDatetimeAdapter } from '@ng-matero/extensions-date-fns-ad
 
 import { startOfMonth, addMonths, subMonths } from 'date-fns';
 import { enUS } from 'date-fns/locale';
-import { debounceTime, Observable, take } from 'rxjs';
+import { debounceTime, Observable, Subject, take, takeUntil } from 'rxjs';
 
 import {
   AttendanceLog,
@@ -43,6 +43,7 @@ import {
   canChangeAttendanceRequester,
   canManageAttendanceAttachments,
   canReassignAttendanceProxy,
+  isActiveCallout,
 } from '../utils/attendance-permission';
 
 /**
@@ -102,7 +103,34 @@ export function attendanceDateTimeOrderValidator(
   templateUrl: './attendance.component.html',
   styleUrl: './attendance.component.scss',
 })
-export class AttendanceComponent implements OnInit {
+export class AttendanceComponent implements OnInit, OnDestroy {
+  private readonly destroyed = new Subject<void>();
+  ngOnDestroy(): void { this.destroyed.next(); this.destroyed.complete(); }
+  users: User[] = [];
+  readonly isActiveCallout = isActiveCallout;
+  private initialContent = '';
+
+  get calloutOptions(): User[] {
+    const requester = this.attendanceForm.controls.userId.value;
+    const previous = this.data.attendance?.callout;
+    return this.users.filter((user) => user.uid !== requester
+      && (isActiveCallout(user) || user.uid === previous));
+  }
+
+  private validateCallout(group: AbstractControl): ValidationErrors | null {
+    const value = group.getRawValue();
+    if (Number(value.type) !== AttendanceType.Overtime) return null;
+    // 純附件異動不要求歷史資料補填；內容一旦異動便套用驗證。
+    if (this.data.attendance && JSON.stringify(value) === this.initialContent) return null;
+    if (!value.callout) return { calloutInvalid: '請選擇加班通報人。' };
+    if (value.callout === value.userId) return { calloutInvalid: '加班通報人不得為申請人本人。' };
+    const user = this.users.find((item) => item.uid === value.callout);
+    if (!user) return { calloutInvalid: '加班通報人不存在，請重新選擇。' };
+    const retained = this.data.attendance?.type === AttendanceType.Overtime
+      && this.data.attendance.callout === value.callout;
+    if (!retained && !isActiveCallout(user)) return { calloutInvalid: '請選擇在職的加班通報人。' };
+    return null;
+  }
   typeList: SelectOption[] = [];
   reasonPriorityList: SelectOption[] = [];
   attendanceForm = new FormGroup({
@@ -157,6 +185,11 @@ export class AttendanceComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.attendanceForm.addValidators((group) => this.validateCallout(group));
+    this.userList$.pipe(takeUntil(this.destroyed)).subscribe((users) => {
+      this.users = users;
+      this.attendanceForm.updateValueAndValidity();
+    });
     this.typeList = this.attendanceService.typeList;
     this.reasonPriorityList = this.attendanceService.reasonPriorityList;
     this.userService.currentUser$.pipe(take(1)).subscribe((user) => {
@@ -203,6 +236,9 @@ export class AttendanceComponent implements OnInit {
       };
       this.attendanceForm.patchValue(value);
     }
+
+    this.initialContent = JSON.stringify(this.attendanceForm.getRawValue());
+    this.attendanceForm.updateValueAndValidity();
 
     this.attendanceForm
       .get('startDateTime')

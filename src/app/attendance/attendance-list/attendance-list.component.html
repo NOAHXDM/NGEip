@@ -172,6 +172,7 @@
 <mat-menu #statusMenu>
   <ng-template matMenuContent let-data="data">
     @if (data.status == 'pending') {
+    @if (canApprove(data)) {
     <button
       mat-menu-item
       (click)="openAttendanceStatusChangeDialog(data, 'approved')"
@@ -179,6 +180,7 @@
       <mat-icon [style.color]="'green'">recommend</mat-icon>
       <span>核准</span>
     </button>
+    }
     <button
       mat-menu-item
       (click)="openAttendanceStatusChangeDialog(data, 'rejected')"

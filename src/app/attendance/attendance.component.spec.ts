@@ -36,6 +36,54 @@ describe('attendanceDateTimeOrderValidator', () => {
 });
 
 describe('AttendanceComponent attachments', () => {
+  describe('overtime callout validation', () => {
+    function overtime(existing = false) {
+      const original = {
+        userId: 'owner', type: 3, status: 'pending', callout: '', reasonPriority: 1,
+        reason: 'overtime', hours: 1, proxyUserId: '',
+        startDateTime: new Date('2026-11-01T10:00:00'), endDateTime: new Date('2026-11-01T11:00:00'),
+      };
+      const component = new AttendanceComponent(
+        {} as any, { typeList: [], reasonPriorityList: [] } as any,
+        { list$: of([{ uid: 'owner' }, { uid: 'active' }, { uid: 'blank-exit', exitDate: '' }, { uid: 'null-exit', exitDate: null },
+          { uid: 'departed', exitDate: new Date('2099-01-01') }]),
+          getUsersWithinExitWindow: () => of([]), currentUser$: of({ uid: 'owner' }) } as any,
+        { convertDateByClientTimezone: (value: unknown) => value } as any,
+        { title: 'test', attendance: existing ? original as any : undefined }
+      );
+      component.ngOnInit();
+      if (!existing) component.attendanceForm.patchValue(original as any);
+      return component;
+    }
+    it('requires a different existing active person on create and revalidates requester changes', () => {
+      const component = overtime();
+      for (const callout of ['', 'owner', 'missing', 'departed']) {
+        component.attendanceForm.patchValue({ callout });
+        expect(component.attendanceForm.hasError('calloutInvalid')).toBeTrue();
+      }
+      for (const callout of ['blank-exit', 'null-exit']) {
+        component.attendanceForm.patchValue({ callout });
+        expect(component.attendanceForm.valid).withContext(callout).toBeTrue();
+        expect(component.calloutOptions.some((user) => user.uid === callout && component.isActiveCallout(user))).toBeTrue();
+      }
+      component.attendanceForm.patchValue({ callout: 'active' });
+      expect(component.attendanceForm.valid).toBeTrue();
+      component.attendanceForm.patchValue({ userId: 'active' });
+      expect(component.attendanceForm.hasError('calloutInvalid')).toBeTrue();
+      component.ngOnDestroy();
+    });
+    it('permits untouched legacy content for attachments but requires correction after a content edit', () => {
+      const component = overtime(true);
+      expect(component.attendanceForm.valid).toBeTrue();
+      component.addFiles([new File(['x'], 'proof.pdf')]);
+      expect(component.attendanceForm.valid).toBeTrue();
+      component.attendanceForm.patchValue({ reason: 'changed' });
+      expect(component.attendanceForm.hasError('calloutInvalid')).toBeTrue();
+      component.attendanceForm.patchValue({ callout: 'active' });
+      expect(component.attendanceForm.valid).toBeTrue();
+      component.ngOnDestroy();
+    });
+  });
   function create(attendance?: any, service: any = { typeList: [], reasonPriorityList: [] }): AttendanceComponent {
     return new AttendanceComponent(
       { close: jasmine.createSpy() } as any,

@@ -14,7 +14,7 @@ NGEip 是一套以 **Angular 20 + Firebase** 為核心的企業資訊入口網�
 Firebase Authentication、Cloud Firestore、Firebase Storage、Firebase Hosting 與 Cloud Functions for Firebase。
 Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推播。
 
-目前版本：**4.5.2**
+目前版本：**4.5.3**
 
 ## 專案定位
 
@@ -147,6 +147,9 @@ firebase deploy \
 ### Attendance 審核權限
 
 - 任一已登入使用者可變更所有 attendance 申請的 `status`（`pending`／`approved`／`rejected`），但該操作只能單獨更新狀態，不可混入原因、類型、時間、時數、`userId` 或附件異動。
+- 加班（Overtime）例外：建立或編輯內容時「加班通報」必填，通報人須為系統中存在、不同於申請人的使用者；新增或改派只能選在職者（離職日有值即視為離職，含未來日期；空值仍為在職），歷史離職通報人可保留。
+- 加班核准僅限 Admin 或該筆申請現任且在職的通報人，必須從 pending 單獨核准，Admin 也不可混合內容更新或略過缺通報人的補正；拒絕與退回待審仍開放所有已登入者。規格見 `specs/014-overtime-callout-approval/`。
+- 缺通報人的歷史加班申請不自動回填：approved／rejected 維持原狀，pending 於內容編輯或下次核准前人工補正；純附件異動不要求補正。
 - Attendance 內容維持較嚴格邊界：申請人本人與該申請的代理人可編輯 pending 申請。代理人不可改派代理人、變更申請人或管理附件。
 - 已核准／已拒絕的申請不提供編輯入口，須先退回待審再編輯。這同時保證特休餘額正確：退回待審會退還原時數，重新核准再依新時數扣除。Rules 層的 admin 權限不受狀態限制，但畫面一律走「退回待審 → 編輯 → 重新核准」。
 - 附件邊界比內容更窄：僅申請人本人（pending）與管理員可管理附件，代理人為唯讀。

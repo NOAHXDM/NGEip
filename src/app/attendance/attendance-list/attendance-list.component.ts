@@ -49,7 +49,7 @@ import {
   SystemConfigService,
 } from '../../services/system-config.service';
 import { User, UserService } from '../../services/user.service';
-import { canEditAttendance } from '../../utils/attendance-permission';
+import { canEditAttendance, canApproveAttendance } from '../../utils/attendance-permission';
 @Component({
   selector: 'app-attendance-list',
   standalone: true,
@@ -81,6 +81,7 @@ export class AttendanceListComponent implements AfterViewInit {
   readonly userNamePipe = inject(UserNamePipe);
   readonly _filterRequesterSubject = new ReplaySubject<string[]>(1);
   currentUser: User | null = null;
+  users: User[] = [];
 
   license$: Observable<License>;
   filterRequesterSet: Set<string>;
@@ -123,6 +124,7 @@ export class AttendanceListComponent implements AfterViewInit {
     public systemConfigService: SystemConfigService,
     private userService: UserService
   ) {
+    this.userService.list$.pipe(takeUntilDestroyed()).subscribe((users) => this.users = users);
     this.userService.currentUser$
       .pipe(takeUntilDestroyed())
       .subscribe({ next: (user) => (this.currentUser = user) });
@@ -269,6 +271,10 @@ export class AttendanceListComponent implements AfterViewInit {
    */
   canEdit(attendance: AttendanceLog): boolean {
     return canEditAttendance(attendance, this.currentUser);
+  }
+
+  canApprove(attendance: AttendanceLog): boolean {
+    return canApproveAttendance(attendance, this.currentUser, this.users);
   }
 
   openEditAttendanceDialog(attendance: AttendanceLog) {

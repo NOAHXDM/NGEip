@@ -173,6 +173,66 @@ async function main() {
     // 但變更附件內容仍必須被拒。
     await assertFails(updateDoc(doc(proxyDb, 'attendanceLogs', 'proxied-with-files'), { attachments: [] }));
 
+    // 加班通報、離職、歷史相容與獨立核准（包含 Admin）。
+    const overtime = { userId: ownerUid, type: 3, status: 'pending', callout: otherUid, reason: 'overtime', attachments: [] };
+    const ot = (db) => doc(db, 'attendanceLogs', 'overtime');
+    for (const callout of ['', ownerUid, 'missing-user']) {
+      await assertFails(setDoc(ot(ownerDb), { ...overtime, callout }));
+    }
+    await assertFails(setDoc(ot(admin.firestore()), { ...overtime, status: 'approved' }));
+    await assertSucceeds(setDoc(ot(ownerDb), overtime));
+    await assertFails(updateDoc(ot(ownerDb), { status: 'approved' }));
+    await assertFails(updateDoc(ot(proxy.firestore()), { status: 'approved' }));
+    await assertSucceeds(updateDoc(ot(other.firestore()), { status: 'approved' }));
+    await assertSucceeds(updateDoc(ot(ownerDb), { status: 'pending' }));
+    await assertFails(updateDoc(ot(admin.firestore()), { status: 'approved', reason: 'mixed' }));
+    await assertFails(updateDoc(ot(admin.firestore()), { status: 'approved', type: 1 }));
+    await assertSucceeds(updateDoc(ot(ownerDb), { callout: proxyUid }));
+    await assertFails(updateDoc(ot(other.firestore()), { status: 'approved' }));
+    await assertSucceeds(updateDoc(ot(proxy.firestore()), { status: 'approved' }));
+    await assertSucceeds(updateDoc(ot(other.firestore()), { status: 'rejected' }));
+    await assertFails(updateDoc(ot(admin.firestore()), { status: 'approved' }));
+    await assertSucceeds(updateDoc(ot(ownerDb), { status: 'pending' }));
+    // 進階設定存檔會讓在職者帶有 exitDate: '' 或 null，仍須視為在職。
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'users', proxyUid), { exitDate: '' });
+    });
+    await assertSucceeds(setDoc(doc(ownerDb, 'attendanceLogs', 'blank-exit-callout'), { ...overtime, callout: proxyUid }));
+    await assertSucceeds(updateDoc(ot(proxy.firestore()), { status: 'approved' }));
+    await assertSucceeds(updateDoc(ot(ownerDb), { status: 'pending' }));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'users', proxyUid), { exitDate: null });
+    });
+    await assertSucceeds(setDoc(doc(ownerDb, 'attendanceLogs', 'null-exit-callout'), { ...overtime, callout: proxyUid }));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'users', proxyUid), { exitDate: new Date('2099-01-01') });
+    });
+    await assertFails(updateDoc(ot(proxy.firestore()), { status: 'approved' }));
+    await assertSucceeds(updateDoc(ot(admin.firestore()), { status: 'approved' }));
+    await assertSucceeds(updateDoc(ot(ownerDb), { status: 'pending' }));
+    await assertSucceeds(updateDoc(ot(ownerDb), { reason: 'retain historical leaver' }));
+    await assertSucceeds(updateDoc(ot(ownerDb), { callout: otherUid }));
+    await assertFails(updateDoc(ot(ownerDb), { callout: proxyUid }));
+    await assertFails(setDoc(doc(ownerDb, 'attendanceLogs', 'new-leaver'), { ...overtime, callout: proxyUid }));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(ot(ctx.firestore()), { ...overtime, callout: '', status: 'approved' });
+    });
+    await assertSucceeds(updateDoc(ot(admin.firestore()), { attachments: [attachment] }));
+    await assertSucceeds(updateDoc(ot(other.firestore()), { status: 'rejected' }));
+    await assertSucceeds(updateDoc(ot(ownerDb), { status: 'pending' }));
+    await assertSucceeds(updateDoc(ot(ownerDb), { attachments: [] }));
+    await assertFails(updateDoc(ot(ownerDb), { reason: 'missing callout' }));
+    await assertFails(updateDoc(ot(admin.firestore()), { status: 'approved' }));
+    await assertFails(updateDoc(ot(admin.firestore()), { status: 'approved', callout: otherUid }));
+    await assertSucceeds(updateDoc(ot(ownerDb), { callout: otherUid }));
+    await assertSucceeds(updateDoc(ot(admin.firestore()), { status: 'approved' }));
+    await assertFails(updateDoc(ot(admin.firestore()), { type: 1 }));
+    await assertSucceeds(updateDoc(ot(ownerDb), { status: 'pending' }));
+    await assertSucceeds(updateDoc(ot(ownerDb), { type: 1, callout: '' }));
+    await assertFails(updateDoc(ot(ownerDb), { type: 3 }));
+    await assertSucceeds(updateDoc(ot(other.firestore()), { status: 'rejected' }));
+    await assertSucceeds(updateDoc(ot(other.firestore()), { status: 'approved' }));
+
     console.log('Attendance permission emulator matrix: PASS');
   } finally {
     await env.cleanup();

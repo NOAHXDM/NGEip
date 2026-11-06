@@ -21,6 +21,7 @@ import { startOfWeek, addDays, startOfDay } from 'date-fns';
 import { from, map, Observable, of, shareReplay, switchMap } from 'rxjs';
 
 import { User } from './user.service';
+import { canApproveAttendance } from '../utils/attendance-permission';
 import { TimezoneService } from './timezone.service';
 import { AttachmentService } from './attachment.service';
 import { AttachmentMetadata } from '../attachments/attachment.models';
@@ -109,8 +110,24 @@ export class AttendanceService {
 
     return from(
       runTransaction(this.firestore, async (transaction) => {
+        const attendanceLogDocRef = doc(this.firestore, 'attendanceLogs', data.id!);
+        const currentSnapshot = await transaction.get(attendanceLogDocRef);
+        if (!currentSnapshot.exists()) throw new Error('申請已不存在，請重新整理。');
+        const current = { ...currentSnapshot.data(), id: data.id } as AttendanceLog;
+        if (current.status !== data.status || current.type !== data.type || current.callout !== data.callout) {
+          throw new Error('申請資料已變更，請重新整理後再審核。');
+        }
+        if (current.type === AttendanceType.Overtime && status === 'approved') {
+          const actor = await transaction.get(doc(this.firestore, 'users', actionBy));
+          const callout = current.callout
+            ? await transaction.get(doc(this.firestore, 'users', current.callout)) : null;
+          if (!canApproveAttendance(current, { ...actor.data(), uid: actionBy } as User,
+            callout?.exists() ? [{ ...callout.data(), uid: current.callout } as User] : [])) {
+            throw new Error('無法核准：請確認申請為待審、通報資料完整，且你是現任通報人或管理員。');
+          }
+        }
         const leaveTransactionHistory =
-          this.shouldUpdateUserRemainingLeaveHours(data, status, actionBy);
+          this.shouldUpdateUserRemainingLeaveHours(current, status, actionBy);
         if (leaveTransactionHistory) {
           const userRef = doc(this.firestore, 'users', data.userId);
           const userSnapshot = await transaction.get(userRef);
@@ -137,11 +154,6 @@ export class AttendanceService {
             .set(newleaveTransactionHistoryDocRef, leaveTransactionHistory);
         }
 
-        const attendanceLogDocRef = doc(
-          this.firestore,
-          'attendanceLogs',
-          data.id!
-        );
         const auditTrailRef = doc(
           collection(attendanceLogDocRef, 'auditTrail')
         );
@@ -260,31 +272,7 @@ export class AttendanceService {
   }
 
   private diff(targetValue: any, originValue: any) {
-    const target = {
-      ...targetValue,
-      startDateTime: targetValue.startDateTime.valueOf(),
-      endDateTime: targetValue.endDateTime.valueOf(),
-    };
-    const origin = {
-      ...originValue,
-      startDateTime: originValue.startDateTime.valueOf(),
-      endDateTime: originValue.endDateTime.valueOf(),
-    };
-
-    let diff = {} as any;
-    let changed = false;
-    Object.keys(target).forEach((key) => {
-      if (target[key] != origin[key]) {
-        if (key === 'startDateTime' || key === 'endDateTime') {
-          diff[key] = targetValue[key];
-        } else {
-          diff[key] = target[key];
-        }
-        changed = true;
-      }
-    });
-
-    return changed ? diff : null;
+    return diffAttendance(targetValue, originValue);
   }
 
   private maskCotent(diff: any) {
@@ -310,9 +298,42 @@ export class AttendanceService {
   }
 }
 
+/**
+ * 計算表單與原始申請的差異。舊文件缺少的欄位（例如 010 前沒有 proxyUserId、
+ * 歷史加班沒有 callout）在表單中是空值，不視為異動；否則純附件更新會夾帶
+ * 空字串欄位，被 Rules 判定為內容編輯而要求補正通報人。
+ */
+export function diffAttendance(targetValue: any, originValue: any): Record<string, unknown> | null {
+  const target = {
+    ...targetValue,
+    startDateTime: targetValue.startDateTime.valueOf(),
+    endDateTime: targetValue.endDateTime.valueOf(),
+  };
+  const origin = {
+    ...originValue,
+    startDateTime: originValue.startDateTime.valueOf(),
+    endDateTime: originValue.endDateTime.valueOf(),
+  };
+
+  const diff = {} as Record<string, unknown>;
+  let changed = false;
+  Object.keys(target).forEach((key) => {
+    const missingInOrigin = !(key in origin) || origin[key] === undefined;
+    if (missingInOrigin && (target[key] === '' || target[key] === null || target[key] === undefined)) {
+      return;
+    }
+    if (target[key] != origin[key]) {
+      diff[key] = key === 'startDateTime' || key === 'endDateTime' ? targetValue[key] : target[key];
+      changed = true;
+    }
+  });
+
+  return changed ? diff : null;
+}
+
 export interface AttendanceLog {
   auditTrail: AttendanceLogAuditTrail[];
-  callout?: string; // 外援呼叫
+  callout?: string; // 加班通報人；新增必填，歷史申請可能缺省
   endDateTime: Timestamp | FieldValue;
   hours: number;
   id?: string;

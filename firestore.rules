@@ -90,7 +90,7 @@ service cloud.firestore {
     }
 
     // GitHub issue #38：pending 期間申請人本人可編輯內容與附件；代理人僅可編輯內容，
-    // 且不得變更 userId 與 status；status 轉換則允許任一已登入者執行。
+    // 且不得變更 userId 與 status；加班核准另受 overtimeUpdateValid 限制。
     // 代理人不得改派代理人，否則等同可把編輯權轉發給任意第三方。
     function attendanceContentEditable(existing, incoming, uid) {
       return existing.status == 'pending'
@@ -115,6 +115,44 @@ service cloud.firestore {
 
     function validAttendanceAuditAction(action) {
       return action in ['create', 'update', '建立', '更新', '新增附件', '刪除附件'];
+    }
+
+    // 加班通報：舊離職通報人可保留；新指定者離職日必須為空。
+    // 在職者可能帶有 exitDate: '' 或 null（進階設定存檔），不可只判斷欄位是否存在。
+    function validOvertimeCallout(data) {
+      return data.get('callout', '') is string
+        && data.get('callout', '') != ''
+        && data.callout != data.userId
+        && exists(/databases/$(database)/documents/users/$(data.callout));
+    }
+    function activeOvertimeCallout(data) {
+      return validOvertimeCallout(data)
+        && get(/databases/$(database)/documents/users/$(data.callout)).data.get('exitDate', null) in [null, ''];
+    }
+    function overtimeCreateValid(data) {
+      return data.get('type', 0) != 3
+        || (data.status == 'pending' && activeOvertimeCallout(data));
+    }
+    function overtimeUpdateValid(before, after) {
+      let changed = after.diff(before).affectedKeys();
+      let involved = before.get('type', 0) == 3 || after.get('type', 0) == 3;
+      let statusChanged = changed.hasAny(['status']);
+      let contentChanged = !changed.hasOnly(['status', 'attachments', 'updatedAt']);
+      return !involved || (
+        // 加班審核必須獨立提交，Admin 也不得混合內容更新或藉變更類型繞過。
+        (!statusChanged || changed.hasOnly(['status']))
+        && (!statusChanged || after.status != 'approved'
+          || (before.status == 'pending' && validOvertimeCallout(before)
+            && (isAdmin() || (before.callout == request.auth.uid && activeOvertimeCallout(before)))))
+        && (!contentChanged || (
+          (!changed.hasAny(['type']) || before.status == 'pending')
+          && (after.get('type', 0) != 3 || (
+            validOvertimeCallout(after)
+            && ((before.get('type', 0) == 3 && before.get('callout', '') == after.callout)
+              || activeOvertimeCallout(after))
+          ))
+        ))
+      );
     }
 
     function validSubsidyAuditAction(action) {
@@ -151,11 +189,13 @@ service cloud.firestore {
     match /attendanceLogs/{attendanceId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && validAttachmentCount(request.resource.data)
+        && overtimeCreateValid(request.resource.data)
         && (!('attachments' in request.resource.data) || request.resource.data.attachments.size() == 0
           || request.resource.data.userId == request.auth.uid || isAdmin());
-      // GitHub issue #34：任一已登入者可單獨變更 attendance status；admin 可更新任意狀態的內容與附件。
+      // 一般出勤沿用全員狀態審核；加班由 overtimeUpdateValid 額外限制，Admin 亦適用。
       // 非 admin 僅能在 pending 編輯內容（本人或代理人）與附件（僅本人）；代理人不得改派代理人。
       allow update: if isSignedIn() && validAttachmentCount(request.resource.data)
+        && overtimeUpdateValid(resource.data, request.resource.data)
         && (isAdmin()
           || attendanceContentEditable(resource.data, request.resource.data, request.auth.uid)
           || attendanceStatusEditable(resource.data, request.resource.data));

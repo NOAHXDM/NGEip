@@ -119,14 +119,17 @@
     <!-- CALLOUT -->
     @if (calloutVisible()) {
     <mat-form-field>
-      <mat-label>加班通報</mat-label>
+      <mat-label>加班通報（必填）</mat-label>
       <mat-select formControlName="callout">
         <mat-option value="">請選擇</mat-option>
-        @for (user of userList$ | async; track user.uid) {
-        <mat-option [value]="user.uid">{{ user.name }}</mat-option>
+        @for (user of calloutOptions; track user.uid) {
+        <mat-option [value]="user.uid" [disabled]="!isActiveCallout(user)">{{ user.name }}{{ !isActiveCallout(user) ? '（已離職，保留原通報）' : '' }}</mat-option>
         }
       </mat-select>
     </mat-form-field>
+    @if (attendanceForm.hasError('calloutInvalid')) {
+    <p class="text-danger" role="alert">{{ attendanceForm.getError('calloutInvalid') }}</p>
+    }
     }
     <app-attachment-list
       [attachments]="visibleAttachments"
