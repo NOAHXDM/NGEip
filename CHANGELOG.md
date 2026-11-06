@@ -7,6 +7,21 @@
 
 ## [Unreleased]
 
+## [4.6.0] - 2026-11-07
+
+### 變更
+
+- 升級 Angular 21.2.26、CLI/build-angular 21.2.29、AngularFire 21.0.0、Firebase 12.19.0 與 TypeScript 5.9.3；保留 Zone.js、Karma 及 Functions runtime/SDK。
+- 同步 Material/CDK/date-fns adapter 21.2.14、ng-matero extensions 21.3.1 與 adapter 21.0.0。
+- 明確宣告 Firebase dependency，讓 AngularFire、直接 SDK imports 與 Rules 測試共用 Firebase 12；Messaging Service Worker CDN 同步 12.19.0。
+
+### 測試與文件
+
+- CI 改用標準 npm ci，加入附件 audit、附件／出勤 Rules 與評鑑整合測試。
+- 評鑑測試以專用 Karma runner 讀取 Rules，每個案例清理連線；補上跨 AngularFire／Firebase 的 reference、Timestamp 讀寫測試。
+- Karma 預設停用 sourcemap，避免完整測試 bundle 載入時 Chrome 無回應；除錯可加 --source-map=true。
+- 追蹤 AngularFire 22 正式版及 Angular 22 升級；實測結果與尚未完成的發布門檻見 docs/plans/2026-11-07-angularfire-21-validation.md。
+
 ## [4.5.3] - 2026-11-06
 
 ### 變更

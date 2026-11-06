@@ -9,12 +9,12 @@
 [![Last Commit](https://img.shields.io/github/last-commit/NOAHXDM/NGEip?style=for-the-badge)](https://github.com/NOAHXDM/NGEip/commits/main)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/NOAHXDM/NGEip)
 
-NGEip 是一套以 **Angular 20 + Firebase** 為核心的企業資訊入口網站（EIP）。
+NGEip 是一套以 **Angular 21 + Firebase** 為核心的企業資訊入口網站（EIP）。
 本專案後端能力統一使用
 Firebase Authentication、Cloud Firestore、Firebase Storage、Firebase Hosting 與 Cloud Functions for Firebase。
 Firebase Cloud Messaging 則負責經使用者同意後的非敏感瀏覽器推播。
 
-目前版本：**4.5.3**
+目前版本：**4.6.0**
 
 ## 專案定位
 
@@ -189,7 +189,7 @@ node tools/seed-salary-adjustment-events.js --actor=<adminUid> --apply # 實際�
 
 ## 技術堆疊
 
-- **Frontend**：Angular 20、TypeScript、Angular Material、Bootstrap 5
+- **Frontend**：Angular 21、TypeScript、Angular Material、Bootstrap 5
 - **Backend Platform**：Firebase Authentication、Cloud Firestore、Firebase Storage、Firebase Hosting、Firebase Cloud Messaging、Cloud Functions for Firebase 2nd gen
 - **Testing**：Karma、Jasmine、Firebase Emulator Suite
 - **Utilities**：date-fns
@@ -285,7 +285,7 @@ PR CI 會執行 TypeScript spec typecheck、Cloud Functions TypeScript build 與
 
 ### 前端與套件
 
-- 前端以 Angular 20 儲存庫結構為準
+- 前端以 Angular 21 儲存庫結構為準
 - 所有 Firebase 互動必須使用官方 Firebase JavaScript SDK
 - 任何新套件都必須以「無法由 Angular、原生 Web API 或既有依賴解決」為前提
 
@@ -416,3 +416,10 @@ PR CI 會執行 TypeScript spec typecheck、Cloud Functions TypeScript build 與
 ## 授權
 
 本專案採用 MIT License，詳見 `LICENSE.txt`。
+
+## AngularFire 21 升級驗證
+
+新增 `npm run test:evaluation-integration`，以隔離 demo project 執行評鑑 Rules 與 US1–US4；一般 `npm test -- --watch=false` 仍略過這些 emulator 案例。
+附件的兩份 Karma rules spec 保留為契約參考，實際權限矩陣由 `npm run test:attachment-rules` 執行（含 Firestore／Storage、覆寫與清理佇列）。
+完整 Karma 預設停用 sourcemap，除錯時可加 `--source-map=true`。
+升級驗證紀錄與發布前人工檢查見 [驗證紀錄](docs/plans/2026-11-07-angularfire-21-validation.md)。

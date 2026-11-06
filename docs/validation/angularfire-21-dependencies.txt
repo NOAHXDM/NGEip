@@ -1,0 +1,54 @@
+angular-eip@4.6.0 /Users/wengshengkai/projects/side-project/NGEip
+├─┬ @angular-devkit/build-angular@21.2.29
+│ ├─┬ @angular/build@21.2.29
+│ │ ├── @angular/core@21.2.26 deduped
+│ │ └── typescript@5.9.3 deduped
+│ ├── @angular/core@21.2.26 deduped
+│ ├─┬ @ngtools/webpack@21.2.29
+│ │ └── typescript@5.9.3 deduped
+│ ├─┬ postcss-loader@8.2.0
+│ │ └─┬ cosmiconfig@9.0.2
+│ │   └── typescript@5.9.3 deduped
+│ └── typescript@5.9.3 deduped
+├─┬ @angular/animations@21.2.26
+│ └── @angular/core@21.2.26 deduped
+├─┬ @angular/cdk@21.2.14
+│ └── @angular/core@21.2.26 deduped
+├─┬ @angular/common@21.2.26
+│ └── @angular/core@21.2.26 deduped
+├─┬ @angular/compiler-cli@21.2.26
+│ └── typescript@5.9.3 deduped
+├── @angular/core@21.2.26
+├─┬ @angular/fire@21.0.0
+│ ├── @angular/core@21.2.26 deduped
+│ ├── firebase@12.19.0 deduped
+│ ├─┬ rxfire@6.3.0
+│ │ └── firebase@12.19.0 deduped
+│ └── typescript@5.9.3 deduped
+├─┬ @angular/forms@21.2.26
+│ └── @angular/core@21.2.26 deduped
+├─┬ @angular/material-date-fns-adapter@21.2.14
+│ └── @angular/core@21.2.26 deduped
+├─┬ @angular/material@21.2.14
+│ └── @angular/core@21.2.26 deduped
+├─┬ @angular/platform-browser-dynamic@21.2.26
+│ └── @angular/core@21.2.26 deduped
+├─┬ @angular/platform-browser@21.2.26
+│ └── @angular/core@21.2.26 deduped
+├─┬ @angular/router@21.2.26
+│ └── @angular/core@21.2.26 deduped
+├─┬ @firebase/rules-unit-testing@5.0.0
+│ └── firebase@12.19.0 deduped
+├─┬ @ng-matero/extensions-date-fns-adapter@21.0.0
+│ └── @angular/core@21.2.26 deduped
+├─┬ @ng-matero/extensions@21.3.1
+│ ├─┬ @acrodata/color-picker@1.5.0
+│ │ └── @angular/core@21.2.26 deduped
+│ ├── @angular/core@21.2.26 deduped
+│ └─┬ @ng-matero/ng-select@0.6.3
+│   └── @angular/core@21.2.26 deduped
+├── firebase@12.19.0
+├─┬ ngeip-functions@1.0.0 -> ./functions
+│ └── typescript@5.8.3
+└── typescript@5.9.3
+
