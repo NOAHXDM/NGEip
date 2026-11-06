@@ -1,17 +1,7 @@
+import { evaluationIntegrationEnabled } from './emulator-setup';
 /**
- * US3 整合測試：受評者查看個人職場屬性報告（T023）
- *
- * ⚠️  此測試使用 Firebase Emulator，在 Karma 瀏覽器環境中以 xdescribe 略過。
- *
- * 執行方式（需先啟動 Firebase Emulator）：
- *   firebase emulators:start --config firebase.local.json
- *   npx jest --testPathPattern="us3-integration.spec"
- *
- * 測試情境（User Story 3 核心流程）：
- *   Case 1：受評者讀取自己的 userAttributeSnapshot → ALLOWED（含 overallComments 陣列）
- *   Case 2：受評者讀取他人的 snapshot → DENIED
- *   Case 3：snapshot 切換週期資料一致性（不同 cycleId 對應不同快照）
- *   Case 4：snapshot 的 overallComments 陣列不含任何 evaluatorUid
+ * Firebase Emulator integration contract.
+ * Run with npm run test:evaluation-integration; skipped by the regular unit suite.
  */
 
 import {
@@ -100,23 +90,15 @@ const SNAPSHOT_B_CYCLE_1 = {
 // 整合測試套件（xdescribe：Karma 環境中略過）
 // =====================
 
-xdescribe('US3 整合測試：受評者查看個人職場屬性報告', () => {
+(evaluationIntegrationEnabled() ? describe : xdescribe)('US3 整合測試：受評者查看個人職場屬性報告', () => {
   let testEnv: RulesTestEnvironment;
 
-  beforeAll(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const fs = (eval('require') as NodeRequire)('fs') as { readFileSync: (path: string, enc: string) => string };
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const path = (eval('require') as NodeRequire)('path') as { resolve: (...args: string[]) => string };
-    const rules = fs.readFileSync(path.resolve(process.cwd(), 'firestore.rules'), 'utf8');
-    testEnv = await initTestEnv(rules);
-  });
-
-  afterAll(async () => {
+  afterEach(async () => {
     await teardownTestEnv();
   });
 
   beforeEach(async () => {
+    testEnv = await initTestEnv();
     await clearFirestoreData();
     await seedAdminUser(ADMIN_UID);
 

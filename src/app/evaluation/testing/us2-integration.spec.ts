@@ -1,26 +1,7 @@
+import { evaluationIntegrationEnabled } from './emulator-setup';
 /**
- * US2 整合測試：評核表單提交流程（T017）
- *
- * ⚠️  此測試使用 Firebase Emulator，在 Karma 瀏覽器環境中以 xdescribe 略過。
- *
- * 執行方式（需先啟動 Firebase Emulator）：
- *   firebase emulators:start --config firebase.local.json
- *   npx jest --testPathPattern="us2-integration.spec"
- *
- * 測試情境（User Story 2 核心流程）：
- *   Case 1：表單提交批次寫入驗證
- *           Case 1a：evaluationForms 文件存在且欄位正確
- *           Case 1b：userAttributeSnapshots 的 overallComments 包含 arrayUnion 後的評語
- *           Case 1c：evaluationAssignments 狀態更新為 completed
- *
- *   Case 2：受評者讀取 evaluationForms → DENIED（匿名性安全規則）
- *           Case 2a：受評者讀取針對自己的表單 → DENIED
- *           Case 2b：受評者讀取其他評核者提交的表單 → DENIED
- *           Case 2c：評核者讀取自己提交的表單 → ALLOWED（對照組）
- *
- *   Case 3：截止日已過情境 → 前端守衛攔截
- *           Case 3a：overdue 指派可被評核者讀取（前端顯示用），狀態為 overdue
- *           Case 3b：Security Rules 層面不檢查截止日（防護責任在 EvaluationFormService）
+ * Firebase Emulator integration contract.
+ * Run with npm run test:evaluation-integration; skipped by the regular unit suite.
  */
 
 import {
@@ -114,24 +95,15 @@ const VALID_ASSIGNMENT_DATA = {
 // 整合測試套件（xdescribe：Karma 環境中略過，需 Firebase Emulator）
 // =====================
 
-xdescribe('US2 整合測試：評核表單提交流程', () => {
+(evaluationIntegrationEnabled() ? describe : xdescribe)('US2 整合測試：評核表單提交流程', () => {
   let testEnv: RulesTestEnvironment;
 
-  beforeAll(async () => {
-    // 讀取 firestore.rules（Node.js 環境）
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const fs = (eval('require') as NodeRequire)('fs') as { readFileSync: (path: string, enc: string) => string };
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const path = (eval('require') as NodeRequire)('path') as { resolve: (...args: string[]) => string };
-    const rules = fs.readFileSync(path.resolve(process.cwd(), 'firestore.rules'), 'utf8');
-    testEnv = await initTestEnv(rules);
-  });
-
-  afterAll(async () => {
+  afterEach(async () => {
     await teardownTestEnv();
   });
 
   beforeEach(async () => {
+    testEnv = await initTestEnv();
     // 每個測試前清空資料，確保隔離性
     await clearFirestoreData();
     // 種入管理者帳號（供 isAdmin() security rule 判斷）
@@ -545,14 +517,14 @@ xdescribe('US2 整合測試：評核表單提交流程', () => {
       });
     });
 
-    it('非管理者不可更新 evaluationCycles 計數', async () => {
+    it('非管理者不可更新 evaluationCycles.totalAssignments', async () => {
       const evaluatorCtx = createEvaluatorContext(EVALUATOR_UID);
       const db = evaluatorCtx.firestore();
 
-      // Security Rules：evaluationCycles 的 update 僅限管理者
+      // totalAssignments 僅限管理者；completedAssignments 是提交表單的既有例外。
       await assertFails(
         updateDoc(doc(db, `evaluationCycles/${CYCLE_ID}`), {
-          completedAssignments: increment(1),
+          totalAssignments: increment(1),
         }),
       );
     });

@@ -1,3 +1,5 @@
+// Reference contract only; executable coverage lives in tools/request-attachment-emulator-tests.cjs.
+// Run npm run test:attachment-rules (Firestore and Storage emulators).
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { deleteObject, getBlob, listAll, ref, uploadBytes } from 'firebase/storage';
 

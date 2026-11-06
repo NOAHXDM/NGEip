@@ -1,3 +1,5 @@
+// Reference contract only; executable coverage lives in tools/request-attachment-emulator-tests.cjs.
+// Run npm run test:attachment-rules (Firestore and Storage emulators).
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { Timestamp, doc, getDoc, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { ADMIN_UID, OTHER_UID, OWNER_UID } from './emulator-setup';

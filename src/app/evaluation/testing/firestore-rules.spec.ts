@@ -1,15 +1,7 @@
+import { evaluationIntegrationEnabled } from './emulator-setup';
 /**
- * Security Rules 整合測試：評量考核系統（T007）
- *
- * 驗證 10 個關鍵安全規則案例，使用 Firebase Emulator + @firebase/rules-unit-testing
- *
- * ⚠️ 此測試需要 Firebase Emulator 才能執行，在 Karma 瀏覽器環境中會被略過（xdescribe）。
- *
- * 執行方式（Node.js + Jest / firebase-jest-environment）：
- *   firebase emulators:start --config firebase.local.json
- *   npx jest --testPathPattern="firestore-rules.spec"
- *
- * 若要在 Karma 中啟用，將 xdescribe 改為 describe 並確保 emulator 已啟動。
+ * Firebase Emulator integration contract.
+ * Run with npm run test:evaluation-integration; skipped by the regular unit suite.
  */
 
 import {
@@ -79,24 +71,15 @@ const VALID_SNAPSHOT_DATA = {
 // 測試套件（使用 xdescribe 在 Karma 環境中略過，需 Firebase Emulator）
 // =====================
 
-xdescribe('Security Rules 整合測試 - 評量考核系統', () => {
+(evaluationIntegrationEnabled() ? describe : xdescribe)('Security Rules 整合測試 - 評量考核系統', () => {
   let testEnv: RulesTestEnvironment;
 
-  beforeAll(async () => {
-    // 讀取 firestore.rules 文件（Node.js 環境）
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const fs = (eval('require') as NodeRequire)('fs') as { readFileSync: (path: string, enc: string) => string };
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const path = (eval('require') as NodeRequire)('path') as { resolve: (...args: string[]) => string };
-    const rules = fs.readFileSync(path.resolve(process.cwd(), 'firestore.rules'), 'utf8');
-    testEnv = await initTestEnv(rules);
-  });
-
-  afterAll(async () => {
+  afterEach(async () => {
     await teardownTestEnv();
   });
 
   beforeEach(async () => {
+    testEnv = await initTestEnv();
     await clearFirestoreData();
     // 種入管理者帳號（讓 isAdmin() rule 可正確判斷）
     await seedAdminUser(ADMIN_UID);
