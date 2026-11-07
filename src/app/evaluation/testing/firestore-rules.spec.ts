@@ -106,6 +106,69 @@ const VALID_SNAPSHOT_DATA = {
     });
   });
 
+  describe('表單必須對應既有指派', () => {
+    const invalidForms: { label: string; changes: Record<string, unknown> }[] = [
+      { label: '不存在的指派', changes: { assignmentId: 'missing-assignment' } },
+      { label: '空的指派 ID', changes: { assignmentId: '' } },
+      { label: '非字串指派 ID', changes: { assignmentId: 123 } },
+      { label: '偽造評核者', changes: { evaluatorUid: 'another-evaluator' } },
+      { label: '不同受評者', changes: { evaluateeUid: 'another-evaluatee' } },
+      { label: '不同週期', changes: { cycleId: 'another-cycle' } },
+      { label: '自我評核', changes: { evaluateeUid: EVALUATOR_UID } },
+    ];
+    for (const { label, changes } of invalidForms) {
+      it(`拒絕${label}，且不建立表單`, async () => {
+        const db = createEvaluatorContext(EVALUATOR_UID).firestore();
+        const reference = doc(db, 'evaluationForms/invalid-assignment');
+        await assertFails(setDoc(reference, { ...VALID_FORM_DATA, ...changes }));
+        await testEnv.withSecurityRulesDisabled(async (ctx) => {
+          expect((await getDoc(doc(ctx.firestore(), reference.path))).exists()).toBeFalse();
+        });
+      });
+    }
+
+    it('缺少 assignmentId 時拒絕建立表單', async () => {
+      const { assignmentId, ...form } = VALID_FORM_DATA;
+      const db = createEvaluatorContext(EVALUATOR_UID).firestore();
+      await assertFails(setDoc(doc(db, 'evaluationForms/missing-id'), form));
+    });
+
+    it('不可借用別人的指派，即使表單 evaluatorUid 填自己的 UID', async () => {
+      const db = createEvaluatorContext('unassigned-evaluator').firestore();
+      await assertFails(setDoc(doc(db, 'evaluationForms/borrowed-assignment'), {
+        ...VALID_FORM_DATA, evaluatorUid: 'unassigned-evaluator',
+      }));
+    });
+
+    it('即使錯誤指派允許自評，仍不可建立自評表單', async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await ctx.firestore().doc(`evaluationAssignments/${ASSIGNMENT_ID}`).update({ evaluateeUid: EVALUATOR_UID });
+      });
+      const db = createEvaluatorContext(EVALUATOR_UID).firestore();
+      await assertFails(setDoc(doc(db, 'evaluationForms/self-review'), {
+        ...VALID_FORM_DATA, evaluateeUid: EVALUATOR_UID,
+      }));
+    });
+
+    it('指派刪除後，一般評核者不可修改舊表單；管理者仍可維護', async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await ctx.firestore().doc(`evaluationAssignments/${ASSIGNMENT_ID}`).delete();
+      });
+      const edit = { overallComment: VALID_OVERALL_COMMENT + '持續保持。' };
+      await assertFails(updateDoc(doc(createEvaluatorContext(EVALUATOR_UID).firestore(), `evaluationForms/${FORM_ID}`), edit));
+      await assertSucceeds(updateDoc(doc(createAdminContext(ADMIN_UID).firestore(), `evaluationForms/${FORM_ID}`), edit));
+    });
+
+    it('不能修改關聯到其他受評者指派的歷史表單', async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await ctx.firestore().doc(`evaluationForms/${FORM_ID}`).update({ evaluateeUid: 'another-evaluatee' });
+      });
+      await assertFails(updateDoc(doc(createEvaluatorContext(EVALUATOR_UID).firestore(), `evaluationForms/${FORM_ID}`), {
+        overallComment: VALID_OVERALL_COMMENT + '持續保持。',
+      }));
+    });
+  });
+
   // =====================
   // 測試案例 1：受評者讀 evaluationForms → DENIED（匿名性核心）
   // =====================

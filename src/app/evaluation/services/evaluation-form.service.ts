@@ -324,6 +324,12 @@ export class EvaluationFormService {
 
     const assignment = assignmentSnap.data() as EvaluationAssignment;
 
+    if (assignment.evaluatorUid !== currentUser.uid ||
+        assignment.evaluateeUid !== evaluateeUid ||
+        assignment.cycleId !== cycleId) {
+      throw new Error('考評指派與評核者、受評者或週期不一致，無法提交或修改');
+    }
+
     if (assignment.status === 'overdue') {
       throw new Error('此考評指派已逾期，無法提交或修改');
     }

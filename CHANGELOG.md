@@ -9,6 +9,11 @@
 
 ## [4.6.0] - 2026-11-07
 
+### 修復
+
+- 評鑑表單建立與一般評核者修改，強制核對既有指派、登入評核者、受評者與週期，禁止自評，修正未被指派仍可替他人建立表單的 Rules 缺口。前端服務同步提前檢查；管理者維護權限保留。
+- 76 項評鑑 Emulator 整合測試、369 項單元測試與正式 build 通過。部署須包含 Firestore Rules；僅部署 Hosting 不會套用權限修正。
+
 ### 變更
 
 - 升級 Angular 21.2.26、CLI/build-angular 21.2.29、AngularFire 21.0.0、Firebase 12.19.0 與 TypeScript 5.9.3；保留 Zone.js、Karma 及 Functions runtime/SDK。

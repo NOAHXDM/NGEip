@@ -154,3 +154,7 @@ firebase hosting:clone <SITE_ID>:@<VERSION_ID> <SITE_ID>:live
 程式碼層面保留升級前 lockfile 與 worker 的 commit，發布失敗時一起回復，並確認瀏覽器實際載入舊 worker；僅回退 bundle 不足以證明推播已回復。Functions 未更動時不因前端升級重部署全部服務。
 
 交付必含：依賴版本與 peers 證據、變更檔案、各 gate 結果、尚未執行項目、手動測試紀錄。未執行 FCM 或評鑑整合測試時，標示未驗證，不宣稱升級已可發布。
+
+## 2026-11-07 核准範圍補充
+
+使用者核准在本分支一併修正評鑑未指派寫入問題，核對表單與既有指派的評核者／受評者／週期一致性。此項為原「不變更 Rules 語意」範圍的明確例外。驗證與部署注意事項見 [實作驗證紀錄](2026-11-07-angularfire-21-validation.md)。

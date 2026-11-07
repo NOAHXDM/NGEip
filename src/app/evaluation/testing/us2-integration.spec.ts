@@ -1,3 +1,7 @@
+import { TestBed } from '@angular/core/testing';
+import { Auth } from '@angular/fire/auth';
+import { Firestore } from '@angular/fire/firestore';
+import { EvaluationFormService } from '../services/evaluation-form.service';
 import { evaluationIntegrationEnabled } from './emulator-setup';
 /**
  * Firebase Emulator integration contract.
@@ -13,6 +17,7 @@ import {
   doc,
   setDoc,
   getDoc,
+  getDocs,
   updateDoc,
   collection,
   arrayUnion,
@@ -125,6 +130,42 @@ const VALID_ASSIGNMENT_DATA = {
   // 此組測試模擬 EvaluationFormService.submitForm() 的批次寫入行為，
   // 分別驗證三個受影響集合的狀態正確性。
   // =======================================================================
+
+  it('實際 service 的四筆 batch 與 completed 表單修改皆符合指派 Rules', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await ctx.firestore().doc(`evaluationCycles/${CYCLE_ID}`).update({ deadline: new Date('2099-12-31') });
+    });
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [
+      EvaluationFormService,
+      { provide: Firestore, useValue: createEvaluatorContext(EVALUATOR_UID).firestore() },
+      { provide: Auth, useValue: { currentUser: { uid: EVALUATOR_UID } } },
+    ] });
+    try {
+      const service = TestBed.inject(EvaluationFormService);
+      const draft = { scores: VALID_SCORES, feedbacks: {}, overallComment: VALID_OVERALL_COMMENT };
+      await TestBed.runInInjectionContext(() => service.submitForm(CYCLE_ID, ASSIGNMENT_ID, EVALUATEE_UID, draft));
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        expect((await getDocs(collection(db, 'evaluationForms'))).size).toBe(1);
+        expect((await getDoc(doc(db, `evaluationAssignments/${ASSIGNMENT_ID}`))).get('status')).toBe('completed');
+        expect((await getDoc(doc(db, `evaluationCycles/${CYCLE_ID}`))).get('completedAssignments')).toBe(1);
+        expect((await getDoc(doc(db, `userAttributeSnapshots/${SNAPSHOT_ID}`))).get('validEvaluatorCount')).toBe(1);
+      });
+      await TestBed.runInInjectionContext(() => service.submitForm(CYCLE_ID, ASSIGNMENT_ID, EVALUATEE_UID, {
+        ...draft, overallComment: VALID_OVERALL_COMMENT + '持續保持。',
+      }));
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        const forms = await getDocs(collection(db, 'evaluationForms'));
+        expect(forms.size).toBe(1);
+        expect(forms.docs[0].get('overallComment')).toBe(VALID_OVERALL_COMMENT + '持續保持。');
+        expect((await getDoc(doc(db, `evaluationCycles/${CYCLE_ID}`))).get('completedAssignments')).toBe(1);
+      });
+    } finally {
+      TestBed.resetTestingModule();
+    }
+  });
 
   describe('Case 1：表單提交批次寫入驗證', () => {
 
