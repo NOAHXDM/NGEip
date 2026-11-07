@@ -167,6 +167,27 @@ const VALID_SNAPSHOT_DATA = {
         overallComment: VALID_OVERALL_COMMENT + '持續保持。',
       }));
     });
+
+    it('即使另一筆指派的評核者、受評者與週期都相符，仍不可把表單改掛到該指派', async () => {
+      const otherAssignmentId = `${ASSIGNMENT_ID}_other`;
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await ctx.firestore().doc(`evaluationAssignments/${otherAssignmentId}`).set({
+          id: otherAssignmentId, cycleId: CYCLE_ID,
+          evaluatorUid: EVALUATOR_UID, evaluateeUid: EVALUATEE_UID,
+          status: 'pending', createdAt: new Date(),
+        });
+      });
+      const formRef = doc(createEvaluatorContext(EVALUATOR_UID).firestore(), `evaluationForms/${FORM_ID}`);
+      const edit = { overallComment: VALID_OVERALL_COMMENT + '持續保持。' };
+
+      // 對照組：不改 assignmentId 的同一筆修改可成功，確認拒絕原因只來自 assignmentId 不可變
+      await assertSucceeds(updateDoc(formRef, edit));
+      await assertFails(updateDoc(formRef, { ...edit, assignmentId: otherAssignmentId }));
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const stored = await getDoc(doc(ctx.firestore(), `evaluationForms/${FORM_ID}`));
+        expect(stored.data()?.['assignmentId']).toBe(ASSIGNMENT_ID);
+      });
+    });
   });
 
   // =====================

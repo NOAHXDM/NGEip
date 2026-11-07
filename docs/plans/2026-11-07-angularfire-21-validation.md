@@ -17,7 +17,7 @@ Angular 21.2.26；CLI/build-angular 21.2.29；AngularFire 21.0.0；Firebase 12.1
 | spec TypeScript noEmit | 通過 |
 | production build | 通過；initial 2.60 MB，超過 2.5 MB warning，低於 3 MB error；未提高 budgets |
 | development build | 通過 |
-| Karma（預設 sourcemap） | 369 通過；86 略過（76 評鑑＋4 歷程整合、6 附件參考契約）為獨立 emulator／參考契約 |
+| Karma（預設 sourcemap） | 369 通過；87 略過（77 評鑑＋4 歷程整合、6 附件參考契約）為獨立 emulator／參考契約 |
 | Functions | 47 通過 |
 | JSM 部署設定 | 6 通過 |
 | 附件 orphan audit | 1 通過 |
@@ -25,7 +25,7 @@ Angular 21.2.26；CLI/build-angular 21.2.29；AngularFire 21.0.0；Firebase 12.1
 | 出勤 Rules emulator | PASS |
 | 歷程 Rules emulator | PASS |
 | 歷程 Angular integration | 4 通過 |
-| 評鑑 Angular integration | 76 通過；含跨 SDK reference/Timestamp、指派一致性及實際服務 batch／completed 修改測試 |
+| 評鑑 Angular integration | 77 通過；含跨 SDK reference/Timestamp、指派一致性、assignmentId 不可變及實際服務 batch／completed 修改測試 |
 | 週報 Emulator | 7 通過 |
 | FCM CDN | app-compat 與 messaging-compat 12.19.0 均 HTTP 200 |
 
