@@ -83,6 +83,8 @@ Firebase 12.19.0 所用的 @firebase/firestore 4.17.2，其 `dist/common-CLMydGS
 
 後續縮減方案：優先將仍以靜態 import 載入的 Home/MyProfile/Users/SystemConfig 改為 route loadComponent，量測登入頁與登入後首屏下載量；另評估使用者啟用推播時才載入 Messaging。這些變更需要路由、登入重導及推播生命週期回歸，本次不混入升級修正。新 warning 保留，發布前須明確接受此成本或完成縮減，不能以提高 budget 消除。
 
+**決議（2026-11-07）**：使用者決定接受 Firebase 12 帶來的 +245,648 bytes initial 增量，本次發布不先行縮減；budgets 維持 2.5 MB warning／3 MB error，warning 保留作為提醒。上述縮減方案列為後續優化，由 [#43](https://github.com/NOAHXDM/NGEip/issues/43) 另案處理。
+
 ## Sourcemap 診斷（審查 3.4）
 
 - 原始重現：2026-11-07 00:15，Node 22.23.4／Chrome Headless 156／完整 Karma、sourcemap 開啟，瀏覽器連線後尚未回報案例，兩次發生 `Disconnected, because no message in 30000 ms.`。當時另有 production/development build 與 emulator 工作；沒有 Chrome OOM、crash dump 或記憶體使用量證據，不能判定為記憶體不足。

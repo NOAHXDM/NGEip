@@ -30,7 +30,7 @@
 ### 已知缺口
 
 - 評鑑重複提交、create 截止日檢查與指派 update 收斂另由 [#42](https://github.com/NOAHXDM/NGEip/issues/42) 處理，不屬本次指派一致性修正範圍。
-- Initial bundle 從 2.36 MB 增至 2.60 MB，新增 2.5 MB warning；主要來自 Firebase 12.19 的 re2js 與 Firestore。維持原 budgets，分析與後續縮減方案見驗證紀錄。
+- Initial bundle 從 2.36 MB 增至 2.60 MB，新增 2.5 MB warning；主要來自 Firebase 12.19 的 re2js 與 Firestore。已決議接受此成本並維持原 budgets；分析見驗證紀錄，後續縮減由 [#43](https://github.com/NOAHXDM/NGEip/issues/43) 處理。
 
 ## [4.5.3] - 2026-11-06
 

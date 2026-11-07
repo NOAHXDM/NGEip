@@ -144,3 +144,39 @@ Codex 完成上述項目後，由審查者重新執行第 2 節驗證指令並�
 | `5f56633` | `a13f843` |
 
 完整分析與未完成的人工發布門檻見 [實作驗證紀錄](2026-11-07-angularfire-21-validation.md)。尚未 push、建立 PR 或部署；本文件第 4 節仍維持未驗證。
+
+## 7. 複審結果（Claude，2026-11-07）
+
+對象：`cf68d6d..bd5c70f`（重寫後 9 個 commit），對照第 6 節 Codex 處理紀錄逐項複核。
+
+### 7.1 逐項結論
+
+| 項目 | 結論 | 複核依據 |
+| --- | --- | --- |
+| 3.1 bundle | ✅ 已處置 | `npm ls re2js` 確認 `firebase@12.19.0 → @firebase/firestore@4.17.2 → re2js@2.9.1`，且 `@firebase/firestore/dist/index.esm.js` 靜態 `import 're2js'`，與 Codex 歸因一致。`tools/analyze-initial-bundle.mjs` 沿 main／polyfills／styles 靜態 import 追蹤並排除 dynamic-import，方法合理。budgets 未變更。升級前 transfer 數字差異（512.50 vs 512.69 kB）為兩次獨立重建的估算誤差，不影響結論。 |
+| 3.2 #42 | ✅ 已處置 | CHANGELOG「已知缺口」與驗證紀錄「後續追蹤」皆連結 #42；`firestore.rules` 與契約文件本輪未變更。 |
+| 3.3 commit | ✅ 已處置 | 9 個 commit 皆為繁體中文 `type(scope): 摘要` 並含背景／變更／驗證內文；原 `76ba2d8` 拆為 3 筆。`git diff 5f56633 a13f843` 為空，確認重寫未改變程式內容；備份 ref `refs/backup/angularfire-21-before-review` 存在；遠端尚無此分支，重寫不影響他人。 |
+| 3.4 sourcemap | ✅ 已處置 | `angular.json` test target 已移除 `sourceMap: false`；預設 sourcemap 下完整 Karma 369 項通過，未重現斷線。診斷紀錄未誇大為記憶體問題，並寫明再次重現時的處理步驟。 |
+| 3.5 註解 | ✅ 已處置 | 附件與評鑑測試新增註解及跨 SDK 案例名稱已改為繁體中文。 |
+
+另確認 Codex 同步更新 `CLAUDE.md` 的 Angular 版本描述（20 → 21），屬合理的文件一致性修正。
+
+### 7.2 重跑驗證（HEAD `bd5c70f`）
+
+| 檢查 | 結果 |
+| --- | --- |
+| `npx tsc -p tsconfig.spec.json --noEmit`、`npx tsc -p tsconfig.app.json --noEmit` | ✅ 通過 |
+| `npm test -- --watch=false`（預設 sourcemap） | ✅ 369 通過 |
+| `npm run test:evaluation-integration` | ✅ 76／76 通過 |
+| `npm run build` | ✅ 通過；initial 2.60 MB／傳輸 566.20 kB，2.5 MB warning 仍在（已量化、已歸因） |
+| 嚴格安裝 | 本輪依賴未變更，沿用第 2 節 `npm ci --dry-run` 通過結果 |
+
+### 7.3 審查結論
+
+第 3 節所有審查項目皆已處置，程式層面可進入 push 與建立 PR（使用 merge commit）。**尚不可發布**，發布前仍需：
+
+1. ~~決定 bundle warning 的處置~~ **已決議（2026-11-07）**：使用者接受 +245,648 bytes 的 Firebase 12 成本，本次不縮減、不調整 budgets；PR 說明需記錄此決議。route `loadComponent`／Messaging 延遲載入列為後續優化，由 [#43](https://github.com/NOAHXDM/NGEip/issues/43) 另案處理。
+2. 完成第 4 節的 FCM 實機測試、瀏覽器人工回歸與 Hosting `SITE_ID`／`VERSION_ID` 記錄。
+3. 部署順序：先 Firestore Rules（含 `a13f843` 指派一致性修正），後 Hosting。
+
+PR 合併後可刪除備份 ref `refs/backup/angularfire-21-before-review`。
