@@ -7,6 +7,31 @@
 
 ## [Unreleased]
 
+## [4.6.0] - 2026-11-07
+
+### 修復
+
+- 評鑑表單建立與一般評核者修改，強制核對既有指派、登入評核者、受評者與週期，禁止自評，修正未被指派仍可替他人建立表單的 Rules 缺口。前端服務同步提前檢查；管理者維護權限保留。
+- 77 項評鑑 Emulator 整合測試（含 assignmentId 不可改掛的負向案例）、369 項單元測試與正式 build 通過。部署須包含 Firestore Rules；僅部署 Hosting 不會套用權限修正。
+
+### 變更
+
+- 升級 Angular 21.2.26、CLI/build-angular 21.2.29、AngularFire 21.0.0、Firebase 12.19.0 與 TypeScript 5.9.3；保留 Zone.js、Karma 及 Functions runtime/SDK。
+- 同步 Material/CDK/date-fns adapter 21.2.14、ng-matero extensions 21.3.1 與 adapter 21.0.0。
+- 明確宣告 Firebase dependency，讓 AngularFire、直接 SDK imports 與 Rules 測試共用 Firebase 12；Messaging Service Worker CDN 同步 12.19.0。
+
+### 測試與文件
+
+- CI 改用標準 npm ci，加入附件 audit、附件／出勤 Rules 與評鑑整合測試。
+- 評鑑測試以專用 Karma runner 讀取 Rules，每個案例清理連線；補上跨 AngularFire／Firebase 的 reference、Timestamp 讀寫測試。
+- Karma 維持預設 sourcemap；重跑完整測試未重現先前載入逾時，記錄診斷條件與結果。
+- 追蹤 AngularFire 22 正式版及 Angular 22 升級；實測結果與尚未完成的發布門檻見 docs/plans/2026-11-07-angularfire-21-validation.md。
+
+### 已知缺口
+
+- 評鑑重複提交、create 截止日檢查與指派 update 收斂另由 [#42](https://github.com/NOAHXDM/NGEip/issues/42) 處理，不屬本次指派一致性修正範圍。
+- Initial bundle 從 2.36 MB 增至 2.60 MB，新增 2.5 MB warning；主要來自 Firebase 12.19 的 re2js 與 Firestore。已決議接受此成本並維持原 budgets；分析見驗證紀錄，後續縮減由 [#43](https://github.com/NOAHXDM/NGEip/issues/43) 處理。
+
 ## [4.5.3] - 2026-11-06
 
 ### 變更

@@ -1,15 +1,7 @@
+import { evaluationIntegrationEnabled } from './emulator-setup';
 /**
- * Security Rules 整合測試：評量考核系統（T007）
- *
- * 驗證 10 個關鍵安全規則案例，使用 Firebase Emulator + @firebase/rules-unit-testing
- *
- * ⚠️ 此測試需要 Firebase Emulator 才能執行，在 Karma 瀏覽器環境中會被略過（xdescribe）。
- *
- * 執行方式（Node.js + Jest / firebase-jest-environment）：
- *   firebase emulators:start --config firebase.local.json
- *   npx jest --testPathPattern="firestore-rules.spec"
- *
- * 若要在 Karma 中啟用，將 xdescribe 改為 describe 並確保 emulator 已啟動。
+ * Firebase Emulator 整合測試契約。
+ * 執行 npm run test:evaluation-integration；一般單元測試會略過。
  */
 
 import {
@@ -79,24 +71,15 @@ const VALID_SNAPSHOT_DATA = {
 // 測試套件（使用 xdescribe 在 Karma 環境中略過，需 Firebase Emulator）
 // =====================
 
-xdescribe('Security Rules 整合測試 - 評量考核系統', () => {
+(evaluationIntegrationEnabled() ? describe : xdescribe)('Security Rules 整合測試 - 評量考核系統', () => {
   let testEnv: RulesTestEnvironment;
 
-  beforeAll(async () => {
-    // 讀取 firestore.rules 文件（Node.js 環境）
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const fs = (eval('require') as NodeRequire)('fs') as { readFileSync: (path: string, enc: string) => string };
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const path = (eval('require') as NodeRequire)('path') as { resolve: (...args: string[]) => string };
-    const rules = fs.readFileSync(path.resolve(process.cwd(), 'firestore.rules'), 'utf8');
-    testEnv = await initTestEnv(rules);
-  });
-
-  afterAll(async () => {
+  afterEach(async () => {
     await teardownTestEnv();
   });
 
   beforeEach(async () => {
+    testEnv = await initTestEnv();
     await clearFirestoreData();
     // 種入管理者帳號（讓 isAdmin() rule 可正確判斷）
     await seedAdminUser(ADMIN_UID);
@@ -120,6 +103,90 @@ xdescribe('Security Rules 整合測試 - 評量考核系統', () => {
       await db.doc(`evaluationForms/${FORM_ID}`).set(VALID_FORM_DATA);
       // 建立 preview 快照
       await db.doc(`userAttributeSnapshots/${SNAPSHOT_ID}`).set(VALID_SNAPSHOT_DATA);
+    });
+  });
+
+  describe('表單必須對應既有指派', () => {
+    const invalidForms: { label: string; changes: Record<string, unknown> }[] = [
+      { label: '不存在的指派', changes: { assignmentId: 'missing-assignment' } },
+      { label: '空的指派 ID', changes: { assignmentId: '' } },
+      { label: '非字串指派 ID', changes: { assignmentId: 123 } },
+      { label: '偽造評核者', changes: { evaluatorUid: 'another-evaluator' } },
+      { label: '不同受評者', changes: { evaluateeUid: 'another-evaluatee' } },
+      { label: '不同週期', changes: { cycleId: 'another-cycle' } },
+      { label: '自我評核', changes: { evaluateeUid: EVALUATOR_UID } },
+    ];
+    for (const { label, changes } of invalidForms) {
+      it(`拒絕${label}，且不建立表單`, async () => {
+        const db = createEvaluatorContext(EVALUATOR_UID).firestore();
+        const reference = doc(db, 'evaluationForms/invalid-assignment');
+        await assertFails(setDoc(reference, { ...VALID_FORM_DATA, ...changes }));
+        await testEnv.withSecurityRulesDisabled(async (ctx) => {
+          expect((await getDoc(doc(ctx.firestore(), reference.path))).exists()).toBeFalse();
+        });
+      });
+    }
+
+    it('缺少 assignmentId 時拒絕建立表單', async () => {
+      const { assignmentId, ...form } = VALID_FORM_DATA;
+      const db = createEvaluatorContext(EVALUATOR_UID).firestore();
+      await assertFails(setDoc(doc(db, 'evaluationForms/missing-id'), form));
+    });
+
+    it('不可借用別人的指派，即使表單 evaluatorUid 填自己的 UID', async () => {
+      const db = createEvaluatorContext('unassigned-evaluator').firestore();
+      await assertFails(setDoc(doc(db, 'evaluationForms/borrowed-assignment'), {
+        ...VALID_FORM_DATA, evaluatorUid: 'unassigned-evaluator',
+      }));
+    });
+
+    it('即使錯誤指派允許自評，仍不可建立自評表單', async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await ctx.firestore().doc(`evaluationAssignments/${ASSIGNMENT_ID}`).update({ evaluateeUid: EVALUATOR_UID });
+      });
+      const db = createEvaluatorContext(EVALUATOR_UID).firestore();
+      await assertFails(setDoc(doc(db, 'evaluationForms/self-review'), {
+        ...VALID_FORM_DATA, evaluateeUid: EVALUATOR_UID,
+      }));
+    });
+
+    it('指派刪除後，一般評核者不可修改舊表單；管理者仍可維護', async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await ctx.firestore().doc(`evaluationAssignments/${ASSIGNMENT_ID}`).delete();
+      });
+      const edit = { overallComment: VALID_OVERALL_COMMENT + '持續保持。' };
+      await assertFails(updateDoc(doc(createEvaluatorContext(EVALUATOR_UID).firestore(), `evaluationForms/${FORM_ID}`), edit));
+      await assertSucceeds(updateDoc(doc(createAdminContext(ADMIN_UID).firestore(), `evaluationForms/${FORM_ID}`), edit));
+    });
+
+    it('不能修改關聯到其他受評者指派的歷史表單', async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await ctx.firestore().doc(`evaluationForms/${FORM_ID}`).update({ evaluateeUid: 'another-evaluatee' });
+      });
+      await assertFails(updateDoc(doc(createEvaluatorContext(EVALUATOR_UID).firestore(), `evaluationForms/${FORM_ID}`), {
+        overallComment: VALID_OVERALL_COMMENT + '持續保持。',
+      }));
+    });
+
+    it('即使另一筆指派的評核者、受評者與週期都相符，仍不可把表單改掛到該指派', async () => {
+      const otherAssignmentId = `${ASSIGNMENT_ID}_other`;
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await ctx.firestore().doc(`evaluationAssignments/${otherAssignmentId}`).set({
+          id: otherAssignmentId, cycleId: CYCLE_ID,
+          evaluatorUid: EVALUATOR_UID, evaluateeUid: EVALUATEE_UID,
+          status: 'pending', createdAt: new Date(),
+        });
+      });
+      const formRef = doc(createEvaluatorContext(EVALUATOR_UID).firestore(), `evaluationForms/${FORM_ID}`);
+      const edit = { overallComment: VALID_OVERALL_COMMENT + '持續保持。' };
+
+      // 對照組：不改 assignmentId 的同一筆修改可成功，確認拒絕原因只來自 assignmentId 不可變
+      await assertSucceeds(updateDoc(formRef, edit));
+      await assertFails(updateDoc(formRef, { ...edit, assignmentId: otherAssignmentId }));
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const stored = await getDoc(doc(ctx.firestore(), `evaluationForms/${FORM_ID}`));
+        expect(stored.data()?.['assignmentId']).toBe(ASSIGNMENT_ID);
+      });
     });
   });
 

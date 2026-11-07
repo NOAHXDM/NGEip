@@ -13,7 +13,7 @@
 |------|------|--------|--------|--------|
 | `evaluationCycles` | 已登入使用者 | Admin only | Admin or 已登入（僅限 `completedAssignments`） | Admin only |
 | `evaluationAssignments` | 相關評核者 or Admin | Admin only | 評核者（自己）or Admin | Admin only |
-| `evaluationForms` | **本人評核者** or Admin（**受評者拒絕讀取**） | 評核者（自己） | Admin 或評核者本人（僅截止日前、且不可改關聯欄位） | 禁止 |
+| `evaluationForms` | **本人評核者** or Admin（**受評者拒絕讀取**） | 已存在指派的評核者（本人、受評者與週期一致，禁止自評） | Admin 或仍符合指派的評核者本人（僅截止日前、且不可改關聯欄位） | 禁止 |
 | `userAttributeSnapshots` | 本人受評者 or Admin | 評核者（建立預覽）or Admin | 評核者（更新預覽）or Admin | 禁止 |
 
 ---
@@ -64,24 +64,36 @@ match /evaluationAssignments/{assignmentId} {
 
 ```
 match /evaluationForms/{formId} {
-  // ⚠️ 受評者完全無法讀取此集合，即使 evaluateeUid == request.auth.uid
-  // 只有「提交本表單的評核者本人」和「管理者」可讀
+  // 信任已存在的管理者指派，不信任表單自行宣告的身分與關聯。
+  // 使用寫入前的指派資料，允許正常 batch 同時將 pending 改為 completed。
+  function matchesExistingAssignment(form) {
+    let assignment = get(/databases/$(database)/documents/evaluationAssignments/$(form.assignmentId)).data;
+    return form.evaluatorUid == request.auth.uid &&
+      form.evaluateeUid != request.auth.uid &&
+      assignment.evaluatorUid == request.auth.uid &&
+      assignment.evaluateeUid == form.evaluateeUid &&
+      assignment.cycleId == form.cycleId;
+  }
+
   allow read: if isAdmin() ||
     (isSignedIn() && resource.data.evaluatorUid == request.auth.uid);
 
-  // 評核者建立自己的表單（只能建立一次，若重複則由 assignmentId 唯一性控制）
   allow create: if isSignedIn() &&
-    request.resource.data.evaluatorUid == request.auth.uid &&
-    // 確保分數值在合法範圍（1–10）
+    request.resource.data.assignmentId is string &&
+    exists(/databases/$(database)/documents/evaluationAssignments/$(request.resource.data.assignmentId)) &&
+    matchesExistingAssignment(request.resource.data) &&
+    // 確保 10 道題分數值在合法範圍（1–10）
     isValidScores(request.resource.data.scores) &&
-    // 確保整體評價字數在範圍內（20–500字）
+    // 確保整體評價字數在範圍內（20–500 字）
     request.resource.data.overallComment.size() >= 20 &&
     request.resource.data.overallComment.size() <= 500;
 
-  // 管理者可更新；評核者可在截止日前更新自己的已提交表單
-  // 限制：不可改 evaluatorUid / evaluateeUid / cycleId / assignmentId / anomalyFlags
+  // 管理者可更新；評核者可在截止日前更新自己提交的表單（不可改身分與關聯欄位）
   allow update: if isAdmin() ||
     (isSignedIn() &&
+     request.resource.data.assignmentId is string &&
+     exists(/databases/$(database)/documents/evaluationAssignments/$(request.resource.data.assignmentId)) &&
+     matchesExistingAssignment(request.resource.data) &&
      resource.data.evaluatorUid == request.auth.uid &&
      request.resource.data.evaluatorUid == resource.data.evaluatorUid &&
      request.resource.data.evaluateeUid == resource.data.evaluateeUid &&
@@ -189,15 +201,36 @@ match /evaluationAssignments/{assignmentId} {
 }
 
 match /evaluationForms/{formId} {
+  // 信任已存在的管理者指派，不信任表單自行宣告的身分與關聯。
+  // 使用寫入前的指派資料，允許正常 batch 同時將 pending 改為 completed。
+  function matchesExistingAssignment(form) {
+    let assignment = get(/databases/$(database)/documents/evaluationAssignments/$(form.assignmentId)).data;
+    return form.evaluatorUid == request.auth.uid &&
+      form.evaluateeUid != request.auth.uid &&
+      assignment.evaluatorUid == request.auth.uid &&
+      assignment.evaluateeUid == form.evaluateeUid &&
+      assignment.cycleId == form.cycleId;
+  }
+
   allow read: if isAdmin() ||
     (isSignedIn() && resource.data.evaluatorUid == request.auth.uid);
+
   allow create: if isSignedIn() &&
-    request.resource.data.evaluatorUid == request.auth.uid &&
+    request.resource.data.assignmentId is string &&
+    exists(/databases/$(database)/documents/evaluationAssignments/$(request.resource.data.assignmentId)) &&
+    matchesExistingAssignment(request.resource.data) &&
+    // 確保 10 道題分數值在合法範圍（1–10）
     isValidScores(request.resource.data.scores) &&
+    // 確保整體評價字數在範圍內（20–500 字）
     request.resource.data.overallComment.size() >= 20 &&
     request.resource.data.overallComment.size() <= 500;
+
+  // 管理者可更新；評核者可在截止日前更新自己提交的表單（不可改身分與關聯欄位）
   allow update: if isAdmin() ||
     (isSignedIn() &&
+     request.resource.data.assignmentId is string &&
+     exists(/databases/$(database)/documents/evaluationAssignments/$(request.resource.data.assignmentId)) &&
+     matchesExistingAssignment(request.resource.data) &&
      resource.data.evaluatorUid == request.auth.uid &&
      request.resource.data.evaluatorUid == resource.data.evaluatorUid &&
      request.resource.data.evaluateeUid == resource.data.evaluateeUid &&
@@ -209,6 +242,8 @@ match /evaluationForms/{formId} {
      request.resource.data.overallComment.size() <= 500 &&
      exists(/databases/$(database)/documents/evaluationCycles/$(resource.data.cycleId)) &&
      get(/databases/$(database)/documents/evaluationCycles/$(resource.data.cycleId)).data.deadline > request.time);
+
+  // 禁止任何人刪除考評表（資料完整性）
   allow delete: if false;
 }
 
@@ -250,3 +285,11 @@ match /userAttributeSnapshots/{snapshotId} {
 | 已登入使用者遞增 evaluationCycles.completedAssignments | ✅ ALLOWED |
 | 已登入使用者修改 evaluationCycles 其他欄位（如 name） | ❌ DENIED |
 | 未登入使用者讀取任何集合 | ❌ DENIED |
+
+## 2026-11-07 指派一致性修正
+
+- 建立表單與一般評核者修改表單，皆驗證 `assignmentId` 指向既有指派，且指派的 `evaluatorUid` 等於登入者、`evaluateeUid` 與 `cycleId` 等於表單；禁止自評。管理者既有更新權限保留，不新增管理者建立表單的 bypass。
+- 讀取寫入前的指派資料，允許服務的四筆 batch 同時寫表單／快照／completed 狀態／完成計數。實測合法首次提交與完成後修改皆通過。
+- 缺失／已刪除或關聯不一致的歷史指派將阻止一般使用者修改對應表單；管理者可維護歷史資料，不自動補造指派。
+- 本次只收緊表單與指派關聯，不更改新建表單的截止日／指派狀態政策、計數與快照 Rules。
+- 發布時需包含 `firestore.rules`，建議先部署 Rules 再前端；只部署 Hosting 不會生效。Hosting rollback 不會回復 Rules，前端回復時仍保留本權限修正。

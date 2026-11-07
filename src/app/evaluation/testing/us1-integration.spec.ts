@@ -1,20 +1,7 @@
+import { evaluationIntegrationEnabled } from './emulator-setup';
 /**
- * US1 整合測試：評核週期與指派建立流程（T011）
- *
- * ⚠️  此測試使用 Firebase Emulator，在 Karma 瀏覽器環境中以 xdescribe 略過。
- *
- * 執行方式（需先啟動 Firebase Emulator）：
- *   firebase emulators:start --config firebase.local.json
- *   npx jest --testPathPattern="us1-integration.spec"
- *   # 或搭配 firebase-jest-environment：
- *   npx jest --testEnvironment=@firebase/rules-unit-testing/jest
- *
- * 測試情境（User Story 1 核心流程）：
- *   Case 1：管理者建立週期 → evaluationCycles 文件存在，欄位正確
- *   Case 2：管理者建立指派 → 評核者查詢 evaluationAssignments 回傳 1 筆
- *   Case 3：非管理者建立週期 → Security Rules 拒絕（DENIED）
- *   Case 4：重複建立相同指派（相同 key）→ 文件被覆寫，不會產生重複
- *   Case 5：隨機快選儲存 → 不重複增加應提交總數，且 completed 指派保留
+ * Firebase Emulator 整合測試契約。
+ * 執行 npm run test:evaluation-integration；一般單元測試會略過。
  */
 
 import {
@@ -33,7 +20,8 @@ import {
 } from 'firebase/firestore';
 import { TestBed } from '@angular/core/testing';
 import { Auth } from '@angular/fire/auth';
-import { Firestore } from '@angular/fire/firestore';
+import { Firestore, Timestamp as AngularFireTimestamp, doc as angularFireDoc } from '@angular/fire/firestore';
+import { Timestamp as FirebaseTimestamp } from 'firebase/firestore';
 import { EvaluationAssignmentService } from '../services/evaluation-assignment.service';
 import {
   initTestEnv,
@@ -85,29 +73,33 @@ const VALID_ASSIGNMENT_DATA = {
 // 整合測試套件（xdescribe：Karma 環境中略過）
 // =====================
 
-xdescribe('US1 整合測試：評核週期與指派建立流程', () => {
+(evaluationIntegrationEnabled() ? describe : xdescribe)('US1 整合測試：評核週期與指派建立流程', () => {
   let testEnv: RulesTestEnvironment;
 
-  beforeAll(async () => {
-    // 讀取 firestore.rules（Node.js 環境）
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const fs = (eval('require') as NodeRequire)('fs') as { readFileSync: (path: string, enc: string) => string };
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const path = (eval('require') as NodeRequire)('path') as { resolve: (...args: string[]) => string };
-    const rules = fs.readFileSync(path.resolve(process.cwd(), 'firestore.rules'), 'utf8');
-    testEnv = await initTestEnv(rules);
-  });
-
-  afterAll(async () => {
+  afterEach(async () => {
     await teardownTestEnv();
   });
 
   beforeEach(async () => {
+    testEnv = await initTestEnv();
     // 每個測試前清空資料，確保隔離性
     await clearFirestoreData();
     // 種入管理者帳號（供 isAdmin() security rule 判斷）
     await seedAdminUser(ADMIN_UID);
     TestBed.resetTestingModule();
+  });
+
+  it('AngularFire reference 與 Timestamp 可和直接 Firebase SDK 互通讀寫', async () => {
+    const db = createAdminContext(ADMIN_UID).firestore();
+    const reference = TestBed.runInInjectionContext(() => angularFireDoc(db, 'evaluationCycles/sdk-identity'));
+    const timestamp = AngularFireTimestamp.fromMillis(123456789);
+    await setDoc(reference, { ...VALID_CYCLE_DATA, createdAt: timestamp });
+    const snapshot = await getDoc(doc(db, 'evaluationCycles/sdk-identity'));
+    const stored = snapshot.get('createdAt');
+    expect(stored instanceof AngularFireTimestamp).toBeTrue();
+    expect(stored instanceof FirebaseTimestamp).toBeTrue();
+    expect(stored.isEqual(timestamp)).toBeTrue();
+    expect(AngularFireTimestamp).toBe(FirebaseTimestamp);
   });
 
   // =====================

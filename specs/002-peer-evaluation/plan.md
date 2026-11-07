@@ -397,3 +397,7 @@ private ensureInsightsAutoScroll(): void {
 |----------|----------|------------------|
 | 前端執行 Z-score 批次計算（非 Cloud Functions） | 專案無 Cloud Functions，無法後端觸發 | Cloud Functions（不可用）；Cloud Scheduler（不可用） |
 | `userAttributeSnapshots` 允許非本人的已登入使用者 update（preview 狀態） | 評核者需原子性批次寫入 form + snapshot，且沒有 server-side trigger | 另建 `evaluationOverallComments` 集合（引入額外集合與複雜度）；Cloud Functions（不可用） |
+
+### 2026-11-07：表單指派一致性
+
+`evaluationForms` 建立與一般評核者更新必須對應既有 `evaluationAssignments/{assignmentId}`，並核對評核者為登入者、受評者與週期一致且非自評。服務在建立 batch 前提供一致性錯誤；Rules 為最終權限檢查。管理者更新權限保留。完整條件與歷史資料影響見 [Rules 契約](contracts/firestore-rules-contract.md)。

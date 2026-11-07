@@ -40,7 +40,7 @@ jobs:
             firebase-emulators-${{ runner.os }}-
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools@${FIREBASE_TOOLS_VERSION}
@@ -71,3 +71,15 @@ jobs:
 
       - name: Run journey timeline integration tests
         run: npm run test:journey-integration
+
+      - name: Test attachment audit
+        run: npm run test:attachment-audit
+
+      - name: Test attachment rules
+        run: npm run test:attachment-rules
+
+      - name: Test attendance rules
+        run: npm run test:attendance-rules
+
+      - name: Test evaluation integration
+        run: npm run test:evaluation-integration

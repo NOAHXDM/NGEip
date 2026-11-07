@@ -1,3 +1,5 @@
+// 此檔保留為契約參考；實際執行案例位於 tools/request-attachment-emulator-tests.cjs。
+// 執行 npm run test:attachment-rules，使用 Firestore 與 Storage Emulator。
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { deleteObject, getBlob, listAll, ref, uploadBytes } from 'firebase/storage';
 

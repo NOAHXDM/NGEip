@@ -1,17 +1,7 @@
+import { evaluationIntegrationEnabled } from './emulator-setup';
 /**
- * US4 整合測試：管理者總覽與查閱考評表（T031）
- *
- * ⚠️  此測試使用 Firebase Emulator，在 Karma 瀏覽器環境中以 xdescribe 略過。
- *
- * 執行方式（需先啟動 Firebase Emulator）：
- *   firebase emulators:start --config firebase.local.json
- *   npx jest --testPathPattern="us4-integration.spec"
- *
- * 測試情境（User Story 4 核心流程）：
- *   Case 1：管理者執行 closeAndPublish 後，userAttributeSnapshots status===final 且 rankingScore 已填
- *   Case 2：非管理者存取 admin/overview 路由 → canActivate 返回 false（Guard 層驗證）
- *   Case 3：管理者排名查詢（cycleId + totalScore DESC 索引）回傳正確排序
- *   Case 4：管理者可讀取所有考評表詳情（含 evaluatorUid）
+ * Firebase Emulator 整合測試契約。
+ * 執行 npm run test:evaluation-integration；一般單元測試會略過。
  */
 
 import {
@@ -108,23 +98,15 @@ function makeFormData(formId: string, evaluatorUid: string, evaluateeUid: string
 // 整合測試套件（xdescribe：Karma 環境中略過）
 // =====================
 
-xdescribe('US4 整合測試：管理者總覽與查閱考評表', () => {
+(evaluationIntegrationEnabled() ? describe : xdescribe)('US4 整合測試：管理者總覽與查閱考評表', () => {
   let testEnv: RulesTestEnvironment;
 
-  beforeAll(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const fs = (eval('require') as NodeRequire)('fs') as { readFileSync: (path: string, enc: string) => string };
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const path = (eval('require') as NodeRequire)('path') as { resolve: (...args: string[]) => string };
-    const rules = fs.readFileSync(path.resolve(process.cwd(), 'firestore.rules'), 'utf8');
-    testEnv = await initTestEnv(rules);
-  });
-
-  afterAll(async () => {
+  afterEach(async () => {
     await teardownTestEnv();
   });
 
   beforeEach(async () => {
+    testEnv = await initTestEnv();
     await clearFirestoreData();
     await seedAdminUser(ADMIN_UID);
 

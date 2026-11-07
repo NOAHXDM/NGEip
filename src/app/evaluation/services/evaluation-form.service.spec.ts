@@ -202,6 +202,21 @@ describe('EvaluationFormService', () => {
   // 測試 1：overallComment 長度下限（< 20 字元）
   // =======================================================================
 
+  for (const field of ['evaluatorUid', 'evaluateeUid', 'cycleId'] as const) {
+    for (const status of ['pending', 'completed'] as const) {
+      it(`${status} 指派 ${field} 不一致時，應在建立 batch 前拒絕`, async () => {
+        const snapshot = makeAssignmentSnapshot(status);
+        firestoreGetSpy.and.returnValue(Promise.resolve({
+          exists: () => true,
+          data: () => ({ ...snapshot.data(), [field]: 'mismatched-id' }),
+        } as any));
+        await expectAsync(service.submitForm(MOCK_CYCLE_ID, MOCK_ASSIGNMENT_ID, MOCK_EVALUATEE_UID, VALID_DRAFT))
+          .toBeRejectedWithError(/不一致/);
+        expect(firestoreCreateBatchSpy).not.toHaveBeenCalled();
+      });
+    }
+  }
+
   describe('submitForm() 驗證 — overallComment 長度下限（20 字元）', () => {
 
     it('overallComment 為空字串時應拒絕並包含「20」的錯誤訊息，且不呼叫任何 Firestore 操作', async () => {

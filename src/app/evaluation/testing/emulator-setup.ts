@@ -5,7 +5,7 @@
  * 使用方式：
  *   import { initTestEnv, teardownTestEnv, createAdminContext, createEvaluatorContext, createEvaluateeContext } from './emulator-setup';
  *
- * 前提：Firebase Emulator 必須已啟動（firebase emulators:start --config firebase.local.json）
+ * 執行：npm run test:evaluation-integration（自動啟動隔離 demo project）
  */
 
 import {
@@ -23,17 +23,29 @@ let testEnv: RulesTestEnvironment | null = null;
 
 /**
  * 初始化 Firebase Emulator 測試環境
- * 需在 beforeAll / beforeEach 中呼叫
+ * 需在 beforeEach 中呼叫
  *
- * @param rules Firestore Security Rules 字串（必填）
- *              在 Node.js 環境可用 readFileSync('firestore.rules', 'utf8') 讀取
+ * Rules 由專用 Karma runner 提供；每個案例建立及清理自己的 context。
  */
-export async function initTestEnv(rules: string): Promise<RulesTestEnvironment> {
+export function evaluationIntegrationEnabled(): boolean {
+  return globalThis.window?.__karma__?.config?.args?.includes('evaluationIntegration') ?? false;
+}
+
+export async function initTestEnv(): Promise<RulesTestEnvironment> {
+  if (!evaluationIntegrationEnabled()) {
+    throw new Error('Run npm run test:evaluation-integration to initialize the test emulator.');
+  }
+  const browserGlobal = globalThis as unknown as { process?: { env?: Record<string, string> } };
+  browserGlobal.process ??= {};
+  browserGlobal.process.env ??= {};
+  const response = await fetch('/base/firestore.rules');
+  if (!response.ok) throw new Error(`Unable to load firestore.rules: ${response.status}`);
+  const rules = await response.text();
   testEnv = await initializeTestEnvironment({
-    projectId: 'ngeip-test',
+    projectId: 'demo-evaluation-angular',
     firestore: {
       rules,
-      host: 'localhost',
+      host: '127.0.0.1',
       port: 8080,
     },
   });
@@ -42,7 +54,7 @@ export async function initTestEnv(rules: string): Promise<RulesTestEnvironment> 
 
 /**
  * 清理 Firebase Emulator 測試環境
- * 需在 afterAll / afterEach 中呼叫
+ * 需在 afterEach 中呼叫
  */
 export async function teardownTestEnv(): Promise<void> {
   if (testEnv) {
@@ -57,7 +69,7 @@ export async function teardownTestEnv(): Promise<void> {
  */
 export function getTestEnv(): RulesTestEnvironment {
   if (!testEnv) {
-    throw new Error('測試環境尚未初始化，請先呼叫 initTestEnv(rules)');
+    throw new Error('測試環境尚未初始化，請先呼叫 initTestEnv()');
   }
   return testEnv;
 }

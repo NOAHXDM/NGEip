@@ -10,7 +10,7 @@
 
 ## 專案概述
 
-NGEip 是一套以 Angular 20 與 Firebase 為基礎的企業資訊入口網站（EIP），
+NGEip 是一套以 Angular 21 與 Firebase 為基礎的企業資訊入口網站（EIP），
 處理使用者管理、出勤、請假、補助與系統設定等流程。
 
 ## 不可違反的技術原則
@@ -56,7 +56,7 @@ firebase login
 
 ### Angular 結構
 
-- 以 Angular 20 單一應用程式結構為準
+- 以 Angular 21 單一應用程式結構為準
 - 功能頁面、元件、服務與守衛應清楚分層
 - Firebase 存取請集中於可測試的服務層，避免在元件中散落查詢邏輯
 

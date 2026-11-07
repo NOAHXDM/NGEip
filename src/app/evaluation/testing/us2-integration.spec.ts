@@ -1,26 +1,11 @@
+import { TestBed } from '@angular/core/testing';
+import { Auth } from '@angular/fire/auth';
+import { Firestore } from '@angular/fire/firestore';
+import { EvaluationFormService } from '../services/evaluation-form.service';
+import { evaluationIntegrationEnabled } from './emulator-setup';
 /**
- * US2 整合測試：評核表單提交流程（T017）
- *
- * ⚠️  此測試使用 Firebase Emulator，在 Karma 瀏覽器環境中以 xdescribe 略過。
- *
- * 執行方式（需先啟動 Firebase Emulator）：
- *   firebase emulators:start --config firebase.local.json
- *   npx jest --testPathPattern="us2-integration.spec"
- *
- * 測試情境（User Story 2 核心流程）：
- *   Case 1：表單提交批次寫入驗證
- *           Case 1a：evaluationForms 文件存在且欄位正確
- *           Case 1b：userAttributeSnapshots 的 overallComments 包含 arrayUnion 後的評語
- *           Case 1c：evaluationAssignments 狀態更新為 completed
- *
- *   Case 2：受評者讀取 evaluationForms → DENIED（匿名性安全規則）
- *           Case 2a：受評者讀取針對自己的表單 → DENIED
- *           Case 2b：受評者讀取其他評核者提交的表單 → DENIED
- *           Case 2c：評核者讀取自己提交的表單 → ALLOWED（對照組）
- *
- *   Case 3：截止日已過情境 → 前端守衛攔截
- *           Case 3a：overdue 指派可被評核者讀取（前端顯示用），狀態為 overdue
- *           Case 3b：Security Rules 層面不檢查截止日（防護責任在 EvaluationFormService）
+ * Firebase Emulator 整合測試契約。
+ * 執行 npm run test:evaluation-integration；一般單元測試會略過。
  */
 
 import {
@@ -32,6 +17,7 @@ import {
   doc,
   setDoc,
   getDoc,
+  getDocs,
   updateDoc,
   collection,
   arrayUnion,
@@ -114,24 +100,15 @@ const VALID_ASSIGNMENT_DATA = {
 // 整合測試套件（xdescribe：Karma 環境中略過，需 Firebase Emulator）
 // =====================
 
-xdescribe('US2 整合測試：評核表單提交流程', () => {
+(evaluationIntegrationEnabled() ? describe : xdescribe)('US2 整合測試：評核表單提交流程', () => {
   let testEnv: RulesTestEnvironment;
 
-  beforeAll(async () => {
-    // 讀取 firestore.rules（Node.js 環境）
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const fs = (eval('require') as NodeRequire)('fs') as { readFileSync: (path: string, enc: string) => string };
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const path = (eval('require') as NodeRequire)('path') as { resolve: (...args: string[]) => string };
-    const rules = fs.readFileSync(path.resolve(process.cwd(), 'firestore.rules'), 'utf8');
-    testEnv = await initTestEnv(rules);
-  });
-
-  afterAll(async () => {
+  afterEach(async () => {
     await teardownTestEnv();
   });
 
   beforeEach(async () => {
+    testEnv = await initTestEnv();
     // 每個測試前清空資料，確保隔離性
     await clearFirestoreData();
     // 種入管理者帳號（供 isAdmin() security rule 判斷）
@@ -153,6 +130,42 @@ xdescribe('US2 整合測試：評核表單提交流程', () => {
   // 此組測試模擬 EvaluationFormService.submitForm() 的批次寫入行為，
   // 分別驗證三個受影響集合的狀態正確性。
   // =======================================================================
+
+  it('實際 service 的四筆 batch 與 completed 表單修改皆符合指派 Rules', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await ctx.firestore().doc(`evaluationCycles/${CYCLE_ID}`).update({ deadline: new Date('2099-12-31') });
+    });
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [
+      EvaluationFormService,
+      { provide: Firestore, useValue: createEvaluatorContext(EVALUATOR_UID).firestore() },
+      { provide: Auth, useValue: { currentUser: { uid: EVALUATOR_UID } } },
+    ] });
+    try {
+      const service = TestBed.inject(EvaluationFormService);
+      const draft = { scores: VALID_SCORES, feedbacks: {}, overallComment: VALID_OVERALL_COMMENT };
+      await TestBed.runInInjectionContext(() => service.submitForm(CYCLE_ID, ASSIGNMENT_ID, EVALUATEE_UID, draft));
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        expect((await getDocs(collection(db, 'evaluationForms'))).size).toBe(1);
+        expect((await getDoc(doc(db, `evaluationAssignments/${ASSIGNMENT_ID}`))).get('status')).toBe('completed');
+        expect((await getDoc(doc(db, `evaluationCycles/${CYCLE_ID}`))).get('completedAssignments')).toBe(1);
+        expect((await getDoc(doc(db, `userAttributeSnapshots/${SNAPSHOT_ID}`))).get('validEvaluatorCount')).toBe(1);
+      });
+      await TestBed.runInInjectionContext(() => service.submitForm(CYCLE_ID, ASSIGNMENT_ID, EVALUATEE_UID, {
+        ...draft, overallComment: VALID_OVERALL_COMMENT + '持續保持。',
+      }));
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        const forms = await getDocs(collection(db, 'evaluationForms'));
+        expect(forms.size).toBe(1);
+        expect(forms.docs[0].get('overallComment')).toBe(VALID_OVERALL_COMMENT + '持續保持。');
+        expect((await getDoc(doc(db, `evaluationCycles/${CYCLE_ID}`))).get('completedAssignments')).toBe(1);
+      });
+    } finally {
+      TestBed.resetTestingModule();
+    }
+  });
 
   describe('Case 1：表單提交批次寫入驗證', () => {
 
@@ -545,14 +558,14 @@ xdescribe('US2 整合測試：評核表單提交流程', () => {
       });
     });
 
-    it('非管理者不可更新 evaluationCycles 計數', async () => {
+    it('非管理者不可更新 evaluationCycles.totalAssignments', async () => {
       const evaluatorCtx = createEvaluatorContext(EVALUATOR_UID);
       const db = evaluatorCtx.firestore();
 
-      // Security Rules：evaluationCycles 的 update 僅限管理者
+      // totalAssignments 僅限管理者；completedAssignments 是提交表單的既有例外。
       await assertFails(
         updateDoc(doc(db, `evaluationCycles/${CYCLE_ID}`), {
-          completedAssignments: increment(1),
+          totalAssignments: increment(1),
         }),
       );
     });

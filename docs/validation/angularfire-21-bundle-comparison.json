@@ -1,0 +1,200 @@
+{
+  "baselineInitialBytes": 2357494,
+  "upgradedInitialBytes": 2603142,
+  "deltaBytes": 245648,
+  "unattributedDeltaBytes": 374,
+  "contributions": [
+    {
+      "name": "re2js",
+      "baselineBytes": 0,
+      "upgradedBytes": 149716,
+      "deltaBytes": 149716
+    },
+    {
+      "name": "@firebase/firestore",
+      "baselineBytes": 199943,
+      "upgradedBytes": 260401,
+      "deltaBytes": 60458
+    },
+    {
+      "name": "@angular/material",
+      "baselineBytes": 673758,
+      "upgradedBytes": 704426,
+      "deltaBytes": 30668
+    },
+    {
+      "name": "@angular/cdk",
+      "baselineBytes": 193702,
+      "upgradedBytes": 187169,
+      "deltaBytes": -6533
+    },
+    {
+      "name": "@firebase/messaging",
+      "baselineBytes": 13340,
+      "upgradedBytes": 19757,
+      "deltaBytes": 6417
+    },
+    {
+      "name": "@angular/router",
+      "baselineBytes": 69024,
+      "upgradedBytes": 73735,
+      "deltaBytes": 4711
+    },
+    {
+      "name": "@angular/core",
+      "baselineBytes": 147526,
+      "upgradedBytes": 151993,
+      "deltaBytes": 4467
+    },
+    {
+      "name": "@firebase/util",
+      "baselineBytes": 14156,
+      "upgradedBytes": 9897,
+      "deltaBytes": -4259
+    },
+    {
+      "name": "@firebase/webchannel-wrapper",
+      "baselineBytes": 52305,
+      "upgradedBytes": 50965,
+      "deltaBytes": -1340
+    },
+    {
+      "name": "@angular/common",
+      "baselineBytes": 43708,
+      "upgradedBytes": 44809,
+      "deltaBytes": 1101
+    },
+    {
+      "name": "rxjs",
+      "baselineBytes": 24589,
+      "upgradedBytes": 25421,
+      "deltaBytes": 832
+    },
+    {
+      "name": "tslib",
+      "baselineBytes": 2236,
+      "upgradedBytes": 1905,
+      "deltaBytes": -331
+    },
+    {
+      "name": "@angular/forms",
+      "baselineBytes": 45388,
+      "upgradedBytes": 45143,
+      "deltaBytes": -245
+    },
+    {
+      "name": "@ng-matero/extensions",
+      "baselineBytes": 114914,
+      "upgradedBytes": 114683,
+      "deltaBytes": -231
+    },
+    {
+      "name": "rxfire",
+      "baselineBytes": 1062,
+      "upgradedBytes": 849,
+      "deltaBytes": -213
+    },
+    {
+      "name": "@firebase/installations",
+      "baselineBytes": 8273,
+      "upgradedBytes": 8423,
+      "deltaBytes": 150
+    },
+    {
+      "name": "app/styles",
+      "baselineBytes": 484340,
+      "upgradedBytes": 484219,
+      "deltaBytes": -121
+    },
+    {
+      "name": "@firebase/auth",
+      "baselineBytes": 78421,
+      "upgradedBytes": 78494,
+      "deltaBytes": 73
+    },
+    {
+      "name": "@firebase/app-check",
+      "baselineBytes": 8720,
+      "upgradedBytes": 8652,
+      "deltaBytes": -68
+    },
+    {
+      "name": "@firebase/component",
+      "baselineBytes": 4311,
+      "upgradedBytes": 4266,
+      "deltaBytes": -45
+    },
+    {
+      "name": "date-fns",
+      "baselineBytes": 45925,
+      "upgradedBytes": 45961,
+      "deltaBytes": 36
+    },
+    {
+      "name": "@angular/fire",
+      "baselineBytes": 5922,
+      "upgradedBytes": 5958,
+      "deltaBytes": 36
+    },
+    {
+      "name": "@angular/platform-browser",
+      "baselineBytes": 15762,
+      "upgradedBytes": 15728,
+      "deltaBytes": -34
+    },
+    {
+      "name": "@firebase/app",
+      "baselineBytes": 9740,
+      "upgradedBytes": 9766,
+      "deltaBytes": 26
+    },
+    {
+      "name": "@firebase/logger",
+      "baselineBytes": 1712,
+      "upgradedBytes": 1737,
+      "deltaBytes": 25
+    },
+    {
+      "name": "@firebase/storage",
+      "baselineBytes": 22985,
+      "upgradedBytes": 22961,
+      "deltaBytes": -24
+    },
+    {
+      "name": "date-fns-tz",
+      "baselineBytes": 6917,
+      "upgradedBytes": 6920,
+      "deltaBytes": 3
+    },
+    {
+      "name": "idb",
+      "baselineBytes": 3241,
+      "upgradedBytes": 3240,
+      "deltaBytes": -1
+    },
+    {
+      "name": "@angular/material-date-fns-adapter",
+      "baselineBytes": 2374,
+      "upgradedBytes": 2374,
+      "deltaBytes": 0
+    },
+    {
+      "name": "@ng-matero/extensions-date-fns-adapter",
+      "baselineBytes": 1721,
+      "upgradedBytes": 1721,
+      "deltaBytes": 0
+    },
+    {
+      "name": "firebase",
+      "baselineBytes": 47,
+      "upgradedBytes": 47,
+      "deltaBytes": 0
+    },
+    {
+      "name": "zone.js",
+      "baselineBytes": 34584,
+      "upgradedBytes": 34584,
+      "deltaBytes": 0
+    }
+  ]
+}
