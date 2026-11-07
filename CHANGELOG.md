@@ -24,8 +24,13 @@
 
 - CI 改用標準 npm ci，加入附件 audit、附件／出勤 Rules 與評鑑整合測試。
 - 評鑑測試以專用 Karma runner 讀取 Rules，每個案例清理連線；補上跨 AngularFire／Firebase 的 reference、Timestamp 讀寫測試。
-- Karma 預設停用 sourcemap，避免完整測試 bundle 載入時 Chrome 無回應；除錯可加 --source-map=true。
+- Karma 維持預設 sourcemap；重跑完整測試未重現先前載入逾時，記錄診斷條件與結果。
 - 追蹤 AngularFire 22 正式版及 Angular 22 升級；實測結果與尚未完成的發布門檻見 docs/plans/2026-11-07-angularfire-21-validation.md。
+
+### 已知缺口
+
+- 評鑑重複提交、create 截止日檢查與指派 update 收斂另由 [#42](https://github.com/NOAHXDM/NGEip/issues/42) 處理，不屬本次指派一致性修正範圍。
+- Initial bundle 從 2.36 MB 增至 2.60 MB，新增 2.5 MB warning；主要來自 Firebase 12.19 的 re2js 與 Firestore。維持原 budgets，分析與後續縮減方案見驗證紀錄。
 
 ## [4.5.3] - 2026-11-06
 
