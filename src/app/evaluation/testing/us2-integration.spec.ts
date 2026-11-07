@@ -4,8 +4,8 @@ import { Firestore } from '@angular/fire/firestore';
 import { EvaluationFormService } from '../services/evaluation-form.service';
 import { evaluationIntegrationEnabled } from './emulator-setup';
 /**
- * Firebase Emulator integration contract.
- * Run with npm run test:evaluation-integration; skipped by the regular unit suite.
+ * Firebase Emulator 整合測試契約。
+ * 執行 npm run test:evaluation-integration；一般單元測試會略過。
  */
 
 import {

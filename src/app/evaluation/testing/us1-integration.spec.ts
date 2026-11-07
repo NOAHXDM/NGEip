@@ -1,7 +1,7 @@
 import { evaluationIntegrationEnabled } from './emulator-setup';
 /**
- * Firebase Emulator integration contract.
- * Run with npm run test:evaluation-integration; skipped by the regular unit suite.
+ * Firebase Emulator 整合測試契約。
+ * 執行 npm run test:evaluation-integration；一般單元測試會略過。
  */
 
 import {
@@ -89,7 +89,7 @@ const VALID_ASSIGNMENT_DATA = {
     TestBed.resetTestingModule();
   });
 
-  it('AngularFire references and Timestamp interoperate with direct Firebase SDK reads/writes', async () => {
+  it('AngularFire reference 與 Timestamp 可和直接 Firebase SDK 互通讀寫', async () => {
     const db = createAdminContext(ADMIN_UID).firestore();
     const reference = TestBed.runInInjectionContext(() => angularFireDoc(db, 'evaluationCycles/sdk-identity'));
     const timestamp = AngularFireTimestamp.fromMillis(123456789);

@@ -421,5 +421,5 @@ PR CI 會執行 TypeScript spec typecheck、Cloud Functions TypeScript build 與
 
 新增 `npm run test:evaluation-integration`，以隔離 demo project 執行評鑑 Rules 與 US1–US4；一般 `npm test -- --watch=false` 仍略過這些 emulator 案例。
 附件的兩份 Karma rules spec 保留為契約參考，實際權限矩陣由 `npm run test:attachment-rules` 執行（含 Firestore／Storage、覆寫與清理佇列）。
-完整 Karma 預設停用 sourcemap，除錯時可加 `--source-map=true`。
+Karma 使用預設 sourcemap；若遇到瀏覽器載入逾時，可用 `--source-map=false` 作為診斷對照，不能以此取代原因調查。
 升級驗證紀錄與發布前人工檢查見 [驗證紀錄](docs/plans/2026-11-07-angularfire-21-validation.md)。
